@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { storiesConn } from '../../shared/config/database.js';
+
 
 const likeSchema = new mongoose.Schema({
   story: { type: mongoose.Schema.Types.ObjectId, ref: 'Story', required: true, index: true },
@@ -11,5 +11,5 @@ const likeSchema = new mongoose.Schema({
 
 likeSchema.index({ story: 1, user: 1 }, { unique: true });
 
-const Like = storiesConn.model('Like', likeSchema);
+const Like = mongoose.model('likes', likeSchema);
 export default Like;

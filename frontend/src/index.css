@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand */
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #f59e0b;
+  --color-secondary-foreground: #1f2937;
+
+  --color-accent: #0ea5e9;
+  --color-accent-foreground: #ffffff;
+
+  /* Background */
+  --color-background: #fafaf8;
+  --color-foreground: #1f2937;
+
+  /* Surfaces */
+  --color-card: #ffffff;
+  --color-card-foreground: #1f2937;
+
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1f2937;
+
+  /* Muted */
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+  --color-input: #d1d5db;
+  --color-ring: #2563eb;
+
+  /* States */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-destructive: #dc2626;
+  --color-info: #0ea5e9;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 6px 20px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
+
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}
+
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --color-background: #0f1115;
+    --color-foreground: #f8fafc;
+
+    --color-card: #171b22;
+    --color-card-foreground: #f8fafc;
+
+    --color-popover: #171b22;
+    --color-popover-foreground: #f8fafc;
+
+    --color-muted: #1f2937;
+    --color-muted-foreground: #94a3b8;
+
+    --color-border: #2b3440;
+    --color-input: #374151;
+
+    --color-primary: #4f8cff;
+    --color-primary-foreground: #ffffff;
+
+    --color-secondary: #f4b400;
+    --color-secondary-foreground: #111827;
+
+    --color-accent: #38bdf8;
+    --color-accent-foreground: #ffffff;
+
+    --color-success: #22c55e;
+    --color-warning: #fbbf24;
+    --color-destructive: #ef4444;
+    --color-info: #38bdf8;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

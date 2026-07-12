@@ -1,14 +1,16 @@
 import { createHash } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import Story from '../../story/models/Story.js';
-
-const { QDRANT_URL, QDRANT_API_KEY } = process.env;
+import config from '../../config/index.js';
 
 let qdrant;
 
 function getQdrant() {
   if (qdrant) return qdrant;
-  qdrant = new QdrantClient({ url: QDRANT_URL, apiKey: QDRANT_API_KEY });
+  qdrant = new QdrantClient({
+    url: config.qdrant.url,
+    apiKey: config.qdrant.apiKey,
+  });
   return qdrant;
 }
 

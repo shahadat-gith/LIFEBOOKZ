@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { storiesConn } from "../../shared/config/database.js";
 
 const commentSchema = new mongoose.Schema(
   {
@@ -31,5 +30,5 @@ const commentSchema = new mongoose.Schema(
 
 commentSchema.index({ story: 1, createdAt: -1 });
 
-const Comment = storiesConn.model("Comment", commentSchema);
+const Comment = mongoose.model("comments", commentSchema);
 export default Comment;

@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { authorsConn } from '../shared/config/database.js';
 import bcrypt from 'bcryptjs';
 
 const authorSchema = new mongoose.Schema(
@@ -40,6 +39,7 @@ const authorSchema = new mongoose.Schema(
       verifiedAt: { type: Date, default: Date.now },
     },
 
+  },
   {
     timestamps: true,
     toJSON: {
@@ -69,5 +69,5 @@ authorSchema.methods.comparePassword = async function (candidate) {
   return bcrypt.compare(candidate, this.passwordHash);
 };
 
-const Author = authorsConn.model('Author', authorSchema);
+const Author = mongoose.models.Author || mongoose.model("authors", authorSchema)
 export default Author;

@@ -8,11 +8,6 @@ const config = {
 
   mongodb: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
-    databases: {
-      users: process.env.MONGO_USERS_DB || 'lifebookz_users',
-      authors: process.env.MONGO_AUTHORS_DB || 'lifebookz_authors',
-      stories: process.env.MONGO_STORIES_DB || 'lifebookz_stories',
-    },
   },
 
   jwt: {

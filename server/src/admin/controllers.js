@@ -3,7 +3,7 @@ import User from '../user/model.js';
 import { NotFoundError, ValidationError } from '../shared/utils/errors.js';
 import { sendApplicationApproved, sendApplicationRejected } from '../shared/services/email.js';
 import { getQdrantClient } from '../shared/config/qdrant.js';
-import { usersConn, authorsConn, storiesConn } from '../shared/config/database.js';
+
 import log from '../shared/utils/logger.js';
 
 export async function dashboard(req, res, next) {
@@ -55,32 +55,3 @@ export async function rejectApplication(req, res, next) {
   } catch (e) { next(e); }
 }
 
-export async function health(req, res, next) {
-  try {
-    const checks = {
-      server: { status: 'ok', timestamp: new Date().toISOString() },
-      database: { status: 'unknown' },
-      qdrant: { status: 'unknown' },
-    };
-    try {
-      const allReady = [usersConn, authorsConn, storiesConn].every(c => c.readyState === 1);
-      checks.database = {
-        status: allReady ? 'ok' : 'error',
-        databases: {
-          users: usersConn.readyState === 1 ? 'connected' : 'disconnected',
-          authors: authorsConn.readyState === 1 ? 'connected' : 'disconnected',
-          stories: storiesConn.readyState === 1 ? 'connected' : 'disconnected',
-        },
-      };
-    } catch (e) { checks.database = { status: 'error', message: e.message }; }
-    try {
-      const qdrant = getQdrantClient();
-      if (qdrant) {
-        const cols = await qdrant.listCollections();
-        checks.qdrant = { status: 'ok', collections: cols.collections?.length || 0 };
-      }
-    } catch (e) { checks.qdrant = { status: 'error', message: e.message }; }
-    const ok = Object.values(checks).every(c => c.status === 'ok');
-    res.status(ok ? 200 : 503).json({ status: ok ? 'healthy' : 'degraded', checks });
-  } catch (e) { next(e); }
-}

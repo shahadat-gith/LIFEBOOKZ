@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { storiesConn } from '../../shared/config/database.js';
+
 
 const issueSchema = new mongoose.Schema(
   {
@@ -42,5 +42,5 @@ const verificationSchema = new mongoose.Schema(
 
 verificationSchema.index({ status: 1, createdAt: -1 });
 
-const Verification = storiesConn.model('Verification', verificationSchema);
+const Verification = mongoose.model('verifications', verificationSchema);
 export default Verification;

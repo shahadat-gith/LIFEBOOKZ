@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { storiesConn } from '../../shared/config/database.js';
+
 
 const storySchema = new mongoose.Schema(
   {
@@ -43,6 +43,7 @@ const storySchema = new mongoose.Schema(
 storySchema.index({ language: 1 });
 storySchema.index({ publishedAt: -1 });
 storySchema.index({ author: 1, publishedAt: -1 });
+storySchema.index({ title: 'text', content: 'text' });
 
-const Story = storiesConn.model("Story", storySchema);
+const Story = mongoose.model("stories", storySchema);
 export default Story;
