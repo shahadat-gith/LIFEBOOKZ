@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useAuth } from '../../../store/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Card, { CardTitle, CardContent, CardFooter } from '../../../components/ui/Card';
@@ -8,12 +8,10 @@ import { Icons } from '../../../icons';
 import toast from 'react-hot-toast';
 import { userApi } from '../../../services/apis/user';
 
-export default function PreferencesPage() {
+export function PreferencesPage() {
   const { user, refreshUser } = useAuth();
   const [interests, setInterests] = useState(user?.preferences?.interests?.join(', ') || '');
   const [profession, setProfession] = useState(user?.preferences?.profession || '');
-  const [skills, setSkills] = useState(user?.preferences?.skills?.join(', ') || '');
-  const [goals, setGoals] = useState(user?.preferences?.goals?.join(', ') || '');
   const [languages, setLanguages] = useState(user?.preferences?.languages?.join(', ') || '');
   const [country, setCountry] = useState(user?.preferences?.location?.country || '');
   const [city, setCity] = useState(user?.preferences?.location?.city || '');
@@ -26,8 +24,6 @@ export default function PreferencesPage() {
       await userApi.updatePreferences({
         interests: interests.split(',').map((s) => s.trim()).filter(Boolean),
         profession,
-        skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-        goals: goals.split(',').map((s) => s.trim()).filter(Boolean),
         languages: languages.split(',').map((s) => s.trim()).filter(Boolean),
         location: { country, city },
       });
@@ -60,7 +56,7 @@ export default function PreferencesPage() {
               label="Profession"
               value={profession}
               onChange={(e) => setProfession(e.target.value)}
-              placeholder="e.g., Software Engineer"
+              placeholder="e.g., Software Engineer, Teacher, Doctor, Writer"
               icon={<Icons.briefcase className="h-4 w-4" />}
             />
 
@@ -69,7 +65,7 @@ export default function PreferencesPage() {
                 label="Interests (comma-separated)"
                 value={interests}
                 onChange={(e) => setInterests(e.target.value)}
-                placeholder="Technology, Science, Fiction..."
+                placeholder="e.g., Cricket, Technology, Mythology, Poetry, Cinema"
                 icon={<Icons.star className="h-4 w-4" />}
               />
               {interestList.length > 0 && (
@@ -83,27 +79,11 @@ export default function PreferencesPage() {
               )}
             </div>
 
-            <Input
-              label="Skills (comma-separated)"
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-              placeholder="Writing, Editing, Research..."
-              icon={<Icons.academic className="h-4 w-4" />}
-            />
-
-            <Input
-              label="Goals (comma-separated)"
-              value={goals}
-              onChange={(e) => setGoals(e.target.value)}
-              placeholder="Learn, Share, Connect..."
-              icon={<Icons.flag className="h-4 w-4" />}
-            />
 
             <Input
               label="Languages (comma-separated)"
               value={languages}
-              onChange={(e) => setLanguages(e.target.value)}
-              placeholder="en, es, fr..."
+              onChange={(e) => setLanguages(e.target.value)}                placeholder="e.g., hi, en, ta, te, bn, mr"
               icon={<Icons.translate className="h-4 w-4" />}
             />
 
@@ -112,14 +92,14 @@ export default function PreferencesPage() {
                 label="Country"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="Your country"
+                placeholder="e.g., India"
                 icon={<Icons.globe className="h-4 w-4" />}
               />
               <Input
                 label="City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Your city"
+                placeholder="e.g., Mumbai, Bengaluru, Delhi, Chennai"
                 icon={<Icons.location className="h-4 w-4" />}
               />
             </div>
@@ -134,3 +114,5 @@ export default function PreferencesPage() {
     </div>
   );
 }
+
+export default PreferencesPage;

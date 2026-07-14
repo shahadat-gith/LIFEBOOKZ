@@ -7,14 +7,10 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     passwordHash: { type: String, select: false },
     avatar: { type: String, default: '' },
-    googleId: { type: String, index: true, sparse: true },
 
     preferences: {
       interests: { type: [String], default: [] },
       profession: { type: String, default: '' },
-      education: { type: [String], default: [] },
-      skills: { type: [String], default: [] },
-      goals: { type: [String], default: [] },
       languages: { type: [String], default: ['en'] },
       location: { country: { type: String, default: '' }, city: { type: String, default: '' } },
     },
@@ -24,7 +20,6 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       transform(_doc, ret) {
         delete ret.passwordHash;
-        delete ret.googleId;
         delete ret.__v;
         ret.id = ret._id;
         return ret;

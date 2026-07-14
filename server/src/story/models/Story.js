@@ -10,10 +10,10 @@ const storySchema = new mongoose.Schema(
       index: true,
     },
     title: { type: String, required: true, trim: true, maxlength: 200 },
-    bannerImage: { 
-      url: { type: String, required: true },
-      publicId: { type: String, required: true },
-     },
+    bannerImage: {
+      url: { type: String },
+      publicId: { type: String },
+    },
 
     content: { type: String, required: true, maxlength: 100000 },
 

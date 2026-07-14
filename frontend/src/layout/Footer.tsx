@@ -1,4 +1,4 @@
-export default function Footer() {
+export function Footer() {
   return (
     <footer className="border-t border-border bg-muted/30 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -6,10 +6,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent text-white font-bold text-xs">
-                L
-              </div>
-              <span className="font-display font-bold text-foreground">Lifebookz</span>
+              <img
+                src="/logo.png"
+                alt="Lifebookz"
+                className="h-8 w-auto object-contain"
+              />
             </div>
             <p className="text-sm text-muted-foreground">
               Share your stories with the world. Powered by AI.
@@ -54,3 +55,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+export default Footer;

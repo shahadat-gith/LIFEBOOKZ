@@ -3,33 +3,14 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Avatar from '../../../components/ui/Avatar';
 import { Icons } from '../../../icons';
-
-interface StoryAuthor {
-  _id: string;
-  fullName?: string;
-  name?: string;
-  avatar?: string;
-}
-
-interface StoryCardData {
-  _id: string;
-  id: string;
-  title: string;
-  summary?: string;
-  tags?: string[];
-  language?: string;
-  publishedAt?: string;
-  createdAt: string;
-  author?: StoryAuthor;
-  bannerImage?: { url: string };
-}
+import type { StorySummary } from '../../../constants/types';
 
 interface StoryCardProps {
-  story: StoryCardData;
+  story: StorySummary;
   showAuthor?: boolean;
 }
 
-export default function StoryCard({ story, showAuthor = true }: StoryCardProps) {
+export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
   const authorName = story.author?.fullName || story.author?.name || 'Unknown';
   const date = story.publishedAt || story.createdAt;
   const timeAgo = getTimeAgo(new Date(date));
@@ -119,3 +100,6 @@ function getTimeAgo(date: Date): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
+
+
+export default StoryCard;

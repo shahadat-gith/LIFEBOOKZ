@@ -7,7 +7,7 @@ interface ErrorMessageProps {
   fullScreen?: boolean;
 }
 
-export default function ErrorMessage({
+export function ErrorMessage({
   message = 'Something went wrong',
   onRetry,
   fullScreen = false,
@@ -39,3 +39,5 @@ export default function ErrorMessage({
     </div>
   );
 }
+
+export default ErrorMessage;

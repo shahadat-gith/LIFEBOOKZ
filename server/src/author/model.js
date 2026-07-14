@@ -29,8 +29,8 @@ const authorSchema = new mongoose.Schema(
 
     socialLinks: {
       x: { type: String, default: '' },
-      github: { type: String, default: '' },
       linkedin: { type: String, default: '' },
+      instagram: { type: String, default: '' },
     },
 
     verification:{

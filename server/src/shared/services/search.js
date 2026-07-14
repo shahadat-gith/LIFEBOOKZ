@@ -23,7 +23,7 @@ async function vectorSearch(query, { limit, language }) {
   if (language)
     filter.must.push({ key: "language", match: { value: language } });
 
-  const results = await qdrant.search("story_embeddings", {
+  const results = await qdrant.search("lifebookz_story_embeddings", {
     vector: new Array(384).fill(0.5),
     limit,
     scoreThreshold: 0.2,

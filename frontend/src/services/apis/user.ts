@@ -1,14 +1,5 @@
 import api from '../../lib/axios';
-
-export interface UserPreferences {
-  interests?: string[];
-  profession?: string;
-  education?: string[];
-  skills?: string[];
-  goals?: string[];
-  languages?: string[];
-  location?: { country?: string; city?: string };
-}
+import type { UserUpdatePreferences } from '../../constants/types';
 
 export const userApi = {
   /** Get current user's profile */
@@ -21,7 +12,7 @@ export const userApi = {
   deleteMe: () => api.delete('/users/me'),
 
   /** Update user preferences */
-  updatePreferences: (prefs: UserPreferences) => api.put('/users/me/preferences', prefs),
+  updatePreferences: (prefs: UserUpdatePreferences) => api.put('/users/me/preferences', prefs),
 
   /** Get user stats */
   getMyStats: () => api.get('/users/me/stats'),

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import upload from '../shared/middlewares/multer.js';
 import {
   create, resubmit, list, getById, update, remove,
   like, listComments, addComment, enhance, titleSuggestions,
@@ -7,11 +8,11 @@ import { authenticate, authenticateOptional } from '../auth/middleware.js';
 
 const router = Router();
 
-router.post('/', authenticate, create);
-router.post('/:storyId/resubmit', authenticate, resubmit);
+router.post('/', authenticate, upload.single('bannerImage'), create);
+router.post('/:storyId/resubmit', authenticate, upload.single('bannerImage'), resubmit);
 router.get('/', authenticateOptional, list);
 router.get('/:storyId', authenticateOptional, getById);
-router.patch('/:storyId', authenticate, update);
+router.patch('/:storyId', authenticate, upload.single('bannerImage'), update);
 router.delete('/:storyId', authenticate, remove);
 router.post('/:storyId/like', authenticate, like);
 router.get('/:storyId/comments', listComments);

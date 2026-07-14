@@ -7,7 +7,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string;
 }
 
-const Select = forwardRef<HTMLSelectElement, SelectProps>(
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, options, placeholder, className = '', id, ...props }, ref) => {
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
 

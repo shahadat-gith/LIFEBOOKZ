@@ -7,60 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import api from '../lib/axios';
-
-// ---- Types ----
-export interface User {
-  _id: string;
-  id: string;
-  email: string;
-  name: string;
-  avatar: string;
-  preferences: {
-    interests: string[];
-    profession: string;
-    education: string[];
-    skills: string[];
-    goals: string[];
-    languages: string[];
-    location: { country: string; city: string };
-  };
-  createdAt: string;
-}
-
-export interface Author {
-  _id: string;
-  id: string;
-  email: string;
-  fullName: string;
-  avatar: string;
-  bio: string;
-  website: string;
-  socialLinks: { x: string; github: string; linkedin: string };
-  kyc: {
-    dateOfBirth?: string;
-    phoneNumber?: string;
-    address?: {
-      street: string;
-      city: string;
-      state: string;
-      country: string;
-      zipCode: string;
-    };
-    governmentId?: {
-      type: string;
-      number: string;
-      documentUrl: string;
-    };
-  };
-  verification: {
-    status: 'pending' | 'approved' | 'rejected';
-    rejectionReason?: string;
-    verifiedAt?: string;
-  };
-  createdAt: string;
-}
-
-export type AuthRole = 'user' | 'author' | 'admin' | null;
+import type { User, Author, AuthRole } from '../constants/types';
 
 interface AuthState {
   user: User | null;
@@ -176,7 +123,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           localStorage.removeItem('user');
           localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
           dispatch({ type: 'SET_LOADING', payload: false });
         }
         return;
@@ -190,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           localStorage.removeItem('author');
           localStorage.removeItem('authorAccessToken');
-          localStorage.removeItem('authorRefreshToken');
           dispatch({ type: 'SET_LOADING', payload: false });
         }
         return;
@@ -205,7 +150,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginUser = useCallback(async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('user', JSON.stringify(data.user));
     dispatch({ type: 'SET_USER', payload: data.user });
   }, []);
@@ -218,7 +162,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
       });
       localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
       localStorage.setItem('user', JSON.stringify(data.user));
       dispatch({ type: 'SET_USER', payload: data.user });
     },
@@ -228,7 +171,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginAuthor = useCallback(async (email: string, password: string) => {
     const { data } = await api.post('/authors/login', { email, password });
     localStorage.setItem('authorAccessToken', data.accessToken);
-    localStorage.setItem('authorRefreshToken', data.refreshToken);
     localStorage.setItem('author', JSON.stringify(data.author));
     dispatch({ type: 'SET_AUTHOR', payload: data.author });
   }, []);
@@ -237,7 +179,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (formData: Record<string, unknown>) => {
       const { data } = await api.post('/authors/register', formData);
       localStorage.setItem('authorAccessToken', data.accessToken);
-      localStorage.setItem('authorRefreshToken', data.refreshToken);
       localStorage.setItem('author', JSON.stringify(data.author));
       dispatch({ type: 'SET_AUTHOR', payload: data.author });
     },
@@ -253,24 +194,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('authorAccessToken');
-    localStorage.removeItem('authorRefreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('author');
     localStorage.removeItem('admin');
     dispatch({ type: 'LOGOUT' });
-    api.post('/auth/logout').catch(() => {});
   }, []);
 
-  const updateUser = useCallback(async (updates: Partial<User>) => {
-    const { data } = await api.patch('/users/me', updates);
+  const updateUser = useCallback(async (updates: Partial<User> | FormData) => {
+    const isFormData = updates instanceof FormData;
+    const { data } = await api.patch('/users/me', updates, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
     localStorage.setItem('user', JSON.stringify(data));
     dispatch({ type: 'UPDATE_USER', payload: data });
   }, []);
 
-  const updateAuthor = useCallback(async (updates: Partial<Author>) => {
-    const { data } = await api.patch('/authors/me', updates);
+  const updateAuthor = useCallback(async (updates: Partial<Author> | FormData) => {
+    const isFormData = updates instanceof FormData;
+    const { data } = await api.patch('/authors/me', updates, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
     localStorage.setItem('author', JSON.stringify(data));
     dispatch({ type: 'UPDATE_AUTHOR', payload: data });
   }, []);
@@ -321,3 +265,5 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
+
+export default AuthProvider;

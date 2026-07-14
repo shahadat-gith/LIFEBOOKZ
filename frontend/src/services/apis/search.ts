@@ -1,11 +1,5 @@
 import api from '../../lib/axios';
-
-export interface SearchParams {
-  q: string;
-  limit?: number;
-  language?: string;
-  category?: string;
-}
+import type { SearchParams } from '../../constants/types';
 
 export const searchApi = {
   /** Semantic search across stories */

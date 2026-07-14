@@ -38,7 +38,7 @@ export const processEmbeddingJob = async (storyId) => {
     const vector = await generateEmbedding(contentForEmbedding);
 
     const q = getQdrant();
-    await q.upsert('story_embeddings', {
+    await q.upsert('lifebookz_story_embeddings', {
       wait: true,
       points: [{
         id: storyId,

@@ -1,32 +1,5 @@
 import api from '../../lib/axios';
-
-export interface CreateStoryData {
-  title: string;
-  content: string;
-  tags?: string[];
-  language?: string;
-  bannerImage?: { url: string; publicId: string };
-}
-
-export interface UpdateStoryData {
-  title?: string;
-  content?: string;
-  tags?: string[];
-  language?: string;
-  bannerImage?: { url: string; publicId: string };
-}
-
-export interface StoryListParams {
-  limit?: number;
-  cursor?: string;
-  language?: string;
-  tags?: string;
-  authorId?: string;
-}
-
-export interface CommentData {
-  content: string;
-}
+import type { CreateStoryData, UpdateStoryData, StoryListParams, CommentData } from '../../constants/types';
 
 export const storyApi = {
   /** Create a new story (author only) */

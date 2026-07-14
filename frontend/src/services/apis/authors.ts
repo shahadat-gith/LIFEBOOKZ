@@ -1,16 +1,5 @@
 import api from '../../lib/axios';
-
-export interface AuthorUpdateData {
-  fullName?: string;
-  bio?: string;
-  website?: string;
-  avatar?: string;
-  socialLinks?: {
-    x?: string;
-    github?: string;
-    linkedin?: string;
-  };
-}
+import type { AuthorUpdateData } from '../../constants/types';
 
 export const authorApi = {
   /** Get current author's profile */

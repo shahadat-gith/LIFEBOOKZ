@@ -1,43 +1,26 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
 const config = {
-  env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT, 10) || 3001,
-  apiPrefix: process.env.API_PREFIX || '/api/v1',
+  env: process.env.NODE_ENV,
+  port: parseInt(process.env.PORT, 10),
 
   mongodb: {
-    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
+    uri: process.env.MONGODB_URI,
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET || 'dev-secret',
-    accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
-    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
+    secret: process.env.JWT_SECRET,
   },
 
   admin: {
-    email: process.env.ADMIN_EMAIL || 'admin@lifebookz.com',
-    password: process.env.ADMIN_PASSWORD || 'admin123',
-    key: process.env.ADMIN_KEY || 'admin-secret-key-change-in-production',
-  },
-
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/v1/auth/google/callback',
-  },
-
-  r2: {
-    endpoint: process.env.R2_ENDPOINT,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    bucket: process.env.R2_BUCKET || 'lifebookz-media',
-    publicUrl: process.env.R2_PUBLIC_URL,
+    email: process.env.ADMIN_EMAIL,
+    password: process.env.ADMIN_PASSWORD,
+    key: process.env.ADMIN_KEY,
   },
 
   aws: {
-    region: process.env.AWS_REGION || 'us-east-1',
+    region: "ap-south-1",
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     sqs: {
@@ -45,22 +28,25 @@ const config = {
     },
   },
 
+  cloudinary: {
+    name: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    secretKey: process.env.CLOUDINARY_API_SECRET,
+  },
+
   qdrant: {
-    url: process.env.QDRANT_URL || 'http://localhost:6333',
+    url: process.env.QDRANT_ENDPOINT,
     apiKey: process.env.QDRANT_API_KEY,
   },
 
   openrouter: {
     apiKey: process.env.OPENROUTER_API_KEY,
-    model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat-v4',
-    baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    chatModel: process.env.OPENROUTER_MODEL,
+    embeddingModel: process.env.OPENROUTER_EMBEDDING_MODEL,
+    baseUrl: process.env.OPENROUTER_BASE_URL,
   },
 
-  cookie: {
-    secure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
-  },
-
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  frontendUrl: process.env.FRONTEND_URL,
 };
 
 export default config;

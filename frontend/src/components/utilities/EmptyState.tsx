@@ -13,7 +13,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export default function EmptyState({
+export function EmptyState({
   icon = <Icons.document className="h-12 w-12" />,
   title,
   description,
@@ -39,3 +39,5 @@ export default function EmptyState({
     </div>
   );
 }
+
+export default EmptyState;

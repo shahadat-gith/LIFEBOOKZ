@@ -14,7 +14,7 @@ const sizeClasses: Record<SpinnerSize, string> = {
   lg: 'h-10 w-10',
 };
 
-export default function Spinner({
+export function Spinner({
   size = 'md',
   className = '',
   label,
@@ -29,3 +29,5 @@ export default function Spinner({
     </div>
   );
 }
+
+export default Spinner;

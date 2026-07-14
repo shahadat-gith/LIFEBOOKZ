@@ -111,6 +111,8 @@ export async function resubmitStory(storyId, authorId, updatedData) {
   if (updatedData.title) story.title = updatedData.title;
   if (updatedData.content) story.content = updatedData.content;
   if (updatedData.tags) story.tags = updatedData.tags;
+  if (updatedData.language) story.language = updatedData.language;
+  if (updatedData.bannerImage) story.bannerImage = updatedData.bannerImage;
 
   // Clear publishedAt so story is not publicly visible during re-verification
   story.publishedAt = undefined;

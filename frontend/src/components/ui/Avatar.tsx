@@ -37,7 +37,7 @@ function stringToColor(name?: string): string {
   return `hsl(${hue}, 65%, 55%)`;
 }
 
-export default function Avatar({
+export function Avatar({
   src,
   alt = '',
   name,
@@ -70,3 +70,5 @@ export default function Avatar({
     </div>
   );
 }
+
+export default Avatar;

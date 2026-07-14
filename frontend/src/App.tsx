@@ -13,7 +13,6 @@ import {
   RegisterPage,
   ProfilePage,
   PreferencesPage,
-  AuthCallbackPage,
 } from './modules/users';
 import {
   AuthorDashboardPage,
@@ -28,13 +27,13 @@ import {
   StoryEditPage,
 } from './modules/stories';
 import { SearchResultsPage } from './modules/search';
-import { AdminDashboardPage } from './modules/admin';
+
 
 function LazyFallback() {
   return <LoadingScreen message="Loading page..." />;
 }
 
-export default function App() {
+export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -47,9 +46,6 @@ export default function App() {
               <Route path="/stories" element={<StoryListPage />} />
               <Route path="/stories/:storyId" element={<StoryDetailPage />} />
               <Route path="/search" element={<SearchResultsPage />} />
-
-              {/* Auth Callback */}
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* Author - Protected */}
               <Route
@@ -103,15 +99,6 @@ export default function App() {
                 }
               />
 
-              {/* Admin - Protected */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute roles={['admin']}>
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
             </Route>
 
             {/* Auth Layout (centered forms) */}
@@ -157,3 +144,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+export default App;

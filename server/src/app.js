@@ -1,13 +1,13 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import cookieParser from "cookie-parser";
-import passport from "./shared/config/passport.js";
 import config from "./shared/config/index.js";
 import errorHandler from "./shared/middleware/errorHandler.js";
 import apiRoutes from "./routes/index.js";
 
 const app = express();
+
+const API_PREFIX = '/api/v1';
 
 // Security
 app.use(
@@ -29,10 +29,6 @@ app.use(
 // Parsing
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(cookieParser());
-
-// Passport
-app.use(passport.initialize());
 
 // Request ID
 app.use((req, _res, next) => {
@@ -41,7 +37,7 @@ app.use((req, _res, next) => {
 });
 
 // Routes
-app.use(config.apiPrefix, apiRoutes);
+app.use(API_PREFIX, apiRoutes);
 
 // 404
 app.use((_req, res) => {

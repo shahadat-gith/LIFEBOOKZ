@@ -8,7 +8,7 @@ interface SearchBarProps {
   className?: string;
 }
 
-export default function SearchBar({
+export function SearchBar({
   initialQuery = '',
   large = false,
   className = '',
@@ -56,3 +56,6 @@ export default function SearchBar({
     </form>
   );
 }
+
+
+export default SearchBar;

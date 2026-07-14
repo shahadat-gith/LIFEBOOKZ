@@ -1,5 +1,6 @@
 import Author from './model.js';
 import { NotFoundError, ValidationError } from '../shared/utils/errors.js';
+import * as uploadService from '../shared/services/upload.js';
 
 export async function getMe(req, res, next) {
   try {
@@ -16,6 +17,13 @@ export async function updateMe(req, res, next) {
     for (const field of allowed) {
       if (req.body[field] !== undefined) data[field] = req.body[field];
     }
+
+    // Handle avatar file upload
+    if (req.file) {
+      const result = await uploadService.uploadAvatar(req.file.buffer);
+      data.avatar = result.url;
+    }
+
     const bad = Object.keys(req.body).filter(k => !allowed.includes(k));
     if (bad.length) throw new ValidationError(`Cannot update: ${bad.join(', ')}`);
     const author = await Author.findByIdAndUpdate(req.author._id, { $set: data }, { new: true, runValidators: true });

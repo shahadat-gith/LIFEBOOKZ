@@ -30,7 +30,7 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-base gap-2.5',
 };
 
-export default function Button({
+export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -63,3 +63,5 @@ export default function Button({
     </button>
   );
 }
+
+export default Button;

@@ -18,7 +18,7 @@ const paddingClasses = {
   lg: 'p-7',
 };
 
-export default function Card({
+export function Card({
   children,
   hover = false,
   padding = 'md',
@@ -75,3 +75,5 @@ export function CardFooter({ children, className = '' }: CardSectionProps) {
     </div>
   );
 }
+
+export default Card;

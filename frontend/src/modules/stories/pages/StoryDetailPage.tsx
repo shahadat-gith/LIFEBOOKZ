@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { storyApi } from '../../../services/apis/stories';
 import { searchApi } from '../../../services/apis/search';
-import { useAuth } from '../../../store/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import LikeButton from '../components/LikeButton';
 import CommentSection from '../components/CommentSection';
 import Avatar from '../../../components/ui/Avatar';
@@ -14,6 +14,7 @@ import ErrorMessage from '../../../components/utilities/ErrorMessage';
 import StoryCard from '../components/StoryCard';
 import { Icons } from '../../../icons';
 import toast from 'react-hot-toast';
+import type { StoryAuthor } from '../../../constants/types';
 
 interface StoryData {
   _id: string;
@@ -25,16 +26,10 @@ interface StoryData {
   bannerImage?: { url: string };
   publishedAt?: string;
   createdAt: string;
-  author?: {
-    _id: string;
-    fullName?: string;
-    name?: string;
-    avatar?: string;
-    bio?: string;
-  };
+  author?: StoryAuthor;
 }
 
-export default function StoryDetailPage() {
+export function StoryDetailPage() {
   const { storyId } = useParams<{ storyId: string }>();
   const navigate = useNavigate();
   const { author: currentAuthor } = useAuth();
@@ -272,3 +267,5 @@ export default function StoryDetailPage() {
     </article>
   );
 }
+
+export default StoryDetailPage;

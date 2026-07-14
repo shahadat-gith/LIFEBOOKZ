@@ -5,6 +5,15 @@ import Author from "../author/model.js";
 import { AuthenticationError } from "../shared/utils/errors.js";
 
 /**
+ * Extract Bearer token from Authorization header.
+ */
+function extractToken(req) {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) return auth.slice(7);
+  return null;
+}
+
+/**
  * Single authenticate middleware that handles all roles.
  * Token payload must include 'role' field:
  *   - role: 'user'   → token signed with JWT_SECRET, payload has userId, populates req.user
@@ -13,41 +22,24 @@ import { AuthenticationError } from "../shared/utils/errors.js";
  */
 export async function authenticate(req, _res, next) {
   try {
-    const token =
-      req.cookies?.token ||
-      req.cookies?.author_token ||
-      (req.headers.authorization?.startsWith("Bearer ")
-        ? req.headers.authorization.slice(7)
-        : null);
+    const token = extractToken(req);
     if (!token) throw new AuthenticationError("Authentication required");
 
     // Try JWT_SECRET first (user and author tokens)
     let decoded;
     try {
       decoded = jwt.verify(token, config.jwt.secret);
-    } catch (jwtError) {
+    } catch {
       // If JWT_SECRET fails, try ADMIN_KEY (admin tokens)
-      if (
-        jwtError.name === "JsonWebTokenError" ||
-        jwtError.name === "TokenExpiredError"
-      ) {
-        try {
-          decoded = jwt.verify(token, config.admin.key);
-          if (decoded.role !== "admin")
-            throw new AuthenticationError("Invalid admin token");
-          req.admin = { email: decoded.email };
-          return next();
-        } catch (adminError) {
-          if (adminError instanceof AuthenticationError)
-            return next(adminError);
-          if (adminError.name === "TokenExpiredError")
-            return next(new AuthenticationError("Admin token expired"));
-          throw new AuthenticationError("Invalid token");
-        }
+      try {
+        decoded = jwt.verify(token, config.admin.key);
+        if (decoded.role !== "admin")
+          throw new AuthenticationError("Invalid admin token");
+        req.admin = { email: decoded.email };
+        return next();
+      } catch {
+        throw new AuthenticationError("Invalid token");
       }
-      if (jwtError.name === "TokenExpiredError")
-        return next(new AuthenticationError("Token expired"));
-      throw new AuthenticationError("Invalid token");
     }
 
     // Handle based on role
@@ -71,8 +63,6 @@ export async function authenticate(req, _res, next) {
     throw new AuthenticationError("Invalid token role");
   } catch (error) {
     if (error instanceof AuthenticationError) return next(error);
-    if (error.name === "JsonWebTokenError")
-      return next(new AuthenticationError("Invalid token"));
     next(error);
   }
 }
@@ -83,12 +73,7 @@ export async function authenticate(req, _res, next) {
  */
 export async function authenticateOptional(req, _res, next) {
   try {
-    const token =
-      req.cookies?.token ||
-      req.cookies?.author_token ||
-      (req.headers.authorization?.startsWith("Bearer ")
-        ? req.headers.authorization.slice(7)
-        : null);
+    const token = extractToken(req);
     if (!token) return next();
 
     let decoded;
@@ -117,34 +102,4 @@ export async function authenticateOptional(req, _res, next) {
     /* ignore */
   }
   next();
-}
-
-/**
- * Refresh token verification.
- * Handles both user (role: 'user', type: 'refresh') and author (role: 'author', type: 'refresh').
- */
-export async function authenticateRefresh(req, _res, next) {
-  try {
-    const token =
-      req.cookies?.refresh_token ||
-      req.cookies?.author_refresh_token ||
-      req.body?.refreshToken;
-    if (!token) throw new AuthenticationError("Refresh token required");
-
-    const decoded = jwt.verify(token, config.jwt.secret);
-    if (decoded.type !== "refresh")
-      throw new AuthenticationError("Invalid refresh token");
-    if (decoded.role !== "user" && decoded.role !== "author")
-      throw new AuthenticationError("Invalid refresh token");
-
-    req.refreshPayload = decoded;
-    next();
-  } catch (error) {
-    if (error instanceof AuthenticationError) return next(error);
-    if (error.name === "TokenExpiredError")
-      return next(new AuthenticationError("Refresh token expired"));
-    if (error.name === "JsonWebTokenError")
-      return next(new AuthenticationError("Invalid refresh token"));
-    next(error);
-  }
 }

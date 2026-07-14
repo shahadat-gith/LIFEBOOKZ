@@ -5,7 +5,7 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
 }
 
-const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, error, className = '', id, ...props }, ref) => {
     const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
 

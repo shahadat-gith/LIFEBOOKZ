@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Icons } from '../../../icons';
 import { storyApi } from '../../../services/apis/stories';
-import { useAuth } from '../../../store/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,7 @@ interface LikeButtonProps {
   initialLiked?: boolean;
 }
 
-export default function LikeButton({ storyId, initialLiked = false }: LikeButtonProps) {
+export function LikeButton({ storyId, initialLiked = false }: LikeButtonProps) {
   const [liked, setLiked] = useState(initialLiked);
   const [animating, setAnimating] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -58,3 +58,5 @@ export default function LikeButton({ storyId, initialLiked = false }: LikeButton
     </button>
   );
 }
+
+export default LikeButton;

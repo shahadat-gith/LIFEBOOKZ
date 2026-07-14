@@ -1,16 +1,32 @@
 import * as storyService from './services.js';
 import { enhanceStory, generateTitleSuggestions } from '../shared/services/ai.js';
+import * as uploadService from '../shared/services/upload.js';
 
 export async function create(req, res, next) {
   try {
-    const result = await storyService.createStory(req.author._id, req.body);
+    const data = { ...req.body };
+
+    // Handle banner image upload
+    if (req.file) {
+      const result = await uploadService.uploadImage(req.file.buffer);
+      data.bannerImage = { url: result.url, publicId: result.publicId };
+    }
+
+    const result = await storyService.createStory(req.author._id, data);
     res.status(201).json(result);
   } catch (e) { next(e); }
 }
 
 export async function resubmit(req, res, next) {
   try {
-    const result = await storyService.resubmitStory(req.params.storyId, req.author._id, req.body);
+    const data = { ...req.body };
+
+    if (req.file) {
+      const result = await uploadService.uploadImage(req.file.buffer);
+      data.bannerImage = { url: result.url, publicId: result.publicId };
+    }
+
+    const result = await storyService.resubmitStory(req.params.storyId, req.author._id, data);
     res.json(result);
   } catch (e) { next(e); }
 }
@@ -31,7 +47,14 @@ export async function getById(req, res, next) {
 
 export async function update(req, res, next) {
   try {
-    res.json(await storyService.updateStory(req.params.storyId, req.author._id, req.body));
+    const data = { ...req.body };
+
+    if (req.file) {
+      const result = await uploadService.uploadImage(req.file.buffer);
+      data.bannerImage = { url: result.url, publicId: result.publicId };
+    }
+
+    res.json(await storyService.updateStory(req.params.storyId, req.author._id, data));
   } catch (e) { next(e); }
 }
 

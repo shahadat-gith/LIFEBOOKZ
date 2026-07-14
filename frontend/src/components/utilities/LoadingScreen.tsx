@@ -5,7 +5,7 @@ interface LoadingScreenProps {
   fullScreen?: boolean;
 }
 
-export default function LoadingScreen({
+export function LoadingScreen({
   message = 'Loading...',
   fullScreen = false,
 }: LoadingScreenProps) {
@@ -21,3 +21,5 @@ export default function LoadingScreen({
     </div>
   );
 }
+
+export default LoadingScreen;

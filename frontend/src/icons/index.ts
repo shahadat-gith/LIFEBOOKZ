@@ -46,7 +46,7 @@ import {
 
 import {
   FaGoogle,
-  FaGithub,
+  FaInstagram,
   FaTwitter,
   FaLinkedin,
   FaHeart,
@@ -116,7 +116,7 @@ export const Icons = {
 
   // Brand Icons (FontAwesome)
   google: FaGoogle,
-  github: FaGithub,
+  instagram: FaInstagram,
   twitter: FaTwitter,
   linkedin: FaLinkedin,
   heartSolid: FaHeart,

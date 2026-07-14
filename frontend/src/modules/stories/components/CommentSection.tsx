@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { storyApi } from '../../../services/apis/stories';
-import { useAuth } from '../../../store/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import Avatar from '../../../components/ui/Avatar';
 import Button from '../../../components/ui/Button';
 import Textarea from '../../../components/ui/Textarea';
@@ -25,7 +25,7 @@ interface CommentSectionProps {
   storyId: string;
 }
 
-export default function CommentSection({ storyId }: CommentSectionProps) {
+export function CommentSection({ storyId }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -172,3 +172,5 @@ export default function CommentSection({ storyId }: CommentSectionProps) {
     </div>
   );
 }
+
+export default CommentSection;

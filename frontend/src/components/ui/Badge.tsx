@@ -25,7 +25,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   info: 'bg-info/10 text-info',
 };
 
-export default function Badge({
+export function Badge({
   children,
   variant = 'default',
   className = '',
@@ -42,3 +42,5 @@ export default function Badge({
     </span>
   );
 }
+
+export default Badge;

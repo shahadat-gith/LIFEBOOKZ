@@ -5,7 +5,7 @@ import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
 import { useState } from 'react';
 
-export default function Navbar() {
+export function Navbar() {
   const { isAuthenticated, user, author, admin, role, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,7 +18,7 @@ export default function Navbar() {
     { to: '/search', label: 'Search', icon: <Icons.search className="h-4 w-4" /> },
   ];
 
-  const profileLink = role === 'author' ? '/author/dashboard' : role === 'admin' ? '/admin' : '/profile';
+  const profileLink = role === 'author' ? '/author/dashboard' : '/profile';
   const displayName = user?.name || author?.fullName || admin?.email || '';
   const avatarUrl = user?.avatar || author?.avatar;
 
@@ -28,12 +28,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent text-white font-bold text-sm shadow-sm group-hover:shadow-md transition-shadow">
-              L
-            </div>
-            <span className="font-display font-bold text-xl text-foreground hidden sm:block">
-              Lifebookz
-            </span>
+            <img
+              src="/logo.png"
+              alt="Lifebookz"
+              className="h-9 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Nav */}
@@ -177,3 +176,5 @@ export default function Navbar() {
     </header>
   );
 }
+
+export default Navbar;

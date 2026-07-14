@@ -7,7 +7,7 @@ import Spinner from '../../../components/ui/Spinner';
 import EmptyState from '../../../components/utilities/EmptyState';
 import { Icons } from '../../../icons';
 
-export default function SearchResultsPage() {
+export function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<Array<Record<string, unknown>>>([]);
@@ -66,3 +66,5 @@ export default function SearchResultsPage() {
     </div>
   );
 }
+
+export default SearchResultsPage;
