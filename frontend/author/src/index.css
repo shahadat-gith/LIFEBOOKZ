@@ -12,3 +12,7 @@
   --font-sans: "Inter", sans-serif; --font-display: "Plus Jakarta Sans", sans-serif;
 }
 @layer base { body { @apply bg-background text-foreground font-sans antialiased; } }
+
+button{
+  cursor: pointer;
+}

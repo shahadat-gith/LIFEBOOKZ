@@ -28,8 +28,8 @@ export function LikeButton({ storyId, initialLiked = false }: LikeButtonProps) {
 
     setAnimating(true);
     try {
-      const { data } = await storyApi.like(storyId);
-      setLiked(data.liked);
+      const res = await storyApi.like(storyId);
+      setLiked(res.data.data.liked);
     } catch {
       toast.error('Failed to like');
     } finally {

@@ -1,17 +1,32 @@
-import { Router } from 'express';
-import upload from '../shared/middlewares/multer.js';
-import { register, login, getMe, updateMe, deleteMe, updateMyPreferences, getMyStats, getUserProfile } from './controllers.js';
-import { authenticate, authenticateOptional } from '../shared/middleware/auth.js';
+import { Router } from "express";
 
-const userRouter = Router();
+import upload from "../shared/middlewares/multer.js";
+import { authenticate } from "../shared/middlewares/auth.js";
 
-userRouter.post('/register', register);
-userRouter.post('/login', login);
-userRouter.get('/me', authenticate, getMe);
-userRouter.patch('/me', authenticate, upload.single('avatar'), updateMe);
-userRouter.delete('/me', authenticate, deleteMe);
-userRouter.put('/me/preferences', authenticate, updateMyPreferences);
-userRouter.get('/me/stats', authenticate, getMyStats);
-userRouter.get('/:userId', authenticateOptional, getUserProfile);
+import * as user from "./controllers.js";
 
-export default userRouter;
+const router = Router();
+
+/* ---------- Authentication ---------- */
+
+router.post("/register", upload.single("avatar"), user.register);
+
+router.post("/login", user.login);
+
+/* ---------- Profile ---------- */
+
+router.get("/me", authenticate, user.getMe);
+
+router.patch("/me", authenticate, upload.single("avatar"), user.updateMe);
+
+router.delete("/me", authenticate, user.deleteMe);
+
+/* ---------- Logout ---------- */
+
+router.post("/logout", user.logout);
+
+/* ---------- Public ---------- */
+
+router.get("/:userId", user.getProfile);
+
+export default router;

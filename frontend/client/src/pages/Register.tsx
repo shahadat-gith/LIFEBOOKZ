@@ -9,7 +9,7 @@ import { Icons } from '../icons';
 import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,8 +23,8 @@ export default function RegisterPage() {
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setError(''); setLoading(true);
-    try { await registerUser(email, password, name); toast.success('Account created! Welcome to Lifebookz.'); navigate('/'); }
-    catch (err: unknown) { setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Registration failed'); }
+    try { await registerUser(email, password, fullName); toast.success('Account created! Welcome to Lifebookz.'); navigate('/'); }
+    catch (err: unknown) { const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message; setError(msg || 'Registration failed'); }
     finally { setLoading(false); }
   }
 
@@ -41,7 +41,7 @@ export default function RegisterPage() {
           </motion.div>
         </div>
         <motion.form onSubmit={handleSubmit} className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}>
-          <Input label="Full Name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Rahul Sharma" required icon={<Icons.user className="h-4 w-4" />} />
+          <Input label="Full Name" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="e.g., Rahul Sharma" required icon={<Icons.user className="h-4 w-4" />} />
           <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required icon={<Icons.mail className="h-4 w-4" />} />
           <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a strong password" required icon={<Icons.lock className="h-4 w-4" />} helperText="Min. 8 characters" showPasswordToggle />
           <Input label="Confirm Password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter your password" required icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />

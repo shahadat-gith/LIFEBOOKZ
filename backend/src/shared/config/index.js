@@ -56,7 +56,11 @@ const config = {
     baseUrl: process.env.OPENROUTER_BASE_URL,
   },
 
-  frontendUrl: process.env.FRONTEND_URL,
+  frontend: {
+    admin: process.env.FRONTEND_ADMIN_URL,
+    client: process.env.FRONTEND_CLIENT_URL,
+    author: process.env.FRONTEND_AUTHOR_URL,
+  },
 };
 
 export default config;

@@ -1,22 +1,33 @@
 import api from "./client";
-export const storyApi = {
-  create: (d: Record<string, unknown> | FormData) => api.post("/stories", d),
 
-  resubmit: (id: string, d: Record<string, unknown> | FormData) =>
-    api.post(`/stories/${id}/resubmit`, d),
+import type { Story, CreateStoryRequest, UpdateStoryRequest } from "../types";
 
-  list: (p?: Record<string, string | number>) =>
-    api.get("/stories", { params: p }),
+export const create = async (payload: CreateStoryRequest) => {
+  const { data } = await api.post("/stories", payload);
 
-  getById: (id: string) => api.get(`/stories/${id}`),
+  return data.data as Story;
+};
 
-  update: (id: string, d: Record<string, unknown> | FormData) =>
-    api.patch(`/stories/${id}`, d),
+export const getMyStory = async (storyId: string) => {
+  const { data } = await api.get(`/authors/me/stories/${storyId}`);
 
-  remove: (id: string) => api.delete(`/stories/${id}`),
+  return data.data as Story;
+};
 
-  enhance: (id: string) => api.post(`/stories/${id}/enhance`),
+export const update = async (storyId: string, payload: UpdateStoryRequest) => {
+  const { data } = await api.patch(`/stories/${storyId}`, payload);
 
-  titleSuggestions: (id: string) =>
-    api.post(`/stories/${id}/title-suggestions`),
+  return data.data as Story;
+};
+
+export const remove = async (storyId: string) => {
+  const { data } = await api.delete(`/stories/${storyId}`);
+
+  return data.data;
+};
+
+export const submit = async (storyId: string) => {
+  const { data } = await api.post(`/stories/${storyId}/submit`);
+
+  return data.data;
 };

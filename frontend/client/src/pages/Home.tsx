@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { searchApi } from '../api/search';
 import { storyApi } from '../api/stories';
 import Hero from '../components/home/Hero';
 import Stats from '../components/home/Stats';
@@ -13,23 +12,10 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      storyApi.list({ limit: 8 }),
-      searchApi.trending(8),
-    ])
-      .then(([latestRes, trendingRes]) => {
-        const combined = [
-          ...(trendingRes.data.results || []),
-          ...(latestRes.data.stories || []),
-        ];
-        const seen = new Set<string>();
-        const unique = combined.filter((s: Record<string, unknown>) => {
-          const id = s._id as string;
-          if (seen.has(id)) return false;
-          seen.add(id);
-          return true;
-        });
-        setStories(unique.slice(0, 8));
+    storyApi.list({ limit: 8 })
+      .then(res => {
+        const data = res.data.data;
+        setStories(data.stories || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

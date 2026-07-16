@@ -1,18 +1,52 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
-    name: { type: String, required: true, trim: true },
-    passwordHash: { type: String, select: false },
-    avatar: { type: String, default: '' },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: /^\S+@\S+\.\S+$/,
+    },
 
-    preferences: {
-      interests: { type: [String], default: [] },
-      profession: { type: String, default: '' },
-      languages: { type: [String], default: ['en'] },
-      location: { country: { type: String, default: '' }, city: { type: String, default: '' } },
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    passwordHash: {
+      type: String,
+      required: true,
+      select: false,
+    },
+
+    avatar: {
+      url: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+
+      publicId: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+
+    interests: {
+      type: [
+        {
+          type: String,
+          trim: true,
+          lowercase: true,
+        },
+      ],
+      default: [],
     },
   },
   {
@@ -25,11 +59,14 @@ const userSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('passwordHash') || !this.passwordHash) return next();
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("passwordHash")) {
+    return next();
+  }
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
@@ -39,10 +76,10 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-userSchema.methods.comparePassword = async function (candidate) {
-  if (!this.passwordHash) return false;
-  return bcrypt.compare(candidate, this.passwordHash);
+userSchema.methods.comparePassword = function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
-const User = mongoose.model('users', userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+
 export default User;

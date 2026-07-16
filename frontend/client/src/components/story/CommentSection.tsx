@@ -15,8 +15,8 @@ interface Comment {
   content: string;
   user: {
     _id: string;
-    name: string;
-    avatar?: string;
+    fullName?: string;
+    avatar?: { url?: string; publicId?: string; };
   };
   createdAt: string;
 }
@@ -30,21 +30,16 @@ export function CommentSection({ storyId }: CommentSectionProps) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+
   async function loadComments() {
     try {
-      const { data } = await storyApi.listComments(storyId, { cursor: cursor || undefined });
-      if (cursor) {
-        setComments((prev) => [...prev, ...data.comments]);
-      } else {
-        setComments(data.comments || []);
-      }
-      setCursor(data.nextCursor);
-      setHasMore(data.hasMore);
+      const res = await storyApi.listComments(storyId, { page: 1, limit: 20 });
+      const data = res.data.data;
+      setComments(data.comments || []);
     } catch {
       // silently fail
     } finally {
@@ -68,8 +63,9 @@ export function CommentSection({ storyId }: CommentSectionProps) {
 
     setSubmitting(true);
     try {
-      const { data } = await storyApi.addComment(storyId, { content: content.trim() });
-      setComments((prev) => [data, ...prev]);
+      const res = await storyApi.addComment(storyId, { content: content.trim() });
+      const comment = res.data.data;
+      setComments((prev) => [comment, ...prev]);
       setContent('');
       toast.success('Comment added');
     } catch {
@@ -90,7 +86,7 @@ export function CommentSection({ storyId }: CommentSectionProps) {
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="flex gap-3">
           {isAuthenticated && (
-            <Avatar src={user?.avatar} name={user?.name} size="sm" className="mt-1 flex-shrink-0" />
+            <Avatar src={user?.avatar?.url} name={user?.fullName} size="sm" className="mt-1 flex-shrink-0" />
           )}
           <div className="flex-1 space-y-2">
             <Textarea
@@ -127,17 +123,16 @@ export function CommentSection({ storyId }: CommentSectionProps) {
       ) : (
         <div className="space-y-4">
           {comments.map((comment) => (
-            <div key={comment._id} className="flex gap-3 p-4 rounded-lg bg-muted/50">
-              <Avatar
-                src={comment.user?.avatar}
-                name={comment.user?.name}
+            <div key={comment._id} className="flex gap-3 p-4 rounded-lg bg-muted/50">                <Avatar
+                src={comment.user?.avatar?.url}
+                name={comment.user?.fullName}
                 size="sm"
                 className="flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-medium text-foreground">
-                    {comment.user?.name || 'Anonymous'}
+                    {comment.user?.fullName || 'Anonymous'}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {new Date(comment.createdAt).toLocaleDateString(undefined, {

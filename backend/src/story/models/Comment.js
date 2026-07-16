@@ -8,13 +8,25 @@ const commentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
-    content: { type: String, required: true, maxlength: 5000 },
+
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 5000,
+    },
+
+    edited: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -25,10 +37,12 @@ const commentSchema = new mongoose.Schema(
         return ret;
       },
     },
-  },
+  }
 );
 
 commentSchema.index({ story: 1, createdAt: -1 });
+commentSchema.index({ user: 1, createdAt: -1 });
 
-const Comment = mongoose.model("comments", commentSchema);
+const Comment = mongoose.model("Comment", commentSchema);
+
 export default Comment;

@@ -22,7 +22,12 @@ const authorSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 100,
+    },
+
+    profession: {
+      type: String,
+      required: true,
+      trim: true,
     },
 
     avatar: {
@@ -45,18 +50,6 @@ const authorSchema = new mongoose.Schema(
       default: "",
     },
 
-    ai: {
-      status: {
-        type: String,
-        enum: ["pending", "processing", "completed", "failed"],
-        default: "pending",
-      },
-
-      summary: {
-        type: String,
-        default: "",
-      },
-    },
 
     website: {
       type: String,

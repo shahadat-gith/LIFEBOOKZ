@@ -1,36 +1,46 @@
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
-import api from '../api/client';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { adminApi } from '../api/admin';
 
-interface AuthState { admin: { email: string } | null; isAuthenticated: boolean; isLoading: boolean; }
-type Action = { type: 'SET_ADMIN'; payload: { email: string } } | { type: 'LOGOUT' } | { type: 'SET_LOADING'; payload: boolean };
-interface Ctx extends AuthState { loginAdmin: (email: string, password: string) => Promise<void>; logout: () => void; }
-
-const init: AuthState = { admin: null, isAuthenticated: false, isLoading: false };
-function reducer(s: AuthState, a: Action): AuthState {
-  switch (a.type) {
-    case 'SET_ADMIN': return { ...s, admin: a.payload, isAuthenticated: true, isLoading: false };
-    case 'LOGOUT': return init;
-    case 'SET_LOADING': return { ...s, isLoading: a.payload };
-    default: return s;
-  }
+interface AuthContextType {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  loginAdmin: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-const Ctx = createContext<Ctx | undefined>(undefined);
+const Ctx = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, init);
-  const loginAdmin = useCallback(async (email: string, password: string) => {
-    const { data } = await api.post('/admin/login', { email, password });
-    localStorage.setItem('admin', JSON.stringify(data.admin));
-    localStorage.setItem('accessToken', data.token);
-    dispatch({ type: 'SET_ADMIN', payload: data.admin });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // On mount, try to restore session via the cookie
+  useEffect(() => {
+    adminApi.getDashboard()
+      .then(() => setIsAuthenticated(true))
+      .catch(() => { /* No valid cookie */ })
+      .finally(() => setIsLoading(false));
   }, []);
-  const logout = useCallback(() => {
-    localStorage.removeItem('admin'); localStorage.removeItem('accessToken');
-    dispatch({ type: 'LOGOUT' });
-  }, []);
-  return <Ctx.Provider value={{ ...state, loginAdmin, logout }}>{children}</Ctx.Provider>;
+
+  const loginAdmin = async (email: string, password: string) => {
+    await adminApi.login({ email, password });
+    setIsAuthenticated(true);
+  };
+
+  const logout = async () => {
+    try {
+      await adminApi.logout();
+    } catch { /* */ }
+    setIsAuthenticated(false);
+  };
+
+  return <Ctx.Provider value={{ isAuthenticated, isLoading, loginAdmin, logout }}>{children}</Ctx.Provider>;
 }
 
-export function useAuth() { const c = useContext(Ctx); if (!c) throw new Error('useAuth must be used within AuthProvider'); return c; }
+export function useAuth() {
+  const c = useContext(Ctx);
+  if (!c) throw new Error('useAuth must be used within AuthProvider');
+  return c;
+}
+
 export default AuthProvider;

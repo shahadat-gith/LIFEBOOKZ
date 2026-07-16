@@ -1,73 +1,193 @@
-import config from '../shared/config/index.js';
-import Author from '../author/model.js';
-import User from '../user/model.js';
-import { generateAdminToken } from '../shared/utils/auth.js';
-import { NotFoundError, ValidationError, AuthenticationError } from '../shared/utils/errors.js';
-import { sendApplicationApproved, sendApplicationRejected } from './utils.js';
-import log from '../shared/utils/logger.js';
+import config from "../shared/config/index.js";
 
-// ---- Auth ----
+import Author from "../author/model.js";
+import User from "../user/model.js";
+import Story from "../story/models/Story.js";
 
-export async function adminLogin(req, res, next) {
+import { generateToken, setTokenCookie, clearTokenCookie } from "../shared/utils/helpers.js";
+import * as Errors from "../shared/utils/errors.js";
+
+import { sendApplicationApproved, sendApplicationRejected } from "./utils.js";
+
+/* ---------- Authentication ---------- */
+
+export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
+
     if (email !== config.admin.email || password !== config.admin.password) {
-      throw new AuthenticationError("Invalid admin credentials");
+      throw new Errors.AuthenticationError("Invalid admin credentials.");
     }
-    const token = generateAdminToken();
-    res.json({ token, admin: { email: config.admin.email } });
-  } catch (e) {
-    next(e);
+
+    const token = generateToken({
+      role: "admin",
+      key: config.admin.key,
+    });
+
+    setTokenCookie(res, token);
+
+    return res.json({
+      success: true,
+      data: {},
+    });
+  } catch (error) {
+    next(error);
   }
 }
 
-// ---- Dashboard & Applications ----
+/* ---------- Dashboard ---------- */
 
 export async function dashboard(req, res, next) {
   try {
-    const [totalUsers, totalAuthors, pendingApplications] = await Promise.all([
-      User.countDocuments({}), Author.countDocuments({}),
-      Author.countDocuments({ 'verification.status': 'pending' }),
-    ]);
-    res.json({ totalUsers, totalAuthors, pendingApplications });
-  } catch (e) { next(e); }
+    const [totalUsers, totalAuthors, totalStories, pendingAuthors] =
+      await Promise.all([
+        User.countDocuments(),
+        Author.countDocuments(),
+        Story.countDocuments({ status: "published" }),
+        Author.countDocuments({
+          "verification.status": "pending",
+        }),
+      ]);
+
+    return res.json({
+      success: true,
+      data: {
+        totalUsers,
+        totalAuthors,
+        totalStories,
+        pendingAuthors,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function listApplications(req, res, next) {
+/* ---------- Authors ---------- */
+
+export async function getPendingAuthors(req, res, next) {
   try {
-    const applications = await Author.find({ 'verification.status': 'pending' })
-      .select('email fullName bio website createdAt').sort({ createdAt: 1 });
-    res.json({ applications });
-  } catch (e) { next(e); }
+    const authors = await Author.find({
+      "verification.status": "pending",
+    })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: authors,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function approveApplication(req, res, next) {
+export async function approveAuthor(req, res, next) {
   try {
     const author = await Author.findById(req.params.authorId);
-    if (!author) throw new NotFoundError('Author not found');
-    author.verification.status = 'approved';
+
+    if (!author) {
+      throw new Errors.NotFoundError("Author not found.");
+    }
+
+    author.verification.status = "approved";
     author.verification.verifiedAt = new Date();
-    if (req.body.note) author.verification.rejectionReason = req.body.note;
+    author.verification.rejectionReason = "";
+
     await author.save();
-    sendApplicationApproved(author.email, author.fullName).catch(err =>
-      log('error', 'Failed to send approval email', { error: err.message, authorId: req.params.authorId })
+
+    // Send email without delaying the response
+    sendApplicationApproved(author.email, author.fullName).catch((err) =>
+      console.error("Failed to send approval email:", err),
     );
-    res.json({ author, message: 'Application approved. Author has been notified via email.' });
-  } catch (e) { next(e); }
+
+    return res.json({
+      success: true,
+      message: "Author approved successfully.",
+      data: author,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function rejectApplication(req, res, next) {
+export async function rejectAuthor(req, res, next) {
   try {
-    if (!req.body.reason) throw new ValidationError('Rejection reason is required');
+    const { reason } = req.body;
+
+    if (!reason?.trim()) {
+      throw new Errors.ValidationError("Rejection reason is required.");
+    }
+
     const author = await Author.findById(req.params.authorId);
-    if (!author) throw new NotFoundError('Author not found');
-    author.verification.status = 'rejected';
+
+    if (!author) {
+      throw new Errors.NotFoundError("Author not found.");
+    }
+
+    author.verification.status = "rejected";
     author.verification.verifiedAt = new Date();
-    author.verification.rejectionReason = req.body.reason;
+    author.verification.rejectionReason = reason.trim();
+
     await author.save();
-    sendApplicationRejected(author.email, author.fullName, req.body.reason).catch(err =>
-      log('error', 'Failed to send rejection email', { error: err.message, authorId: req.params.authorId })
+
+    // Send email without delaying the response
+    sendApplicationRejected(author.email, author.fullName, reason.trim()).catch(
+      (err) => console.error("Failed to send rejection email:", err),
     );
-    res.json({ author, message: 'Application rejected. Author has been notified via email.' });
-  } catch (e) { next(e); }
+
+    return res.json({
+      success: true,
+      message: "Author rejected successfully.",
+      data: author,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/* ---------- Users ---------- */
+
+export async function getUsers(req, res, next) {
+  try {
+    const users = await User.find().sort({ createdAt: -1 }).lean();
+
+    return res.json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/* ---------- Stories ---------- */
+
+export async function getStories(req, res, next) {
+  try {
+    const stories = await Story.find()
+      .populate("author", "fullName")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: stories,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(req, res, next) {
+  try {
+    clearTokenCookie(res);
+
+    return res.json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
 }

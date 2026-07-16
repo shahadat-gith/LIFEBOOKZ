@@ -1,29 +1,17 @@
-import config from '../config/index.js';
-import { getTransporter } from '../config/nodemailer.js';
-import log from '../utils/logger.js';
+import config from "../config/index.js";
+import { getTransporter } from "../config/nodemailer.js";
 
-async function sendEmail({ to, subject, text }) {
-  const from = config.mail.user || 'noreply@lifebookz.com';
-
-  if (config.mail.user && config.mail.password) {
-    try {
-      const t = getTransporter();
-      const info = await t.sendMail({
-        from: `"Lifebookz" <${from}>`,
-        to,
-        subject,
-        text,
-      });
-      await log('info', 'Email sent', { to, subject, messageId: info.messageId });
-      return info;
-    } catch (error) {
-      await log('error', 'Failed to send email via SMTP', {
-        to,
-        subject,
-        error: error.message,
-      });
-    }
+export async function sendEmail({ to, subject, text }) {
+  if (!config.mail.user || !config.mail.password) {
+    throw new Error("SMTP is not configured.");
   }
-}
 
-export { sendEmail };
+  const transporter = getTransporter();
+
+  return transporter.sendMail({
+    from: `"LifeBookz" <${config.mail.user}>`,
+    to,
+    subject,
+    text,
+  });
+}

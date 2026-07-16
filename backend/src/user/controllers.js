@@ -1,22 +1,54 @@
-import User from './model.js';
-import { sanitizeUser, generateAccessToken } from '../shared/utils/auth.js';
-import { NotFoundError, ValidationError, AuthenticationError, ConflictError } from '../shared/utils/errors.js';
-import * as uploadService from '../shared/services/upload.js';
+import User from "./model.js";
 
-// ---- Auth ----
+import { generateToken, setTokenCookie, clearTokenCookie } from "../shared/utils/helpers.js";
+import * as Errors from "../shared/utils/errors.js";
+
+import { uploadAvatar, deleteFile } from "../shared/services/upload.js";
+
+/* ---------- Authentication ---------- */
 
 export async function register(req, res, next) {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, fullName, interests = [] } = req.body;
+
     const existing = await User.findOne({ email });
-    if (existing) throw new ConflictError("Email already exists");
+
+    if (existing) {
+      throw new Errors.ConflictError(
+        "An account with this email already exists.",
+      );
+    }
+
+    const avatar = {};
+
+    if (req.file) {
+      const uploaded = await uploadAvatar(req.file.buffer);
+
+      avatar.url = uploaded.url;
+      avatar.publicId = uploaded.publicId;
+    }
+
     const user = await User.create({
       email,
-      name: name || email.split("@")[0],
       passwordHash: password,
+      fullName,
+      avatar,
+      interests,
     });
-    const accessToken = generateAccessToken(user);
-    res.status(201).json({ user: sanitizeUser(user), accessToken });
+
+    const token = generateToken({
+      role: "user",
+      userId: user.id,
+    });
+
+    setTokenCookie(res, token);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        user,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -25,84 +57,151 @@ export async function register(req, res, next) {
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email }).select("+passwordHash");
-    if (!user) throw new AuthenticationError("Invalid email or password");
-    if (!(await user.comparePassword(password)))
-      throw new AuthenticationError("Invalid email or password");
-    const accessToken = generateAccessToken(user);
-    res.json({ user: sanitizeUser(user), accessToken });
+
+    if (!user) {
+      throw new Errors.AuthenticationError("Invalid email or password.");
+    }
+
+    const isValid = await user.comparePassword(password);
+
+    if (!isValid) {
+      throw new Errors.AuthenticationError("Invalid email or password.");
+    }
+
+    const token = generateToken({
+      role: "user",
+      userId: user.id,
+    });
+
+    setTokenCookie(res, token);
+
+    return res.json({
+      success: true,
+      data: {
+        user,
+      },
+    });
   } catch (error) {
     next(error);
   }
 }
 
-// ---- Profile ----
+/* ---------- Profile ---------- */
 
 export async function getMe(req, res, next) {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) throw new NotFoundError('User not found');
-    res.json(sanitizeUser(user));
-  } catch (error) { next(error); }
+    const user = await User.findById(req.user.id).lean();
+
+    if (!user) {
+      throw new Errors.NotFoundError("User not found.");
+    }
+
+    return res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function updateMe(req, res, next) {
   try {
-    const allowed = ['name', 'avatar', 'preferences'];
-    const data = {};
-    for (const field of allowed) {
-      if (req.body[field] !== undefined) data[field] = req.body[field];
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      throw new Errors.NotFoundError("User not found.");
     }
 
-    // Handle avatar file upload
+    const { fullName, interests } = req.body;
+
+    if (fullName !== undefined) {
+      user.fullName = fullName;
+    }
+
+    if (interests !== undefined) {
+      user.interests = interests;
+    }
+
     if (req.file) {
-      const result = await uploadService.uploadAvatar(req.file.buffer);
-      data.avatar = result.url;
+      const uploaded = await uploadAvatar(req.file.buffer);
+
+      if (user.avatar?.publicId) {
+        await deleteFile(user.avatar.publicId);
+      }
+
+      user.avatar = {
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+      };
     }
 
-    const bad = Object.keys(req.body).filter(k => !allowed.includes(k));
-    if (bad.length) throw new ValidationError(`Cannot update: ${bad.join(', ')}`);
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: data }, { new: true, runValidators: true });
-    if (!user) throw new NotFoundError('User not found');
-    res.json(sanitizeUser(user));
-  } catch (error) { next(error); }
+    await user.save();
+
+    return res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function deleteMe(req, res, next) {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) throw new NotFoundError('User not found');
-    await User.findByIdAndDelete(req.user._id);
-    res.json({ message: 'Account deleted' });
-  } catch (error) { next(error); }
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      throw new Errors.NotFoundError("User not found.");
+    }
+
+    if (user.avatar?.publicId) {
+      await deleteFile(user.avatar.publicId);
+    }
+
+    await user.deleteOne();
+
+    clearTokenCookie(res);
+
+    return res.json({
+      success: true,
+      message: "Account deleted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function updateMyPreferences(req, res, next) {
+export async function getProfile(req, res, next) {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) throw new NotFoundError('User not found');
-    const prefs = req.body;
-    if (prefs.interests) user.preferences.interests = prefs.interests;
-    if (prefs.profession) user.preferences.profession = prefs.profession;
-    if (prefs.languages) user.preferences.languages = prefs.languages;
-    if (prefs.location) user.preferences.location = { ...user.preferences.location, ...prefs.location };
-    await user.save();
-    res.json(user.preferences);
-  } catch (error) { next(error); }
+    const user = await User.findById(req.params.userId)
+      .select("fullName avatar interests createdAt")
+      .lean();
+
+    if (!user) {
+      throw new Errors.NotFoundError("User not found.");
+    }
+
+    return res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function getMyStats(req, res, next) {
+export async function logout(req, res, next) {
   try {
-    const user = await User.findById(req.user._id).select('createdAt');
-    if (!user) throw new NotFoundError('User not found');
-    res.json({ memberSince: user.createdAt });
-  } catch (error) { next(error); }
-}
+    clearTokenCookie(res);
 
-export async function getUserProfile(req, res, next) {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) throw new NotFoundError('User not found');
-    res.json(sanitizeUser(user));
-  } catch (error) { next(error); }
+    return res.json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
 }

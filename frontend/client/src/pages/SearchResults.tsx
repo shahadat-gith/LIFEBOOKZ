@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { searchApi } from '../api/search';
+import { storyApi } from '../api/stories';
 import SearchBar from '../components/search/SearchBar';
 import StoryCard from '../components/story/StoryCard';
 import Spinner from '../components/ui/Spinner';
@@ -16,7 +16,10 @@ export default function SearchResultsPage() {
   useEffect(() => {
     if (!query) return;
     setLoading(true);
-    searchApi.search({ q: query }).then(({ data }) => setResults(data.results || [])).catch(() => {}).finally(() => setLoading(false));
+    storyApi.list({ q: query }).then(res => {
+      const data = res.data.data;
+      setResults(data.stories || []);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [query]);
 
   return <div className="max-w-5xl mx-auto py-8 px-4">

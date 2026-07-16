@@ -1,80 +1,274 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import { storyApi } from '../api/stories';
-import Avatar from '../components/ui/Avatar';
-import Button from '../components/ui/Button';
-import Card, { CardTitle, CardContent } from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
-import EmptyState from '../components/common/EmptyState';
-import LoadingScreen from '../components/common/LoadingScreen';
-import { Icons } from '../icons';
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
-interface Story { _id: string; title: string; publishedAt?: string; createdAt: string; tags: string[]; language: string; }
+import { useAuth } from "../context/AuthContext";
+import * as storyApi from "../api/stories";
+import * as authorApi from "../api/auth";
 
-export default function AuthorDashboardPage() {
-  const { author } = useAuth();
+import type { Story } from "../types";
+
+import Avatar from "../components/ui/Avatar";
+import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button";
+import Card, { CardContent, CardTitle } from "../components/ui/Card";
+
+import EmptyState from "../components/common/EmptyState";
+import LoadingScreen from "../components/common/LoadingScreen";
+
+import { Icons } from "../icons";
+
+const STATUS_BADGE = {
+  draft: { variant: "warning" as const, label: "Draft" },
+  submitted: { variant: "info" as const, label: "Submitted" },
+  processing: { variant: "info" as const, label: "Processing" },
+  published: { variant: "success" as const, label: "Published" },
+  rejected: { variant: "danger" as const, label: "Rejected" },
+};
+
+export default function Dashboard() {
   const navigate = useNavigate();
+  const { author, isLoading: authLoading } = useAuth();
+
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !author) {
+      navigate("/login", { replace: true });
+    }
+  }, [author, authLoading, navigate]);
+
+  useEffect(() => {
     if (!author) return;
-    storyApi.list({ authorId: author._id, limit: 50 })
-      .then(r => setStories(r.data.stories || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    async function loadStories() {
+      try {
+        const data = await authorApi.getMyStories();
+        setStories(data || []);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStories();
   }, [author]);
 
-  if (!author) { navigate('/login'); return null; }
-  if (loading) return <LoadingScreen message="Loading dashboard..." />;
+  const stats = useMemo(
+    () => ({
+      total: stories.length,
+      published: stories.filter((s) => s.status === "published").length,
+      drafts: stories.filter((s) => s.status === "draft").length,
+      submitted: stories.filter((s) => s.status === "submitted" || s.status === "processing").length,
+    }),
+    [stories]
+  );
 
-  const published = stories.filter(s => s.publishedAt).length;
-  const drafts = stories.length - published;
+  const isApproved = author?.verification?.status === "approved";
+  const isRejected = author?.verification?.status === "rejected";
+  const isPending = !isApproved && !isRejected;
+
+  if (authLoading || loading) {
+    return <LoadingScreen message="Loading your dashboard..." />;
+  }
+
+  if (!author) return null;
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="flex items-center justify-between mb-10">
+    <div className="mx-auto max-w-6xl space-y-8 py-10 px-4">
+      {/* Welcome Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col justify-between gap-6 rounded-3xl border bg-gradient-to-br from-card to-muted/30 p-8 md:flex-row md:items-center"
+      >
         <div className="flex items-center gap-5">
-          <Avatar src={author.avatar} name={author.fullName} size="lg" className="ring-4 ring-border shadow-lg" />
+          <Avatar
+            src={author.avatar?.url}
+            name={author.fullName}
+            size="xl"
+            className="ring-4 ring-primary/10"
+          />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{author.fullName}</h1>
-            <Badge variant={author.verification.status === 'approved' ? 'success' : author.verification.status === 'rejected' ? 'danger' : 'warning'}>
-              {author.verification.status === 'approved' ? 'Verified' : author.verification.status === 'rejected' ? 'Rejected' : 'Pending Approval'}
-            </Badge>
+            <h1 className="text-3xl font-bold">
+              Welcome back,{' '}
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                {author.fullName}
+              </span>
+            </h1>
+            <p className="mt-1 text-muted-foreground">{author.profession}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge
+                variant={
+                  isApproved ? "success" : isRejected ? "danger" : "warning"
+                }
+              >
+                {isApproved
+                  ? "Verified Author"
+                  : isRejected
+                    ? "Account Rejected"
+                    : "Pending Approval"}
+              </Badge>
+              {isPending && (
+                <span className="text-xs text-muted-foreground">
+                  You'll be able to write once approved
+                </span>
+              )}
+              {isRejected && author.verification?.rejectionReason && (
+                <span className="text-xs text-destructive">
+                  Reason: {author.verification.rejectionReason}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <Link to="/stories/new"><Button icon={<Icons.plus className="h-4 w-4" />} className="bg-gradient-to-r from-primary to-accent hover:brightness-110 shadow-lg shadow-primary/25">New Story</Button></Link>
+
+        <div className="flex-shrink-0">
+          <Link to={isApproved ? "/stories/new" : "#"}>
+            <Button
+              size="lg"
+              icon={<Icons.plus className="h-4 w-4" />}
+              disabled={!isApproved}
+              title={!isApproved ? "Waiting for approval" : undefined}
+            >
+              New Story
+            </Button>
+          </Link>
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
-        <Card padding="lg"><p className="text-3xl font-bold text-primary mb-1">{stories.length}</p><p className="text-xs text-muted-foreground">Total Stories</p></Card>
-        <Card padding="lg"><p className="text-3xl font-bold text-success mb-1">{published}</p><p className="text-xs text-muted-foreground">Published</p></Card>
-        <Card padding="lg"><p className="text-3xl font-bold text-warning mb-1">{drafts}</p><p className="text-xs text-muted-foreground">Drafts</p></Card>
+      {/* Stats Grid */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Card padding="lg" className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <CardContent>
+            <p className="text-3xl font-bold">{stats.total}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Total Stories</p>
+          </CardContent>
+        </Card>
+        <Card padding="lg" className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-success/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <CardContent>
+            <p className="text-3xl font-bold text-success">{stats.published}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Published</p>
+          </CardContent>
+        </Card>
+        <Card padding="lg" className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-warning/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <CardContent>
+            <p className="text-3xl font-bold text-warning">{stats.drafts}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Drafts</p>
+          </CardContent>
+        </Card>
+        <Card padding="lg" className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-info/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <CardContent>
+            <p className="text-3xl font-bold text-info">{stats.submitted}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Submitted</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card><CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6"><CardTitle>My Stories</CardTitle></div>
-        {stories.length === 0 ? (
-          <EmptyState icon={<Icons.book className="h-12 w-12" />} title="No stories yet" description="Start writing your first story!" action={{ label: 'Write Your First Story', onClick: () => navigate('/stories/new') }} />
-        ) : (
-          <div className="space-y-2">
-            {stories.map(s => (
-              <div key={s._id} className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:border-border hover:bg-muted/50 transition-all cursor-pointer" onClick={() => navigate(`/stories/${s._id}`)}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{s.title}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <Badge variant={s.publishedAt ? 'success' : 'warning'} className="text-[10px]">{s.publishedAt ? 'Published' : 'Draft'}</Badge>
-                    <Badge variant="default" className="text-[10px]">{s.language.toUpperCase()}</Badge>
-                  </div>
-                </div>
-                <Link to={`/stories/${s._id}/edit`} onClick={e => e.stopPropagation()} className="ml-4 p-2.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"><Icons.edit className="h-4 w-4" /></Link>
-              </div>
-            ))}
+      {/* Stories List */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <CardTitle>My Stories</CardTitle>
+            {stories.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {stories.length} total
+              </span>
+            )}
           </div>
-        )}
-      </CardContent></Card>
+          {stories.length === 0 ? (
+            <EmptyState
+              icon={<Icons.book className="h-12 w-12" />}
+              title="No stories yet"
+              description={isApproved ? "Start writing your first story and share it with the world." : "Your account is still pending approval. Once approved, you can start writing."}
+              action={isApproved ? {
+                label: "Write Your First Story",
+                onClick: () => navigate("/stories/new"),
+              } : undefined}
+            />
+          ) : (
+            <div className="space-y-3">
+              {stories.map((story) => {
+                const badge = STATUS_BADGE[story.status] ?? {
+                  label: story.status,
+                  variant: "default",
+                };
+                const issues = story.verification?.issues ?? [];
+
+                return (
+                  <motion.div
+                    key={story.id || story._id}
+                    whileHover={{ y: -2 }}
+                    transition={{ duration: 0.15 }}
+                    className="group flex items-center justify-between rounded-2xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-md cursor-pointer"
+                    onClick={() => navigate(`/stories/${story.id || story._id}/edit`)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="truncate text-lg font-semibold">
+                          {story.title || "Untitled Story"}
+                        </h3>
+                        <Badge variant={badge.variant as "warning" | "info" | "success" | "danger" | "default"}>{badge.label}</Badge>
+                        {issues.length > 0 && (
+                          <Badge variant="danger">
+                            {issues.length} issue{issues.length > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
+                      {story.tags && story.tags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {story.tags.map((tag) => (
+                            <Badge key={tag} variant="default">
+                              #{tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        Last updated{' '}
+                        {new Date(story.updatedAt || story.createdAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+
+                    <div className="ml-6 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/stories/${story.id || story._id}/edit`);
+                        }}
+                        icon={<Icons.edit className="h-4 w-4" />}
+                      >
+                        Edit
+                      </Button>
+                      {story.status === "published" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // View on client portal
+                          }}
+                          icon={<Icons.eye className="h-4 w-4" />}
+                        >
+                          View
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

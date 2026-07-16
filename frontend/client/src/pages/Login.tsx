@@ -20,7 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try { await loginUser(email, password); toast.success('Welcome back!'); navigate('/'); }
-    catch (err: unknown) { setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Invalid email or password'); }
+    catch (err: unknown) { const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message; setError(msg || 'Invalid email or password'); }
     finally { setLoading(false); }
   }
 

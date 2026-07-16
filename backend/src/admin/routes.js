@@ -1,17 +1,36 @@
 import { Router } from "express";
-import { authenticate } from '../shared/middleware/auth.js';
-import {
-  adminLogin, dashboard, listApplications, approveApplication, rejectApplication,
-} from "./controllers.js";
+
+import { authenticate } from "../shared/middlewares/auth.js";
+import * as admin from "./controllers.js";
 
 const router = Router();
 
-router.post("/login", adminLogin);
-router.use(authenticate);
+/* ---------- Authentication ---------- */
 
-router.get("/dashboard", dashboard);
-router.get("/applications", listApplications);
-router.post("/applications/:authorId/approve", approveApplication);
-router.post("/applications/:authorId/reject", rejectApplication);
+router.post("/login", admin.login);
+
+/* ---------- Dashboard ---------- */
+
+router.get("/dashboard", authenticate, admin.dashboard);
+
+/* ---------- Authors ---------- */
+
+router.get("/authors/pending", authenticate, admin.getPendingAuthors);
+
+router.patch("/authors/:authorId/approve", authenticate, admin.approveAuthor);
+
+router.patch("/authors/:authorId/reject", authenticate, admin.rejectAuthor);
+
+/* ---------- Users ---------- */
+
+router.get("/users", authenticate, admin.getUsers);
+
+/* ---------- Logout ---------- */
+
+router.post("/logout", admin.logout);
+
+/* ---------- Stories ---------- */
+
+router.get("/stories", authenticate, admin.getStories);
 
 export default router;

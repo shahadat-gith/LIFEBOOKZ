@@ -1,31 +1,59 @@
 import { sendEmail } from "../shared/services/email.js";
 
 export async function sendApplicationApproved(authorEmail, authorName) {
-  const subject = "Your Author Application Has Been Approved! 🎉";
+  const subject = "Welcome to LifeBookz — Your Author Account is Approved! 🎉";
+
   const text = `Hi ${authorName},
 
-Great news! Your author application has been approved. You can now start writing and publishing stories on Lifebookz.
+Congratulations!
 
-Head over to your dashboard to create your first story!
+Your author application has been approved, and your LifeBookz author account is now active.
+
+You can now:
+• Create and publish your own stories
+• Build your author profile
+• Connect with readers around the world
+
+Sign in to your account and start sharing your stories.
+
+We're excited to have you as part of the LifeBookz community.
+
+Happy writing!
 
 Best regards,
-The Lifebookz Team`;
+The LifeBookz Team`;
 
-  await sendEmail({ to: authorEmail, subject, text });
+  await sendEmail({
+    to: authorEmail,
+    subject,
+    text,
+  });
 }
 
 export async function sendApplicationRejected(authorEmail, authorName, reason) {
-  const subject = "Update on Your Author Application";
+  const subject = "Update on Your LifeBookz Author Application";
+
   const text = `Hi ${authorName},
 
-We've reviewed your author application, and unfortunately we are unable to approve it at this time.
+Thank you for your interest in becoming a LifeBookz author.
 
-Reason: ${reason || "Not specified"}
+After reviewing your application, we're unable to approve it at this time.
 
-You are welcome to re-apply with updated information.
+Reason:
+${reason || "No specific reason was provided."}
+
+You are welcome to update your information and submit a new application in the future.
+
+If you believe this decision was made in error, please contact our support team.
+
+Thank you for your interest in LifeBookz.
 
 Best regards,
-The Lifebookz Team`;
+The LifeBookz Team`;
 
-  await sendEmail({ to: authorEmail, subject, text });
+  await sendEmail({
+    to: authorEmail,
+    subject,
+    text,
+  });
 }

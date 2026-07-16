@@ -1,92 +1,130 @@
 import Author from "./model.js";
-import { generateAuthorAccessToken } from "../shared/utils/auth.js";
-import { AuthenticationError, ConflictError } from "../shared/utils/errors.js";
-import * as uploadService from "../shared/services/upload.js";
-import { publishMessage } from "../shared/sqs/publishers.js";
+import Story from "../story/models/Story.js";
 
-export async function authorRegister(req, res, next) {
+import {
+  generateToken,
+  setTokenCookie,
+  clearTokenCookie,
+} from "../shared/utils/helpers.js";
+import * as Errors from "../shared/utils/errors.js";
+
+import { uploadAvatar, deleteFile } from "../shared/services/upload.js";
+
+export async function register(req, res, next) {
   try {
-    const {
+    let {
       email,
       password,
       fullName,
-      bio = "",
+      profession,
+      bio,
       website = "",
       socialLinks = {},
     } = req.body;
 
-    const existing = await Author.findOne({ email });
-
-    if (existing) {
-      throw new ConflictError("An author with this email already exists.");
+    if (typeof socialLinks === "string") {
+      try {
+        socialLinks = JSON.parse(socialLinks);
+      } catch {
+        throw new Errors.ValidationError("Invalid social links.");
+      }
     }
 
-    const avatar = {};
+    email = email?.trim().toLowerCase();
+    fullName = fullName?.trim();
+    profession = profession?.trim();
+    bio = bio?.trim();
+
+    if (!email || !password || !fullName || !profession || !bio) {
+      throw new Errors.ValidationError("Please fill all required fields.");
+    }
+
+    const existing = await Author.exists({ email });
+
+    if (existing) {
+      throw new Errors.ConflictError(
+        "An author with this email already exists.",
+      );
+    }
+
+    let avatar = {
+      url: "",
+      publicId: "",
+    };
 
     if (req.file) {
-      const result = await uploadService.uploadImage(req.file.buffer);
-      avatar.url = result.url;
-      avatar.publicId = result.publicId;
+      avatar = await uploadAvatar(req.file.buffer);
     }
 
     const author = await Author.create({
       email,
       passwordHash: password,
       fullName,
+      profession,
       avatar,
       bio,
-      website,
+      website: website.trim(),
       socialLinks,
     });
 
-    await publishMessage({
-      jobType: "author_embedding",
+    const token = generateToken({
+      role: "author",
       authorId: author.id,
     });
 
-    const accessToken = generateAuthorAccessToken(author);
+    setTokenCookie(res, token);
 
-    return res.status(201).json({
-      author: author.toJSON(),
-      accessToken,
-      message: "Author registered successfully.",
+    res.status(201).json({
+      success: true,
+      data: {
+        author,
+      },
     });
   } catch (error) {
     next(error);
   }
 }
 
-export async function authorLogin(req, res, next) {
+export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
     const author = await Author.findOne({ email }).select("+passwordHash");
 
     if (!author) {
-      throw new AuthenticationError("Invalid email!");
+      throw new Errors.AuthenticationError("Invalid email or password.");
     }
 
     const isValid = await author.comparePassword(password);
 
     if (!isValid) {
-      throw new AuthenticationError("Invalid password.");
+      throw new Errors.AuthenticationError("Invalid email or password.");
     }
 
     if (author.verification.status === "rejected") {
-      throw new AuthenticationError("Your author account has been rejected.");
+      throw new Errors.AuthenticationError(
+        "Your author account has been rejected.",
+      );
     }
 
     if (author.verification.status !== "approved") {
-      throw new AuthenticationError(
+      throw new Errors.AuthenticationError(
         "Your author account is awaiting approval.",
       );
     }
 
-    const accessToken = generateAuthorAccessToken(author);
+    const token = generateToken({
+      role: "author",
+      authorId: author.id,
+    });
+
+    setTokenCookie(res, token);
 
     return res.json({
-      author: author.toJSON(),
-      accessToken,
+      success: true,
+      data: {
+        author,
+      },
     });
   } catch (error) {
     next(error);
@@ -95,13 +133,16 @@ export async function authorLogin(req, res, next) {
 
 export async function getMe(req, res, next) {
   try {
-    const author = await Author.findById(req.user.id);
+    const author = await Author.findById(req.user.id).lean();
 
     if (!author) {
-      throw new NotFoundError("Author not found.");
+      throw new Errors.NotFoundError("Author not found.");
     }
 
-    res.json(author);
+    return res.json({
+      success: true,
+      data: author,
+    });
   } catch (error) {
     next(error);
   }
@@ -112,28 +153,38 @@ export async function updateMe(req, res, next) {
     const author = await Author.findById(req.user.id);
 
     if (!author) {
-      throw new NotFoundError("Author not found.");
+      throw new Errors.NotFoundError("Author not found.");
     }
 
-    const { fullName, bio, website, socialLinks } = req.body;
+    let { fullName, profession, bio, website, socialLinks } = req.body;
+
+    // Parse socialLinks from JSON string when sent via FormData
+    if (typeof socialLinks === "string") {
+      try {
+        socialLinks = JSON.parse(socialLinks);
+      } catch {
+        socialLinks = undefined;
+      }
+    }
 
     if (fullName !== undefined) author.fullName = fullName;
+    if (profession !== undefined) author.profession = profession;
     if (bio !== undefined) author.bio = bio;
     if (website !== undefined) author.website = website;
 
     if (socialLinks) {
       author.socialLinks = {
-        ...author.socialLinks.toObject(),
+        ...(author.socialLinks || {}),
         ...socialLinks,
       };
     }
 
     if (req.file) {
-      if (author.avatar?.publicId) {
-        await uploadService.deleteImage(author.avatar.publicId);
-      }
+      const uploaded = await uploadAvatar(req.file.buffer);
 
-      const uploaded = await uploadService.uploadImage(req.file.buffer);
+      if (author.avatar?.publicId) {
+        await deleteFile(author.avatar.publicId);
+      }
 
       author.avatar = {
         url: uploaded.url,
@@ -143,12 +194,10 @@ export async function updateMe(req, res, next) {
 
     await author.save();
 
-    await publishMessage({
-      jobType: "author_embedding",
-      authorId: author.id,
+    return res.json({
+      success: true,
+      data: author,
     });
-
-    res.json(author);
   } catch (error) {
     next(error);
   }
@@ -156,13 +205,74 @@ export async function updateMe(req, res, next) {
 
 export async function getProfile(req, res, next) {
   try {
-    const author = await Author.findById(req.params.authorId);
+    const author = await Author.findById(req.params.authorId)
+      .select(
+        "fullName profession avatar verification bio website socialLinks createdAt",
+      )
+      .lean();
 
     if (!author) {
-      throw new NotFoundError("Author not found.");
+      throw new Errors.NotFoundError("Author not found.");
     }
 
-    res.json(author);
+    return res.json({
+      success: true,
+      data: author,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMyStories(req, res, next) {
+  try {
+    const stories = await Story.find({
+      author: req.user.id,
+    })
+      .sort({
+        updatedAt: -1,
+      })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: stories,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMyStory(req, res, next) {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    }).lean();
+
+    if (!story) {
+      throw new Errors.NotFoundError("Story not found.");
+    }
+
+    return res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(req, res, next) {
+  try {
+    clearTokenCookie(res);
+
+    return res.json({
+      success: true,
+      message: "Logged out successfully.",
+    });
   } catch (error) {
     next(error);
   }

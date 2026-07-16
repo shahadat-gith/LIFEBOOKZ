@@ -1,21 +1,22 @@
-export function createCursor(id) {
-  return Buffer.from(JSON.stringify({ id })).toString('base64');
+import jwt from "jsonwebtoken";
+import config from "../config/index.js";
+
+export function generateToken(payload) {
+  return jwt.sign(payload, config.jwt.secret);
 }
 
-export function decodeCursor(cursor) {
-  try {
-    return JSON.parse(Buffer.from(cursor, 'base64').toString('utf8'));
-  } catch {
-    return null;
-  }
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: config.env === "production",
+  sameSite: config.env === "production" ? "none" : "lax",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
+export function setTokenCookie(res, token) {
+  res.cookie("token", token, COOKIE_OPTIONS);
 }
 
-export function createExcerpt(content, maxLength = 200) {
-  if (!content) return '';
-  const stripped = content
-    .replace(/[#*_`~>\[\]()!-]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (stripped.length <= maxLength) return stripped;
-  return stripped.slice(0, maxLength).replace(/\s+\S*$/, '') + '...';
+export function clearTokenCookie(res) {
+  res.clearCookie("token", { path: "/" });
 }

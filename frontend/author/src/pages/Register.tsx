@@ -1,112 +1,214 @@
-import { useState, useRef, type SubmitEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Textarea from '../components/ui/Textarea';
-import Button from '../components/ui/Button';
-import Card, { CardTitle } from '../components/ui/Card';
-import { Icons } from '../icons';
-import toast from 'react-hot-toast';
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
-const GOV_ID_OPTIONS = [
-  { value: 'passport', label: 'Passport' }, { value: 'driving-license', label: 'Driving License' },
-  { value: 'aadhar-card', label: 'Aadhaar Card' }, { value: 'pan-card', label: 'PAN Card' },
-];
+import { useAuth } from "../context/AuthContext";
 
-export default function AuthorRegisterPage() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const { registerAuthor } = useAuth();
+import type { RegisterRequest } from "../types";
+
+import AccountSection from "../components/register/AccountSection";
+import ProfileSection from "../components/register/ProfileSection";
+import SocialSection from "../components/register/SocialSection";
+
+import Button from "../components/ui/Button";
+import Card from "../components/ui/Card";
+import { Icons } from "../icons";
+
+const STORAGE_KEY = "lifebookz-author-register";
+
+export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
-  const [form, setForm] = useState({ email: '', password: '', fullName: '', bio: '', website: '', x: '', linkedin: '', instagram: '', phoneNumber: '', addressStreet: '', addressCity: '', addressState: '', addressCountry: '', addressZip: '', govIdType: '', govIdNumber: '' });
-  const [docFile, setDocFile] = useState<File | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
 
-  function update(field: string, value: string) {
-    setForm(p => ({ ...p, [field]: value }));
-    if (fieldErrors[field]) setFieldErrors(p => { const n = { ...p }; delete n[field]; return n; });
-  }
+  const [form, setForm] = useState<RegisterRequest>(() => {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
 
-  function validate(): boolean {
-    const e: Record<string, string> = {};
-    if (!form.fullName.trim()) e.fullName = 'Required';
-    if (!form.email.trim()) e.email = 'Required';
-    if (!form.password.trim() || form.password.length < 8) e.password = 'Min. 8 characters';
-    if (!form.bio.trim()) e.bio = 'Required';
-    setFieldErrors(e); return Object.keys(e).length === 0;
-  }
+    if (saved) {
+      try {
+        return {
+          ...JSON.parse(saved),
+          avatar: null,
+        };
+      } catch {}
+    }
 
-  async function handleSubmit(e: SubmitEvent) {
-    e.preventDefault(); if (!validate()) return;
-    setError(''); setLoading(true);
+    return {
+      email: "",
+      password: "",
+      fullName: "",
+      profession: "",
+      bio: "",
+      website: "",
+      avatar: null,
+      socialLinks: {
+        x: "",
+        linkedin: "",
+        instagram: "",
+      },
+    };
+  });
+
+  useEffect(() => {
+    const { avatar, ...rest } = form;
+
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+  }, [form]);
+
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof RegisterRequest, string>>
+  >({});
+
+  const update = <K extends keyof RegisterRequest>(
+    field: K,
+    value: RegisterRequest[K],
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+    }));
+  };
+
+  const validate = () => {
+    const next: Partial<Record<keyof RegisterRequest, string>> = {};
+
+    if (!form.fullName.trim()) {
+      next.fullName = "Full name is required.";
+    }
+
+    if (!form.email.trim()) {
+      next.email = "Email is required.";
+    }
+
+    if (!/\S+@\S+\.\S+/.test(form.email)) {
+      next.email = "Invalid email address.";
+    }
+
+    if (form.password.length < 8) {
+      next.password = "Password must be at least 8 characters.";
+    }
+
+    if (!form.profession.trim()) {
+      next.profession = "Profession is required.";
+    }
+
+    if (!form.bio.trim()) {
+      next.bio = "Bio is required.";
+    }
+
+    setErrors(next);
+
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!validate()) {
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const fd = new FormData();
-      fd.append('email', form.email); fd.append('password', form.password); fd.append('fullName', form.fullName);
-      fd.append('bio', form.bio); fd.append('website', form.website);
-      fd.append('socialLinks', JSON.stringify({ x: form.x, linkedin: form.linkedin, instagram: form.instagram }));
-      fd.append('kyc', JSON.stringify({
-        phoneNumber: form.phoneNumber,
-        address: { street: form.addressStreet, city: form.addressCity, state: form.addressState, country: form.addressCountry, zipCode: form.addressZip },
-        governmentId: form.govIdType ? { type: form.govIdType, number: form.govIdNumber } : undefined,
-      }));
-      if (docFile) fd.append('document', docFile);
-      await registerAuthor(fd);
-      toast.success('Application submitted!'); navigate('/dashboard');
-    } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Registration failed');
-    } finally { setLoading(false); }
-  }
+
+      fd.append("email", form.email);
+      fd.append("password", form.password);
+      fd.append("fullName", form.fullName);
+      fd.append("profession", form.profession);
+      fd.append("bio", form.bio);
+
+      if (form.website) {
+        fd.append("website", form.website);
+      }
+
+      fd.append("socialLinks", JSON.stringify(form.socialLinks));
+
+      if (form.avatar) {
+        fd.append("avatar", form.avatar);
+      }
+
+      await register(fd);
+
+      toast.success(
+        "Application submitted successfully. We'll notify you once your account is approved.",
+      );
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-8 px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Card className="p-8 backdrop-blur-xl bg-card/90 border-border/50 shadow-2xl">
-          <div className="text-center mb-10">
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-lg"><Icons.edit className="h-7 w-7 text-white" /></div>
-            </div>
-            <CardTitle className="text-3xl font-bold">Become an Author</CardTitle>
-            <p className="text-sm text-muted-foreground mt-2">Share your stories with the world</p>
+    <div className="container max-w-7xl py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="overflow-hidden rounded-3xl border">
+          <div className="border-b bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 px-10 py-12 text-center">
+            <h1 className="text-4xl font-bold tracking-tight">
+              Become a Lifebookz Author
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+              Share your stories, inspire readers, and build your personal
+              writing profile on Lifebookz.
+            </p>
           </div>
-          {error && <div className="mb-8 p-4 rounded-xl bg-destructive/10 text-destructive text-sm flex items-center gap-2"><Icons.exclamationCircle className="h-4 w-4" />{error}</div>}
+
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Account</h3>
-                <Input label="Full Name" value={form.fullName} onChange={e => update('fullName', e.target.value)} required error={fieldErrors.fullName} icon={<Icons.user className="h-4 w-4" />} />
-                <Input label="Email" type="email" value={form.email} onChange={e => update('email', e.target.value)} required error={fieldErrors.email} icon={<Icons.mail className="h-4 w-4" />} />
-                <Input label="Password" type="password" value={form.password} onChange={e => update('password', e.target.value)} required error={fieldErrors.password} icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-6">Profile</h3>
-                <Textarea label="Bio" value={form.bio} onChange={e => update('bio', e.target.value)} rows={3} required error={fieldErrors.bio} />
-                <Input label="Website" type="url" value={form.website} onChange={e => update('website', e.target.value)} icon={<Icons.link className="h-4 w-4" />} />
-              </div>
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Identity Verification</h3>
-                <Input label="Phone" type="tel" value={form.phoneNumber} onChange={e => update('phoneNumber', e.target.value)} />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Street" value={form.addressStreet} onChange={e => update('addressStreet', e.target.value)} />
-                  <Input label="City" value={form.addressCity} onChange={e => update('addressCity', e.target.value)} />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <Input label="State" value={form.addressState} onChange={e => update('addressState', e.target.value)} />
-                  <Input label="Country" value={form.addressCountry} onChange={e => update('addressCountry', e.target.value)} />
-                  <Input label="ZIP" value={form.addressZip} onChange={e => update('addressZip', e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Select label="ID Type" value={form.govIdType} onChange={e => update('govIdType', e.target.value)} options={GOV_ID_OPTIONS} placeholder="Select ID" />
-                  <Input label="ID Number" value={form.govIdNumber} onChange={e => update('govIdNumber', e.target.value)} />
-                </div>
-                <div><label className="block text-xs font-medium text-muted-foreground mb-1.5">Upload ID Document</label>
-                  <div onClick={() => fileRef.current?.click()} className="border border-dashed border-input rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all">
-                    <input ref={fileRef} type="file" accept=".pdf,application/pdf" onChange={e => setDocFile(e.target.files?.[0] || null)} className="hidden" />
-                    {docFile ? <span className="text-sm text-foreground">{docFile.name}</span> : <p className="text-xs text-muted-foreground">Click to upload ID proof</p>}
-                  </div>
-                </div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-6">Social Links</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <Input placeholder="X" value={form.x} onChange={e => update('x', e.target.value)} icon={<Icons.twitter className="h-4 w-4" />} />
-                  <Input placeholder="Instagram" value={f
+            <div className="grid gap-8 py-8 lg:grid-cols-2">
+              <AccountSection form={form} errors={errors} onChange={update} />
+
+              <ProfileSection
+                form={form}
+                avatar={form.avatar}
+                errors={errors}
+                onAvatarChange={(file) => update("avatar", file)}
+                onChange={update}
+              />
+            </div>
+
+            <div className="py-8 pb-8">
+              <SocialSection form={form} onChange={update} />
+            </div>
+
+            <div className="flex flex-col items-center justify-between gap-4 border-t bg-muted/20 px-8 py-6 sm:flex-row">
+              <p className="text-sm text-muted-foreground">
+                Already have an author account?{" "}
+                <Link
+                  to="/login"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+
+              <Button
+                type="submit"
+                size="lg"
+                loading={loading}
+                icon={<Icons.userAdd className="h-4 w-4" />}
+              >
+                Submit Application
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}

@@ -11,27 +11,17 @@ interface StoryCardProps {
 }
 
 export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
-  const authorName = story.author?.fullName || story.author?.name || 'Unknown';
+  const authorName = story.author?.fullName || story.author?.fullName || 'Unknown';
   const date = story.publishedAt || story.createdAt;
   const timeAgo = getTimeAgo(new Date(date));
+  const summaryContent = typeof story.summary === 'string' ? story.summary : story.summary?.content;
 
   return (
     <Link to={`/stories/${story._id}`}>
       <Card hover padding="none" className="overflow-hidden h-full flex flex-col">
-        {/* Banner */}
-        {story.bannerImage?.url ? (
-          <div className="aspect-[16/9] overflow-hidden">
-            <img
-              src={story.bannerImage.url}
-              alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            />
-          </div>
-        ) : (
-          <div className="aspect-[16/9] bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center">
-            <Icons.book className="h-12 w-12 text-muted-foreground/30" />
-          </div>
-        )}
+        <div className="aspect-[16/9] bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center">
+          <Icons.book className="h-12 w-12 text-muted-foreground/30" />
+        </div>
 
         <div className="p-5 flex-1 flex flex-col">
           {/* Tags */}
@@ -51,9 +41,9 @@ export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
           </h3>
 
           {/* Summary */}
-          {story.summary && (
+          {summaryContent && (
             <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
-              {story.summary}
+              {summaryContent}
             </p>
           )}
 
@@ -62,7 +52,7 @@ export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
             {showAuthor ? (
               <div className="flex items-center gap-2">
                 <Avatar
-                  src={story.author?.avatar}
+                  src={story.author?.avatar?.url}
                   name={authorName}
                   size="sm"
                 />
@@ -74,9 +64,6 @@ export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
               <div />
             )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {story.language && story.language !== 'en' && (
-                <span className="uppercase">{story.language}</span>
-              )}
               <Icons.clock className="h-3 w-3" />
               <span>{timeAgo}</span>
             </div>

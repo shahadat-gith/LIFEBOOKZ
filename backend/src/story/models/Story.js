@@ -14,7 +14,7 @@ const issueSchema = new mongoose.Schema(
       trim: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const verificationSchema = new mongoose.Schema(
@@ -35,7 +35,7 @@ const verificationSchema = new mongoose.Schema(
       default: [],
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const summarySchema = new mongoose.Schema(
@@ -52,7 +52,30 @@ const summarySchema = new mongoose.Schema(
       trim: true,
     },
   },
-  { _id: false }
+  { _id: false },
+);
+
+const statsSchema = new mongoose.Schema(
+  {
+    likes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    comments: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    views: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false },
 );
 
 const storySchema = new mongoose.Schema(
@@ -66,13 +89,7 @@ const storySchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "draft",
-        "submitted",
-        "processing",
-        "published",
-        "rejected",
-      ],
+      enum: ["draft", "submitted", "processing", "published", "rejected"],
       default: "draft",
       index: true,
     },
@@ -94,18 +111,15 @@ const storySchema = new mongoose.Schema(
       default: () => ({}),
     },
 
+    stats: {
+      type: statsSchema,
+      default: () => ({}),
+    },
+
     verification: {
       type: verificationSchema,
       default: () => ({}),
     },
-
-    tags: [
-      {
-        type: String,
-        trim: true,
-        lowercase: true,
-      },
-    ],
 
     publishedAt: {
       type: Date,
@@ -120,7 +134,7 @@ const storySchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 storySchema.index({ status: 1, updatedAt: -1 });
