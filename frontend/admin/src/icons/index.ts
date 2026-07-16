@@ -1,0 +1,2 @@
+import { HiOutlineLogin, HiOutlineLogout, HiOutlineExclamationCircle, HiOutlineCheckCircle, HiOutlineShieldCheck, HiOutlineUser, HiOutlineMail, HiOutlineLockClosed, HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
+export const Icons = { login: HiOutlineLogin, logout: HiOutlineLogout, exclamationCircle: HiOutlineExclamationCircle, checkCircle: HiOutlineCheckCircle, shieldCheck: HiOutlineShieldCheck, user: HiOutlineUser, mail: HiOutlineMail, lock: HiOutlineLockClosed, menu: HiOutlineMenu, close: HiOutlineX } as const;
