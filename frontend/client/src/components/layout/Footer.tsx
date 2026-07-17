@@ -13,7 +13,7 @@ export function Footer() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Share your stories with the world. Powered by AI.
+              Share your stories with the world.
             </p>
           </div>
 

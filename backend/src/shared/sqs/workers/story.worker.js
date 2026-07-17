@@ -62,7 +62,7 @@ async function analyzeStory(storyId) {
     const result = JSON.parse(
       await generateContent({
         system: getStoryAnalysisPrompt(),
-        prompt: `Title: ${story.title}\n\nStory:\n${story.content}`,
+        prompt: story.content,
         json: true,
       }),
     );
@@ -109,7 +109,7 @@ async function generateSummary(storyId) {
   try {
     const summary = await generateContent({
       system: getSummaryPrompt(),
-      prompt: `Title: ${story.title}\n\nStory:\n${story.content}`,
+      prompt: story.content,
     });
 
     await Story.findByIdAndUpdate(storyId, {
@@ -153,9 +153,7 @@ async function generateStoryEmbedding(storyId) {
           payload: {
             storyId: story.id,
             authorId: story.author.toString(),
-            title: story.title,
             summary: story.summary.content,
-            tags: story.tags,
           },
         },
       ],

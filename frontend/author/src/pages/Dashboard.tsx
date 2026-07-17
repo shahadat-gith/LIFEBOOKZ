@@ -13,6 +13,7 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Card, { CardContent, CardTitle } from "../components/ui/Card";
 
+import { getContentPreview } from "../utils/helpers";
 import EmptyState from "../components/common/EmptyState";
 import LoadingScreen from "../components/common/LoadingScreen";
 
@@ -22,6 +23,7 @@ const STATUS_BADGE = {
   draft: { variant: "warning" as const, label: "Draft" },
   submitted: { variant: "info" as const, label: "Submitted" },
   processing: { variant: "info" as const, label: "Processing" },
+  verified: { variant: "success" as const, label: "Ready to Publish" },
   published: { variant: "success" as const, label: "Published" },
   rejected: { variant: "danger" as const, label: "Rejected" },
 };
@@ -57,7 +59,7 @@ export default function Dashboard() {
       total: stories.length,
       published: stories.filter((s) => s.status === "published").length,
       drafts: stories.filter((s) => s.status === "draft").length,
-      submitted: stories.filter((s) => s.status === "submitted" || s.status === "processing").length,
+      submitted: stories.filter((s) => s.status === "submitted" || s.status === "processing" || s.status === "verified").length,
     }),
     [stories]
   );
@@ -208,7 +210,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="truncate text-lg font-semibold">
-                          {story.title || "Untitled Story"}
+                          {getContentPreview(story.content)}
                         </h3>
                         <Badge variant={badge.variant as "warning" | "info" | "success" | "danger" | "default"}>{badge.label}</Badge>
                         {issues.length > 0 && (
@@ -217,15 +219,6 @@ export default function Dashboard() {
                           </Badge>
                         )}
                       </div>
-                      {story.tags && story.tags.length > 0 && (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          {story.tags.map((tag) => (
-                            <Badge key={tag} variant="default">
-                              #{tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
                       <p className="mt-3 text-sm text-muted-foreground">
                         Last updated{' '}
                         {new Date(story.updatedAt || story.createdAt).toLocaleDateString(undefined, {

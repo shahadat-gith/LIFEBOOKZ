@@ -26,8 +26,8 @@ const features = [
   },
   {
     icon: <Icons.sparkles className="h-6 w-6" />,
-    title: "AI-Powered Verification",
-    desc: "Get instant AI feedback on your stories with suggestions for improvement before publishing.",
+    title: "Content Review",
+    desc: "Get instant feedback on your stories with suggestions for improvement before publishing.",
     gradient: "from-amber-500 to-orange-600",
   },
   {
@@ -64,8 +64,8 @@ const steps = [
   },
   {
     step: "03",
-    title: "AI Verification",
-    desc: "Submit your story for AI-powered verification. Get feedback and suggestions to improve your work.",
+    title: "Content Review",
+    desc: "Submit your story for review. Get feedback and suggestions to improve your work.",
   },
   {
     step: "04",
@@ -117,7 +117,7 @@ export default function AuthorHomePage() {
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             Join a community of passionate writers. Use our powerful editor,
-            get AI-powered feedback, and publish your stories to readers
+            get expert feedback, and publish your stories to readers
             worldwide.
           </motion.p>
 

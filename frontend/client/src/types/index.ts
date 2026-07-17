@@ -11,24 +11,24 @@ export interface StoryAuthor {
 }
 
 export interface Story {
-  _id: string; id: string; title: string; content: string;
+  _id: string; id: string; content: string;
   summary?: { status?: string; content?: string };
   stats?: { likes: number; comments: number; views: number };
   verification?: {
     status: string; canProceed: boolean;
     issues: Array<{ description: string; suggestion: string }>;
   };
-  tags: string[];
   author?: StoryAuthor;
   status: string;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
+  likedByUser?: boolean;
 }
 
 export interface StorySummary {
-  _id: string; id: string; title: string;
+  _id: string; id: string; content: string;
   summary?: { status?: string; content?: string };
-  tags?: string[]; publishedAt?: string; createdAt: string;
+  publishedAt?: string; createdAt: string;
   author?: StoryAuthor; status?: string;
 }

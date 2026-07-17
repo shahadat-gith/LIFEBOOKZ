@@ -9,6 +9,11 @@ import LoadingScreen from '../components/common/LoadingScreen';
 import EmptyState from '../components/common/EmptyState';
 import { Icons } from '../icons';
 import toast from 'react-hot-toast';
+
+function getPreview(html: string, max = 60) {
+  const plain = html?.replace(/<[^>]*>/g, '').trim() || '';
+  return plain.length > max ? plain.slice(0, max) + '...' : plain || 'Untitled';
+}
 import type { DashboardStats, Author, User, Story } from '../types';
 
 export default function AdminDashboardPage() {
@@ -118,7 +123,7 @@ export default function AdminDashboardPage() {
               {stories.map(s => (
                 <div key={s._id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{s.title}</p>
+                    <p className="font-medium text-foreground truncate">{getPreview(s.content)}</p>
                     <p className="text-sm text-muted-foreground">by {s.author?.fullName || 'Unknown'}</p>
                   </div>
                   <Badge variant={s.status === 'published' ? 'success' : s.status === 'draft' ? 'warning' : 'info'}>{s.status}</Badge>

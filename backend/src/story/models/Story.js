@@ -89,16 +89,9 @@ const storySchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["draft", "submitted", "processing", "published", "rejected"],
+      enum: ["draft", "submitted", "processing", "verified", "published", "rejected"],
       default: "draft",
       index: true,
-    },
-
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 200,
     },
 
     content: {
@@ -140,7 +133,7 @@ const storySchema = new mongoose.Schema(
 storySchema.index({ status: 1, updatedAt: -1 });
 storySchema.index({ publishedAt: -1 });
 storySchema.index({ author: 1, status: 1, updatedAt: -1 });
-storySchema.index({ title: "text", content: "text" });
+storySchema.index({ content: "text" });
 
 const Story = mongoose.model("stories", storySchema);
 

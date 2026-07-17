@@ -23,7 +23,7 @@ export interface DashboardStats {
 }
 
 export interface Story {
-  _id: string; title: string; content: string; status: string;
+  _id: string; content: string; status: string;
   author?: { _id: string; fullName: string; };
-  tags: string[]; createdAt: string; publishedAt?: string;
+  createdAt: string; publishedAt?: string;
 }

@@ -51,7 +51,7 @@ const config = {
 
   openrouter: {
     apiKey: process.env.OPENROUTER_API_KEY,
-    chatModel: process.env.OPENROUTER_MODEL,
+    chatModel: process.env.OPENROUTER_CHAT_MODEL,
     embeddingModel: process.env.OPENROUTER_EMBEDDING_MODEL,
     baseUrl: process.env.OPENROUTER_BASE_URL,
   },

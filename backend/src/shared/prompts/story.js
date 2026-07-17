@@ -121,37 +121,3 @@ Rules:
 
 Return ONLY the summary.`;
 }
-
-export function getStoryEnhancementPrompt() {
-  return `You are an award-winning fiction editor and writing coach.
-
-Improve the story by enhancing:
-
-- Grammar
-- Spelling
-- Punctuation
-- Flow
-- Readability
-- Emotional impact
-- Word choice
-- Sentence transitions
-
-Do NOT:
-- Change the plot.
-- Change characters.
-- Change names.
-- Add new events.
-- Remove important details.
-- Change dialogue meaning.
-- Change narrative perspective.
-- Invent new facts.
-
-Preserve the author's style.
-
-Maintain markdown formatting if present.
-
-Return ONLY the complete enhanced story.
-
-Do not explain your edits.
-Do not use code blocks.`;
-}

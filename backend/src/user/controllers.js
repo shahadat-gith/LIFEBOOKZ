@@ -9,7 +9,16 @@ import { uploadAvatar, deleteFile } from "../shared/services/upload.js";
 
 export async function register(req, res, next) {
   try {
-    const { email, password, fullName, interests = [] } = req.body;
+    let { email, password, fullName, interests = [] } = req.body;
+
+    // Parse interests from JSON string when sent via FormData
+    if (typeof interests === "string") {
+      try {
+        interests = JSON.parse(interests);
+      } catch {
+        interests = [];
+      }
+    }
 
     const existing = await User.findOne({ email });
 
@@ -19,13 +28,18 @@ export async function register(req, res, next) {
       );
     }
 
-    const avatar = {};
+    let avatar = {
+      url: "",
+      publicId: "",
+    };
 
     if (req.file) {
       const uploaded = await uploadAvatar(req.file.buffer);
 
-      avatar.url = uploaded.url;
-      avatar.publicId = uploaded.publicId;
+      avatar = {
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+      };
     }
 
     const user = await User.create({

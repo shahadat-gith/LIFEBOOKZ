@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import Card from '../ui/Card';
-import Badge from '../ui/Badge';
 import Avatar from '../ui/Avatar';
 import { Icons } from '../../icons';
+import { getContentPreview } from '../../utils/helpers';
 import type { StorySummary } from '../../types';
 
 interface StoryCardProps {
@@ -11,33 +11,20 @@ interface StoryCardProps {
 }
 
 export function StoryCard({ story, showAuthor = true }: StoryCardProps) {
-  const authorName = story.author?.fullName || story.author?.fullName || 'Unknown';
+  const authorName = story.author?.fullName || 'Unknown';
   const date = story.publishedAt || story.createdAt;
   const timeAgo = getTimeAgo(new Date(date));
   const summaryContent = typeof story.summary === 'string' ? story.summary : story.summary?.content;
+  const contentPreview = getContentPreview(story.content, 100);
 
   return (
     <Link to={`/stories/${story._id}`}>
       <Card hover padding="none" className="overflow-hidden h-full flex flex-col">
-        <div className="aspect-[16/9] bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center">
-          <Icons.book className="h-12 w-12 text-muted-foreground/30" />
-        </div>
-
+      
         <div className="p-5 flex-1 flex flex-col">
-          {/* Tags */}
-          {story.tags && story.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {story.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="primary" className="text-[10px]">
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Title */}
+          {/* Content snippet */}
           <h3 className="text-lg font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
-            {story.title}
+            {contentPreview}
           </h3>
 
           {/* Summary */}

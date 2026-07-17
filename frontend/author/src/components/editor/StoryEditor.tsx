@@ -25,7 +25,11 @@ function TB({
       type="button"
       onClick={onClick}
       title={label}
-      className={`p-2 rounded-lg text-sm transition-all duration-150 ${active ? "bg-primary/15 text-primary shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+      className={`p-2 rounded-lg text-sm transition-all duration-150 ${
+        active
+          ? "bg-primary/15 text-primary shadow-xs"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+      }`}
     >
       {children}
     </button>
@@ -222,7 +226,7 @@ export default function StoryEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] px-6 py-4",
+          "prose prose-lg dark:prose-invert mx-auto max-w-3xl focus:outline-none min-h-[400px] px-6 py-4",
       },
     },
     immediatelyRender: false,
@@ -238,7 +242,9 @@ export default function StoryEditor({
   return (
     <div className="border border-input rounded-xl bg-card overflow-hidden transition-all duration-200 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
       {editable && <Toolbar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="overflow-y-auto max-h-[600px]">
+        <EditorContent editor={editor} />
+      </div>
       <style>{`
         .tiptap p.is-editor-empty:first-child::before { color: #adb5bd; content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
         .tiptap h1 { font-size: 1.75rem; font-weight: 700; line-height: 1.3; margin-top: 1.5rem; margin-bottom: 0.5rem; }

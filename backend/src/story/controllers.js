@@ -1,16 +1,20 @@
 import Story from "./models/Story.js";
 import Like from "./models/Like.js";
 import Comment from "./models/Comment.js";
-import { publishMessage } from "../shared/sqs/publishers.js";
+import { generateContent } from "../shared/services/llm.js";
+import {
+  getStoryAnalysisPrompt,
+  getGrammarCorrectionPrompt,
+  getSummaryPrompt,
+} from "../shared/prompts/story.js";
 import { NotFoundError, ValidationError } from "../shared/utils/errors.js";
 
 export async function create(req, res, next) {
   try {
-    const { title = "", content = "" } = req.body;
+    const { content = "" } = req.body;
 
     const story = await Story.create({
       author: req.user.id,
-      title,
       content,
     });
 
@@ -36,14 +40,22 @@ export async function update(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    if (story.status !== "draft") {
-      throw new ValidationError("Only draft stories can be edited.");
+    if (!["draft", "rejected"].includes(story.status)) {
+      throw new ValidationError("Only draft or rejected stories can be edited.");
     }
 
-    const { title, content, tags } = req.body;
+    const { content } = req.body;
 
-    if (title !== undefined) story.title = title;
-    if (content !== undefined) story.content = content;
+    if (content !== undefined) {
+      story.content = content;
+    }
+
+    // If story was rejected and author saves as draft, reset to draft
+    if (story.status === "rejected") {
+      story.status = "draft";
+      story.verification.issues = [];
+      story.verification.canProceed = true;
+    }
 
     await story.save();
 
@@ -56,7 +68,7 @@ export async function update(req, res, next) {
   }
 }
 
-export async function submit(req, res, next) {
+export async function verify(req, res, next) {
   try {
     const { storyId } = req.params;
 
@@ -69,32 +81,92 @@ export async function submit(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    if (story.status !== "draft") {
-      throw new ValidationError("Story has already been submitted.");
+    if (!story.content?.trim()) {
+      throw new ValidationError("Story content is required for verification.");
     }
 
-    if (!story.title.trim()) {
-      throw new ValidationError("Story title is required.");
-    }
+    // Run AI content moderation analysis synchronously
+    const result = JSON.parse(
+      await generateContent({
+        system: getStoryAnalysisPrompt(),
+        prompt: story.content,
+        json: true,
+      }),
+    );
 
-    if (!story.content.trim()) {
-      throw new ValidationError("Story content is required.");
-    }
+    // Store verification result on the story
+    story.verification.status = "completed";
+    story.verification.canProceed = result.canProceed;
+    story.verification.issues = result.issues ?? [];
 
-    story.status = "submitted";
-    story.verification.status = "pending";
-    story.summary.status = "pending";
+    if (result.canProceed) {
+      story.status = "verified";
+    } else {
+      story.status = "rejected";
+    }
 
     await story.save();
 
-    await publishMessage({
-      jobType: "story_analysis",
-      storyId: story.id,
+    res.json({
+      success: true,
+      data: {
+        canProceed: result.canProceed,
+        issues: result.issues ?? [],
+        overallAssessment: result.overallAssessment ?? "",
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function publish(req, res, next) {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    if (story.status !== "verified") {
+      throw new ValidationError(
+        "Story must pass AI verification before publishing.",
+      );
+    }
+
+    if (!story.content?.trim()) {
+      throw new ValidationError("Story content is required.");
+    }
+
+    // 1. Grammar correction
+    const corrected = await generateContent({
+      system: getGrammarCorrectionPrompt(),
+      prompt: story.content,
+    });
+
+    // 2. Summary generation
+    const summary = await generateContent({
+      system: getSummaryPrompt(),
+      prompt: corrected,
+    });
+
+    // Save everything
+    story.content = corrected.trim();
+    story.summary.status = "completed";
+    story.summary.content = summary.trim();
+    story.status = "published";
+    story.publishedAt = new Date();
+
+    await story.save();
 
     res.json({
       success: true,
-      message: "Story submitted successfully.",
+      data: story,
     });
   } catch (error) {
     next(error);
@@ -114,8 +186,8 @@ export async function remove(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    if (story.status !== "draft") {
-      throw new ValidationError("Only draft stories can be deleted.");
+    if (!["draft", "rejected"].includes(story.status)) {
+      throw new ValidationError("Only draft or rejected stories can be deleted.");
     }
 
     await story.deleteOne();
@@ -144,9 +216,22 @@ export async function getStory(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
+    // Check if the requesting user has liked this story
+    let likedByUser = false;
+    if (req.user) {
+      const existing = await Like.findOne({
+        story: storyId,
+        user: req.user.id,
+      });
+      likedByUser = !!existing;
+    }
+
     res.json({
       success: true,
-      data: story,
+      data: {
+        ...story,
+        likedByUser,
+      },
     });
   } catch (error) {
     next(error);
@@ -161,10 +246,6 @@ export async function list(req, res, next) {
     const filter = {
       status: "published",
     };
-
-    if (req.query.tag) {
-      filter.tags = req.query.tag.toLowerCase();
-    }
 
     const [stories, total] = await Promise.all([
       Story.find(filter)
@@ -276,8 +357,6 @@ export async function getLikes(req, res, next) {
     next(error);
   }
 }
-
-
 
 export async function createComment(req, res, next) {
   try {

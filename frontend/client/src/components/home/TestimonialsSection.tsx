@@ -20,7 +20,7 @@ const testimonials: Testimonial[] = [
     role: 'Hindi Story Writer',
     avatar: '',
     content:
-      'Lifebookz gave me the platform to share my Hindi stories with readers across India. The AI editing tools helped me refine my work beautifully.',
+      'Lifebookz gave me the platform to share my Hindi stories with readers across India. The editing tools helped me refine my work beautifully.',
     badge: 'Top Author',
     badgeVariant: 'success',
     gradient: 'from-violet-500 to-purple-600',

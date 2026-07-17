@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { authenticate } from "../shared/middlewares/auth.js";
+import { authenticate, authenticateSoft } from "../shared/middlewares/auth.js";
 import * as story from "./controllers.js";
 
 const router = Router();
@@ -11,14 +11,15 @@ router.post("/", authenticate, story.create);
 
 router.get("/", story.list);
 
-
-router.get("/:storyId", story.getStory);
+router.get("/:storyId", authenticateSoft, story.getStory);
 
 router.patch("/:storyId", authenticate, story.update);
 
 router.delete("/:storyId", authenticate, story.remove);
 
-router.post("/:storyId/submit", authenticate, story.submit);
+router.post("/:storyId/verify", authenticate, story.verify);
+
+router.post("/:storyId/publish", authenticate, story.publish);
 
 /* ---------- Likes ---------- */
 

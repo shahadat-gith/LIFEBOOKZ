@@ -26,8 +26,18 @@ export const remove = async (storyId: string) => {
   return data.data;
 };
 
-export const submit = async (storyId: string) => {
-  const { data } = await api.post(`/stories/${storyId}/submit`);
+export const verify = async (storyId: string) => {
+  const { data } = await api.post(`/stories/${storyId}/verify`);
 
-  return data.data;
+  return data.data as {
+    canProceed: boolean;
+    issues: Array<{ category: string; severity: string; description: string; suggestion: string }>;
+    overallAssessment: string;
+  };
+};
+
+export const publish = async (storyId: string) => {
+  const { data } = await api.post(`/stories/${storyId}/publish`);
+
+  return data.data as Story;
 };

@@ -4,6 +4,7 @@ export type StoryStatus =
   | "draft"
   | "submitted"
   | "processing"
+  | "verified"
   | "published"
   | "rejected";
 
@@ -13,10 +14,15 @@ export type JobStatus =
   | "completed"
   | "failed";
 
+export interface VerificationIssue {
+  description: string;
+  suggestion: string;
+}
+
 export interface StoryVerification {
   status: JobStatus;
   canProceed: boolean;
-  issues: string[];
+  issues: VerificationIssue[];
 }
 
 export interface StorySummary {
@@ -32,18 +38,18 @@ export interface StoryStats {
 
 export interface Story {
   id: string;
+  _id?: string;
 
   author: string | Author;
 
-  title: string;
   content: string;
 
   status: StoryStatus;
 
-  verification: StoryVerification;
-  summary: StorySummary;
+  verification?: StoryVerification;
+  summary?: StorySummary;
 
-  stats: StoryStats;
+  stats?: StoryStats;
 
   createdAt: string;
   updatedAt: string;
@@ -51,12 +57,10 @@ export interface Story {
 }
 
 export interface CreateStoryRequest {
-  title: string;
   content: string;
 }
 
 export interface UpdateStoryRequest {
-  title?: string;
   content?: string;
 }
 

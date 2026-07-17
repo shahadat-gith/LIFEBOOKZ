@@ -11,8 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
-const CreateStory = lazy(() => import('./pages/CreateStory'));
-const EditStory = lazy(() => import('./pages/EditStory'));
+const StoryEditor = lazy(() => import('./pages/StoryEditor'));
 
 function LazyFallback() { return <LoadingScreen message="Loading..." />; }
 
@@ -27,8 +26,8 @@ export default function App() {
             </Route>
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/stories/new" element={<ProtectedRoute><CreateStory /></ProtectedRoute>} />
-              <Route path="/stories/:storyId/edit" element={<ProtectedRoute><EditStory /></ProtectedRoute>} />
+              <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
+              <Route path="/stories/:storyId/edit" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             </Route>
             <Route element={<AuthLayout />}>
