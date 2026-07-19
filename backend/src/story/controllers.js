@@ -250,9 +250,13 @@ export async function list(req, res, next) {
     const [stories, total] = await Promise.all([
       Story.find(filter)
         .populate("author", "fullName avatar")
-        .sort({
-          publishedAt: -1,
-        })
+        .sort(
+          req.query.sort === "popular"
+            ? { "stats.likes": -1, "stats.views": -1, publishedAt: -1 }
+            : req.query.sort === "oldest"
+              ? { publishedAt: 1 }
+              : { publishedAt: -1 },
+        )
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),

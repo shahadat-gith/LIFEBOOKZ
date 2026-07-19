@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import slugify from "slugify"; 
 
 const issueSchema = new mongoose.Schema(
   {
@@ -7,14 +8,13 @@ const issueSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     suggestion: {
       type: String,
       default: "",
       trim: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const verificationSchema = new mongoose.Schema(
@@ -24,18 +24,16 @@ const verificationSchema = new mongoose.Schema(
       enum: ["pending", "processing", "completed", "failed"],
       default: "pending",
     },
-
     canProceed: {
       type: Boolean,
       default: true,
     },
-
     issues: {
       type: [issueSchema],
       default: [],
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const summarySchema = new mongoose.Schema(
@@ -45,37 +43,22 @@ const summarySchema = new mongoose.Schema(
       enum: ["pending", "processing", "completed", "failed"],
       default: "pending",
     },
-
     content: {
       type: String,
       default: "",
       trim: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const statsSchema = new mongoose.Schema(
   {
-    likes: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
-    comments: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
-    views: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+    likes: { type: Number, default: 0, min: 0 },
+    comments: { type: Number, default: 0, min: 0 },
+    views: { type: Number, default: 0, min: 0 },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const storySchema = new mongoose.Schema(
@@ -86,34 +69,44 @@ const storySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 150,
+    },
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      index: true,
+    },
+    coverImage: {
+      type: String,
+      default: "",
+    },
     status: {
       type: String,
       enum: ["draft", "submitted", "processing", "verified", "published", "rejected"],
       default: "draft",
       index: true,
     },
-
     content: {
       type: String,
       required: true,
     },
-
     summary: {
       type: summarySchema,
       default: () => ({}),
     },
-
     stats: {
       type: statsSchema,
       default: () => ({}),
     },
-
     verification: {
       type: verificationSchema,
       default: () => ({}),
     },
-
     publishedAt: {
       type: Date,
     },
@@ -121,19 +114,42 @@ const storySchema = new mongoose.Schema(
   {
     timestamps: true,
     toJSON: {
+      virtuals: true,
       transform(_doc, ret) {
         delete ret.__v;
-        ret.id = ret._id;
+        delete ret._id;
         return ret;
       },
     },
-  },
+    toObject: { virtuals: true }
+  }
 );
 
+// --- Indexes ---
 storySchema.index({ status: 1, updatedAt: -1 });
 storySchema.index({ publishedAt: -1 });
 storySchema.index({ author: 1, status: 1, updatedAt: -1 });
-storySchema.index({ content: "text" });
+
+// Text search weighting title matches higher than body content
+storySchema.index(
+  { title: "text", content: "text" },
+  { weights: { title: 3, content: 1 }, name: "story_search_index" }
+);
+
+// --- Pre-Save Hooks ---
+storySchema.pre("save", function (next) {
+  // 1. Generate slug on new titles or modifications
+  if (this.isModified("title")) {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
+
+  // 2. Automate publishedAt timestamp handling
+  if (this.isModified("status") && this.status === "published" && !this.publishedAt) {
+    this.publishedAt = new Date();
+  }
+
+  next();
+});
 
 const Story = mongoose.model("stories", storySchema);
 

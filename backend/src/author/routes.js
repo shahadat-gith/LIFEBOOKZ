@@ -29,6 +29,8 @@ router.post("/logout", author.logout);
 
 /* ---------- Public ---------- */
 
+router.get("/approved", author.listApproved);
+
 router.get("/:authorId", author.getProfile);
 
 export default router;

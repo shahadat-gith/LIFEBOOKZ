@@ -29,6 +29,7 @@
     "nanoid": "^3.3.7",
     "nodemailer": "^9.0.3",
     "serverless-http": "^3.2.0",
+    "slugify": "^1.6.9",
     "zod": "^3.23.8"
   },
   "devDependencies": {

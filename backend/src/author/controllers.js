@@ -243,6 +243,24 @@ export async function getMyStories(req, res, next) {
   }
 }
 
+export async function listApproved(req, res, next) {
+  try {
+    const authors = await Author.find({
+      "verification.status": "approved",
+    })
+      .select("fullName profession avatar bio createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: authors,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getMyStory(req, res, next) {
   try {
     const { storyId } = req.params;

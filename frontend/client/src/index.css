@@ -1,61 +1,62 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand */
-  --color-primary: #2563eb;
+  /* Brand - Quiet Luxury / Tech Minimal */
+  --color-primary: #111827;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #f59e0b;
-  --color-secondary-foreground: #1f2937;
+  --color-secondary: #4b5563;
+  --color-secondary-foreground: #f9fafb;
 
-  --color-accent: #0ea5e9;
-  --color-accent-foreground: #ffffff;
+  /* Signature Gold Accent (Thoda Golden Accent for premium UI focus points) */
+  --color-accent: #d4af37; 
+  --color-accent-foreground: #1c1917;
 
-  /* Background */
-  --color-background: #fafaf8;
-  --color-foreground: #1f2937;
+  /* Background - Soft Warm Alabaster White */
+  --color-background: #fbfbfa;
+  --color-foreground: #1c1917;
 
-  /* Surfaces */
+  /* Surfaces - Clean Floating Panels */
   --color-card: #ffffff;
-  --color-card-foreground: #1f2937;
+  --color-card-foreground: #1c1917;
 
   --color-popover: #ffffff;
-  --color-popover-foreground: #1f2937;
+  --color-popover-foreground: #1c1917;
 
-  /* Muted */
-  --color-muted: #f3f4f6;
-  --color-muted-foreground: #6b7280;
+  /* Muted - Soft Studio Grays */
+  --color-muted: #f4f4f3;
+  --color-muted-foreground: #78716c;
 
-  /* Borders */
-  --color-border: #e5e7eb;
-  --color-input: #d1d5db;
-  --color-ring: #2563eb;
+  /* Borders & Focus Rings */
+  --color-border: #e6e5e3;
+  --color-input: #d6d3d1;
+  --color-ring: #111827;
 
-  /* States */
-  --color-success: #16a34a;
-  --color-warning: #f59e0b;
-  --color-destructive: #dc2626;
-  --color-info: #0ea5e9;
+  /* Functional Statuses */
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-destructive: #991b1b;
+  --color-info: #0369a1;
 
-  /* Radius */
+  /* Premium Smooth Radii Scale */
   --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 6px 20px rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
+  /* Deep High-End Editorial Shadows */
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.03);
+  --shadow-sm: 0 2px 8px rgba(28, 25, 23, 0.04);
+  --shadow-md: 0 8px 24px rgba(28, 25, 23, 0.06);
+  --shadow-lg: 0 16px 40px rgba(28, 25, 23, 0.08);
 
-  /* Fonts */
-  --font-sans: "Inter", sans-serif;
-  --font-display: "Plus Jakarta Sans", sans-serif;
+  /* Typography */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
 }
-
 
 @layer base {
   :root {
@@ -65,37 +66,41 @@
   .dark {
     color-scheme: dark;
 
-    --color-background: #0f1115;
-    --color-foreground: #f8fafc;
+    /* Dark Mode: Deep Charcoal Midnight Palette */
+    --color-background: #0b0c0e;
+    --color-foreground: #f5f5f4;
 
-    --color-card: #171b22;
-    --color-card-foreground: #f8fafc;
+    --color-card: #121418;
+    --color-card-foreground: #f5f5f4;
 
-    --color-popover: #171b22;
-    --color-popover-foreground: #f8fafc;
+    --color-popover: #121418;
+    --color-popover-foreground: #f5f5f4;
 
-    --color-muted: #1f2937;
-    --color-muted-foreground: #94a3b8;
+    --color-muted: #1a1d24;
+    --color-muted-foreground: #a8a29e;
 
-    --color-border: #2b3440;
-    --color-input: #374151;
+    --color-border: #22272f;
+    --color-input: #2e3540;
 
-    --color-primary: #4f8cff;
-    --color-primary-foreground: #ffffff;
+    --color-primary: #f5f5f4;
+    --color-primary-foreground: #0b0c0e;
 
-    --color-secondary: #f4b400;
-    --color-secondary-foreground: #111827;
+    --color-secondary: #a8a29e;
+    --color-secondary-foreground: #0b0c0e;
 
-    --color-accent: #38bdf8;
-    --color-accent-foreground: #ffffff;
+    /* Luminous Gold Accent for dark mode */
+    --color-accent: #e5c158;
+    --color-accent-foreground: #0b0c0e;
 
     --color-success: #22c55e;
-    --color-warning: #fbbf24;
+    --color-warning: #eab308;
     --color-destructive: #ef4444;
     --color-info: #38bdf8;
+    
+    --color-ring: #fafafa;
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased tracking-tight;
   }
 }
