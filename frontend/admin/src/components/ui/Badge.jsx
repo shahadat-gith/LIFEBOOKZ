@@ -1,5 +1,6 @@
 const variants = {
   default: 'bg-muted text-muted-foreground',
+  primary: 'bg-primary/10 text-primary',
   success: 'bg-success/10 text-success',
   warning: 'bg-warning/10 text-warning',
   danger: 'bg-destructive/10 text-destructive',

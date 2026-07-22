@@ -7,15 +7,37 @@ import {
   getGrammarCorrectionPrompt,
   getSummaryPrompt,
 } from "../shared/prompts/story.js";
+import { uploadStoryImage } from "../shared/services/upload.js";
 import { NotFoundError, ValidationError } from "../shared/utils/errors.js";
+
+export async function uploadImage(req, res, next) {
+  try {
+    if (!req.file) {
+      throw new ValidationError("No image file provided.");
+    }
+
+    const uploaded = await uploadStoryImage(req.file.buffer);
+
+    res.json({
+      success: true,
+      data: {
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function create(req, res, next) {
   try {
-    const { content = "" } = req.body;
+    const { content = "", title = "" } = req.body;
 
     const story = await Story.create({
       author: req.user.id,
       content,
+      title: title.trim(),
     });
 
     res.status(201).json({
@@ -44,10 +66,14 @@ export async function update(req, res, next) {
       throw new ValidationError("Only draft or rejected stories can be edited.");
     }
 
-    const { content } = req.body;
+    const { content, title } = req.body;
 
     if (content !== undefined) {
       story.content = content;
+    }
+
+    if (title !== undefined) {
+      story.title = title.trim();
     }
 
     // If story was rejected and author saves as draft, reset to draft
@@ -247,16 +273,35 @@ export async function list(req, res, next) {
       status: "published",
     };
 
+    // Text search support
+    if (req.query.q?.trim()) {
+      filter.$text = { $search: req.query.q.trim() };
+    }
+
+    // Tag filter support
+    if (req.query.tag?.trim()) {
+      filter.tags = { $in: [req.query.tag.trim().toLowerCase()] };
+    }
+
+    const sortOptions =
+      req.query.sort === "popular"
+        ? { "stats.likes": -1, "stats.views": -1, publishedAt: -1 }
+        : req.query.sort === "oldest"
+          ? { publishedAt: 1 }
+          : req.query.q?.trim()
+            ? { score: { $meta: "textScore" }, publishedAt: -1 }
+            : { publishedAt: -1 };
+
+    let query = Story.find(filter);
+
+    if (req.query.q?.trim()) {
+      query = query.select({ score: { $meta: "textScore" } });
+    }
+
     const [stories, total] = await Promise.all([
-      Story.find(filter)
+      query
         .populate("author", "fullName avatar")
-        .sort(
-          req.query.sort === "popular"
-            ? { "stats.likes": -1, "stats.views": -1, publishedAt: -1 }
-            : req.query.sort === "oldest"
-              ? { publishedAt: 1 }
-              : { publishedAt: -1 },
-        )
+        .sort(sortOptions)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
@@ -275,6 +320,26 @@ export async function list(req, res, next) {
           pages: Math.ceil(total / limit),
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function incrementView(req, res, next) {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findByIdAndUpdate(storyId, {
+      $inc: { "stats.views": 1 },
+    }).select("_id");
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    res.json({
+      success: true,
     });
   } catch (error) {
     next(error);

@@ -21,6 +21,8 @@ router.patch("/authors/:authorId/approve", authenticate, admin.approveAuthor);
 
 router.patch("/authors/:authorId/reject", authenticate, admin.rejectAuthor);
 
+router.get("/authors/approved", authenticate, admin.getApprovedAuthors);
+
 /* ---------- Users ---------- */
 
 router.get("/users", authenticate, admin.getUsers);

@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import upload from "../shared/middlewares/multer.js";
 import { authenticate, authenticateSoft } from "../shared/middlewares/auth.js";
 import * as story from "./controllers.js";
 
@@ -8,6 +9,8 @@ const router = Router();
 /* ---------- Stories ---------- */
 
 router.post("/", authenticate, story.create);
+
+router.post("/upload-image", authenticate, upload.single("image"), story.uploadImage);
 
 router.get("/", story.list);
 
@@ -20,6 +23,10 @@ router.delete("/:storyId", authenticate, story.remove);
 router.post("/:storyId/verify", authenticate, story.verify);
 
 router.post("/:storyId/publish", authenticate, story.publish);
+
+/* ---------- Views ---------- */
+
+router.post("/:storyId/view", story.incrementView);
 
 /* ---------- Likes ---------- */
 

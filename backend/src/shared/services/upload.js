@@ -31,6 +31,9 @@ export const uploadAvatar = (buffer) =>
 export const uploadDocument = (buffer) =>
   uploadBuffer(buffer, "documents", "auto");
 
+export const uploadStoryImage = (buffer) =>
+  uploadBuffer(buffer, "stories", "image");
+
 export async function deleteFile(publicId) {
   if (!publicId) return;
 

@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { Avatar } from "../ui";
 import { Icons } from "../../icons";
-import { getTimeAgo } from "../../utils/helpers";
+import { getTimeAgo, getContentPreview } from "../../utils/helpers";
 
 export function StoryCard({ story, showAuthor = true }) {
   const authorName = story.author?.fullName || "Unknown";
   const date = story.publishedAt || story.createdAt;
   const timeAgo = getTimeAgo(new Date(date));
-  const storyTitle = story.title || "Untitled Story";
+  const storyTitle = story.title || getContentPreview(story.content, 80) || "Untitled Story";
 
   const summaryContent =
     typeof story.summary === "string" ? story.summary : story.summary?.content;

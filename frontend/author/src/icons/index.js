@@ -14,4 +14,4 @@ export const Icons = {
  dashboard: HiOutlineViewGrid, shieldCheck: HiOutlineShieldCheck, camera: HiCamera, eye: HiEye,
  twitter: FaTwitter, linkedin: FaLinkedin, instagram: FaInstagram, spinner: FaSpinner,
  verified: MdVerified, pending: MdPending,
-} as const;
+};

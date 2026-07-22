@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { adminApi } from '../utils/adminHelper';
+import api from '../config/api';
 
 const Ctx = createContext(undefined);
 
@@ -8,19 +8,20 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    adminApi.getDashboard()
+    api.get('/admin/dashboard')
       .then(() => setIsAuthenticated(true))
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 
   const loginAdmin = async (email, password) => {
-    await adminApi.login({ email, password });
+    const res = await api.post('/admin/login', { email, password });
     setIsAuthenticated(true);
+    return res.data;
   };
 
   const logout = async () => {
-    try { await adminApi.logout(); } catch { }
+    try { await api.post('/admin/logout'); } catch { }
     setIsAuthenticated(false);
   };
 

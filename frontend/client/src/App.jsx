@@ -12,7 +12,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Preferences from './pages/Preferences';
 import StoryList from './pages/StoryList';
-import StoryDetail from './pages/StoryDetail';
+
 import SearchResults from './pages/SearchResults';
 import Feed from './pages/Feed';
 import Trending from './pages/Trending';
@@ -29,7 +29,7 @@ export function App() {
       <Route element={<AppLayout />}>
        <Route path="/" element={<Home />} />
        <Route path="/stories" element={<StoryList />} />
-       <Route path="/stories/:storyId" element={<StoryDetail />} />
+       {/* Feed is the single source of truth - story detail is shown directly in the feed */}
        <Route path="/search" element={<SearchResults />} />
        <Route path="/feed" element={<Feed />} />
        <Route path="/trending" element={<Trending />} />

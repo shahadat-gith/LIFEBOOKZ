@@ -1,160 +1,263 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../utils/client';
-import Card from '../components/ui/Card';
+import Card, { CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
-import LoadingScreen from '../components/common/LoadingScreen';
-import EmptyState from '../components/common/EmptyState';
+import Spinner from '../components/ui/Spinner';
 import { Icons } from '../icons';
-import toast from 'react-hot-toast';
 
-function getPreview(html, max = 60) {
- const plain = html?.replace(/<[^>]*>/g, '').trim() || '';
- return plain.length > max ? plain.slice(0, max) + '...' : plain || 'Untitled';
-}
-import { DashboardStats, Author, User, Story };
+const quickLinks = [
+  {
+    title: 'Authors',
+    description: 'Review and manage author applications',
+    path: '/dashboard/authors',
+    icon: Icons.faUserTie,
+    color: 'from-accent to-yellow-700',
+    countKey: 'pendingAuthors',
+    label: 'Pending',
+  },
+  {
+    title: 'Stories',
+    description: 'View all published and pending stories',
+    path: '/dashboard/stories',
+    icon: Icons.faBookOpen,
+    color: 'from-primary to-gray-400',
+    countKey: 'totalStories',
+    label: 'Total',
+  },
+  {
+    title: 'Users',
+    description: 'Manage registered platform users',
+    path: '/dashboard/users',
+    icon: Icons.faUsers,
+    color: 'from-info to-blue-600',
+    countKey: 'totalUsers',
+    label: 'Total',
+  },
+];
+
+const statsCards = [
+  { key: 'totalUsers', label: 'Total Users', icon: Icons.faUsers, color: 'text-accent', border: 'border-l-accent' },
+  { key: 'totalAuthors', label: 'Total Authors', icon: Icons.faUserTie, color: 'text-primary', border: 'border-l-primary' },
+  { key: 'totalStories', label: 'Published Stories', icon: Icons.faBookOpen, color: 'text-info', border: 'border-l-info' },
+  { key: 'pendingAuthors', label: 'Pending Authors', icon: Icons.clock, color: 'text-warning', border: 'border-l-warning' },
+];
 
 export default function AdminDashboardPage() {
- const { isAuthenticated } = useAuth();
- const navigate = useNavigate();
- const [stats, setStats] = useState(DashboardStats>({ totalUsers: 0, totalAuthors: 0, totalStories: 0, pendingAuthors: 0 });
- const [pendingAuthors, setPendingAuthors] = useState(Author[]>([]);
- const [stories, setStories] = useState(Story[]>([]);
- const [users, setUsers] = useState(User[]>([]);
- const [activeTab, setActiveTab] = useState('authors' | 'stories' | 'users'>('authors');
- const [loading, setLoading] = useState(true);
- const [actionLoading, setActionLoading] = useState(string | null>(null);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [recentPending, setRecentPending] = useState([]);
+  const [recentStories, setRecentStories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-  if (!isAuthenticated) { navigate('/login'); return; }
-  Promise.all([
-   adminApi.getDashboard(),
-   adminApi.getPendingAuthors(),
-   adminApi.getStories(),
-   adminApi.getUsers(),
-  ]).then(([s, a, st, u]) => {
-   setStats(s.data.data);
-   setPendingAuthors(a.data.data || []);
-   setStories(st.data.data || []);
-   setUsers(u.data.data || []);
-  }).catch(() => {}).finally(() => setLoading(false));
- }, [isAuthenticated, navigate]);
+  useEffect(() => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    Promise.all([
+      adminApi.getDashboard(),
+      adminApi.getPendingAuthors(),
+      adminApi.getStories(),
+    ])
+      .then(([s, a, st]) => {
+        setStats(s.data.data);
+        setRecentPending((a.data.data || []).slice(0, 5));
+        setRecentStories((st.data.data || []).slice(0, 5));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [isAuthenticated, navigate]);
 
- async function handleApprove(authorId) {
-  setActionLoading(authorId);
-  try {
-   await adminApi.approveAuthor(authorId);
-   toast.success('Author approved!');
-   setPendingAuthors(prev => prev.filter(a => a._id !== authorId));
-  } catch {
-   toast.error('Failed to approve');
-  } finally { setActionLoading(null); }
- }
-
- async function handleReject(authorId) {
-  const reason = prompt('Rejection reason:');
-  if (!reason?.trim()) return;
-  setActionLoading(authorId);
-  try {
-   await adminApi.rejectAuthor(authorId, reason.trim());
-   toast.success('Author rejected');
-   setPendingAuthors(prev => prev.filter(a => a._id !== authorId));
-  } catch {
-   toast.error('Failed to reject');
-  } finally { setActionLoading(null); }
- }
-
- if (loading) return <LoadingScreen message="Loading dashboard..." />;
-
- return (
-  <div className="max-w-6xl mx-auto py-10 px-4">
-   <h1 className="text-2xl font-bold text-foreground mb-8">Admin Dashboard</h1>
-
-   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-    <Card padding="lg"><p className="text-3xl font-bold text-primary mb-1">{stats.totalUsers}</p><p className="text-sm text-muted-foreground">Total Users</p></Card>
-    <Card padding="lg"><p className="text-3xl font-bold text-accent mb-1">{stats.totalAuthors}</p><p className="text-sm text-muted-foreground">Total Authors</p></Card>
-    <Card padding="lg"><p className="text-3xl font-bold text-info mb-1">{stats.totalStories}</p><p className="text-sm text-muted-foreground">Published Stories</p></Card>
-    <Card padding="lg"><p className="text-3xl font-bold text-warning mb-1">{stats.pendingAuthors}</p><p className="text-sm text-muted-foreground">Pending Authors</p></Card>
-   </div>
-
-   {/* Tabs */}
-   <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
-    <button onClick={() => setActiveTab('authors')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'authors' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Authors ({pendingAuthors.length})</button>
-    <button onClick={() => setActiveTab('stories')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'stories' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Stories ({stories.length})</button>
-    <button onClick={() => setActiveTab('users')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'users' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Users ({users.length})</button>
-   </div>
-
-   {/* Authors Tab */}
-   {activeTab === 'authors' && (
-    <Card>
-     <div className="p-6 border-b border-border"><h2 className="text-lg font-semibold">Pending Author Applications</h2></div>
-     {pendingAuthors.length === 0 ? (
-      <div className="p-6"><EmptyState icon={<Icons.userCheck className="h-12 w-12" />} title="No pending applications" description="All caught up!" /></div>
-     ) : (
-      <div className="divide-y divide-border">
-       {pendingAuthors.map(a => (
-        <div key={a._id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-         <div className="flex-1 min-w-0">
-          <p className="font-medium text-foreground">{a.fullName}</p>
-          <p className="text-sm text-muted-foreground">{a.email} {a.profession && `• ${a.profession}`}</p>
-          <p className="text-xs text-muted-foreground mt-1">Applied {new Date(a.createdAt).toLocaleDateString()}</p>
-         </div>
-         <div className="flex gap-2 flex-shrink-0 ml-4">
-          <Button size="sm" loading={actionLoading === a._id} onClick={() => handleApprove(a._id)} icon={<Icons.check className="h-4 w-4" />}>Approve</Button>
-          <Button size="sm" variant="outline" loading={actionLoading === a._id} onClick={() => handleReject(a._id)} icon={<Icons.close className="h-4 w-4" />}>Reject</Button>
-         </div>
-        </div>
-       ))}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner size="lg" label="Loading dashboard..." />
       </div>
-     )}
-    </Card>
-   )}
+    );
+  }
 
-   {/* Stories Tab */}
-   {activeTab === 'stories' && (
-    <Card>
-     <div className="p-6 border-b border-border"><h2 className="text-lg font-semibold">All Stories</h2></div>
-     {stories.length === 0 ? (
-      <div className="p-6 text-center text-muted-foreground">No stories found.</div>
-     ) : (
-      <div className="divide-y divide-border">
-       {stories.map(s => (
-        <div key={s._id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-         <div className="flex-1 min-w-0">
-          <p className="font-medium text-foreground truncate">{getPreview(s.content)}</p>
-          <p className="text-sm text-muted-foreground">by {s.author?.fullName || 'Unknown'}</p>
-         </div>
-         <Badge variant={s.status === 'published' ? 'success' : s.status === 'draft' ? 'warning' : 'info'}>{s.status}</Badge>
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* Welcome Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-yellow-700 flex items-center justify-center shadow-lg shadow-accent/20">
+            <Icons.shieldCheck className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Welcome back! Here's what's happening on LifeBookz.</p>
+          </div>
         </div>
-       ))}
-      </div>
-     )}
-    </Card>
-   )}
+      </motion.div>
 
-   {/* Users Tab */}
-   {activeTab === 'users' && (
-    <Card>
-     <div className="p-6 border-b border-border"><h2 className="text-lg font-semibold">All Users</h2></div>
-     {users.length === 0 ? (
-      <div className="p-6 text-center text-muted-foreground">No users found.</div>
-     ) : (
-      <div className="divide-y divide-border">
-       {users.map(u => (
-        <div key={u._id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-         <div>
-          <p className="font-medium text-foreground">{u.fullName}</p>
-          <p className="text-sm text-muted-foreground">{u.email}</p>
-         </div>
-         <p className="text-xs text-muted-foreground">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
-        </div>
-       ))}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {statsCards.map((card, idx) => {
+          const Icon = card.icon;
+          const value = stats?.[card.key] ?? 0;
+          const isWarning = card.key === 'pendingAuthors' && value > 0;
+          return (
+            <motion.div
+              key={card.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+            >
+              <Card padding="lg" className={`border-l-4 ${card.border} relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 w-24 h-24 opacity-5">
+                  <Icon className="w-full h-full" />
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <Icon className={`h-5 w-5 ${card.color}`} />
+                </div>
+                <p className={`text-3xl font-bold ${isWarning ? 'text-warning' : 'text-foreground'}`}>
+                  {value.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">{card.label}</p>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
-     )}
-    </Card>
-   )}
-  </div>
- );
+
+      {/* Quick Links */}
+      <h2 className="text-lg font-semibold text-foreground mb-4">Quick Links</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {quickLinks.map((link, idx) => {
+          const Icon = link.icon;
+          const count = stats?.[link.countKey] ?? 0;
+          return (
+            <motion.div
+              key={link.path}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + idx * 0.08 }}
+            >
+              <Link to={link.path} className="block group">
+                <Card hover padding="lg" className="relative overflow-hidden h-full">
+                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity" />
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground group-hover:text-accent transition-colors">
+                        {link.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{link.description}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-lg font-bold text-foreground">{count}</p>
+                      <p className="text-xs text-muted-foreground">{link.label}</p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pending Authors */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Icons.clock className="h-4 w-4 text-warning" />
+                <CardTitle>Pending Author Applications</CardTitle>
+              </div>
+              <Link
+                to="/dashboard/authors"
+                className="text-xs text-accent hover:underline flex items-center gap-1"
+              >
+                View all <Icons.chevronRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            {recentPending.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Icons.userCheck className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">No pending applications</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentPending.map((author) => (
+                  <div key={author._id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center text-xs font-bold text-warning flex-shrink-0">
+                      {author.fullName?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{author.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{author.email}</p>
+                    </div>
+                    <Badge variant="warning">Pending</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </motion.div>
+
+        {/* Recent Stories */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Icons.faBookOpen className="h-4 w-4 text-accent" />
+                <CardTitle>Recent Stories</CardTitle>
+              </div>
+              <Link
+                to="/dashboard/stories"
+                className="text-xs text-accent hover:underline flex items-center gap-1"
+              >
+                View all <Icons.chevronRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            {recentStories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Icons.book className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">No stories yet</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {recentStories.map((story) => {
+                  const preview = story.content?.replace(/<[^>]*>/g, '').trim() || 'Untitled';
+                  const truncated = preview.length > 60 ? preview.slice(0, 60) + '...' : preview;
+                  return (
+                    <div key={story._id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{truncated}</p>
+                        <p className="text-xs text-muted-foreground">
+                          by {story.author?.fullName || 'Unknown'} • {story.stats?.likes || 0} likes
+                        </p>
+                      </div>
+                      <Badge variant={story.status === 'published' ? 'success' : story.status === 'draft' ? 'warning' : 'info'}>
+                        {story.status}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
 }

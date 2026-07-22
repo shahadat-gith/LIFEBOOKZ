@@ -1,14 +1,21 @@
 import mongoose from "mongoose";
 import config from "./index.js";
 
+import dns from "node:dns";
+
+if (config.env === "dev") {
+  dns.setServers(["1.1.1.1", "1.0.0.1"]);
+}
+
 export async function connectDatabase() {
-  if (mongoose.connection.readyState === 1) {
-    return mongoose.connection;
+  try {
+    await mongoose.connect(config.database.url);
+
+    console.log("✅ MongoDB connected");
+  } catch (error) {
+    console.error("❌ Failed to connect to MongoDB");
+    console.error(error.message);
+
+    process.exit(1);
   }
-
-  await mongoose.connect("mongodb://localhost:27017/main");
-
-  console.log("✅ MongoDB connected");
-
-  return mongoose.connection;
 }

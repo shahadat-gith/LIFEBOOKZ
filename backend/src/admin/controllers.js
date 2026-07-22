@@ -146,6 +146,45 @@ export async function rejectAuthor(req, res, next) {
   }
 }
 
+/* ---------- Approved Authors ---------- */
+
+export async function getApprovedAuthors(req, res, next) {
+  try {
+    const authors = await Author.find({
+      "verification.status": "approved",
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Get story counts for each author
+    const authorIds = authors.map((a) => a._id);
+    let countMap = {};
+
+    if (authorIds.length > 0) {
+      const storyCounts = await Story.aggregate([
+        { $match: { author: { $in: authorIds }, status: "published" } },
+        { $group: { _id: "$author", count: { $sum: 1 } } },
+      ]);
+
+      storyCounts.forEach((s) => {
+        countMap[s._id.toString()] = s.count;
+      });
+    }
+
+    const enriched = authors.map((a) => ({
+      ...a,
+      storyCount: countMap[a._id.toString()] || 0,
+    }));
+
+    return res.json({
+      success: true,
+      data: enriched,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 /* ---------- Users ---------- */
 
 export async function getUsers(req, res, next) {

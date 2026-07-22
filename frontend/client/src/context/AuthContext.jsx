@@ -26,9 +26,8 @@ export function AuthProvider({ children }) {
   };
 
   const registerUser = async (data) => {
-    const res = await api.post('/users/register', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Let axios auto-detect FormData and set the correct Content-Type with boundary
+    const res = await api.post('/users/register', data);
     setUser(res.data.data.user);
   };
 

@@ -19,19 +19,4 @@ async function start() {
   }
 }
 
-async function shutdown(signal) {
-  console.log(`\n${signal} received. Shutting down...`);
-
-  if (server) {
-    server.close();
-  }
-
-  await mongoose.connection.close();
-
-  process.exit(0);
-}
-
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-
 start();

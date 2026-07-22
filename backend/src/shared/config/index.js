@@ -2,11 +2,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const config = {
-  env: process.env.NODE_ENV,
+  env: process.env.NODE_ENV || "dev",
   port: parseInt(process.env.PORT, 10),
 
-  mongodb: {
-    uri: process.env.MONGODB_URI,
+  database: {
+    url: process.env.DATABASE_URL,
   },
 
   jwt: {

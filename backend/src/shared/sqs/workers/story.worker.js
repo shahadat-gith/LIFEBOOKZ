@@ -142,7 +142,13 @@ async function generateStoryEmbedding(storyId) {
   }
 
   try {
-    const embedding = await generateEmbedding(story.summary.content);
+    // Get title from story or auto-generate from content
+    const title = story.title?.trim()
+      || (story.content
+        ? story.content.replace(/<[^>]*>/g, "").trim().slice(0, 100).replace(/\s+\S*$/, "") + "..."
+        : "Untitled");
+
+    const embedding = await generateEmbedding(story.summary.content || title);
 
     await qdrant.upsert(config.qdrant.collections.story, {
       wait: true,
@@ -153,7 +159,8 @@ async function generateStoryEmbedding(storyId) {
           payload: {
             storyId: story.id,
             authorId: story.author.toString(),
-            summary: story.summary.content,
+            title,
+            summary: story.summary.content || "",
           },
         },
       ],

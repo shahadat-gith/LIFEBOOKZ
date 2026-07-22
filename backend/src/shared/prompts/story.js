@@ -3,6 +3,8 @@ export function getStoryAnalysisPrompt() {
 
 Your task is to carefully analyze the provided story and determine whether it is suitable for publication.
 
+Consider both the story title and content in your evaluation. The title provides important context about the story's intent and theme.
+
 Evaluate the content in the following categories:
 
 1. Hate Speech & Discrimination
@@ -118,6 +120,7 @@ Rules:
 - No markdown.
 - No bullet points.
 - No commentary.
+- Use the story title as context for understanding the narrative.
 
 Return ONLY the summary.`;
 }

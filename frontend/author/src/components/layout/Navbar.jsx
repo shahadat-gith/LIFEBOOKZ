@@ -19,8 +19,6 @@ export function Navbar() {
   { to: '/stories/new', label: 'Write', icon: <Icons.edit className="h-4 w-4" /> },
  ];
 
- const isHome = loc.pathname === '/';
-
  return (
   <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -100,7 +98,7 @@ export function Navbar() {
            <hr className="my-1 border-border/50" />
            <button
             onClick={() => { logout(); setProfileOpen(false); }}
-            className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-destructive hover:text-destructive hover:bg-destructive/5 transition-all w-full text-left"
            >
             <Icons.logout className="h-4 w-4" /> Sign Out
            </button>
@@ -110,107 +108,66 @@ export function Navbar() {
        </div>
       ) : (
        <div className="flex items-center gap-2">
-        <Link to="/login">
-         <Button variant="ghost" size="sm">Sign In</Button>
-        </Link>
-        {!isHome && (
-         <Link to="/register">
-          <Button size="sm" className="shadow-sm">Get Started</Button>
-         </Link>
-        )}
+        <Link to="/login"><Button variant="ghost" size="sm">Sign In</Button></Link>
+        <Link to="/register"><Button size="sm">Get Started</Button></Link>
        </div>
       )}
      </div>
 
-     {/* Mobile Hamburger */}
-     <button
-      onClick={() => setMobile(!mobile)}
-      className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
-     >
-      <div className="flex flex-col gap-1.5">
-       <motion.span
-        animate={mobile ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
-        className="block w-5 h-0.5 bg-foreground rounded-full transition-all"
-       />
-       <motion.span
-        animate={mobile ? { opacity: 0 } : { opacity: 1 }}
-        className="block w-5 h-0.5 bg-foreground rounded-full"
-       />
-       <motion.span
-        animate={mobile ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
-        className="block w-5 h-0.5 bg-foreground rounded-full transition-all"
-       />
-      </div>
-     </button>
+     {/* Mobile */}
+     <div className="md:hidden flex items-center gap-2">
+      {isAuthenticated ? (
+       <Link to="/profile">
+        <Avatar src={author?.avatar?.url} name={author?.fullName} size="sm" />
+       </Link>
+      ) : (
+       <Link to="/login" className="p-2 rounded-full hover:bg-muted/60 transition-colors">
+        <Icons.user className="h-5 w-5 text-muted-foreground" />
+       </Link>
+      )}
+      <button onClick={() => setMobile(!mobile)} className="p-2 rounded-full hover:bg-muted/60 transition-colors" aria-label="Toggle menu">
+       {mobile ? <Icons.close className="h-5 w-5" /> : <Icons.menu className="h-5 w-5" />}
+      </button>
+     </div>
     </div>
-   </div>
 
-   {/* Mobile Menu */}
-   <AnimatePresence>
-    {mobile && (
-     <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.2 }}
-      className="md:hidden overflow-hidden border-t border-border/50 bg-card/95 backdrop-blur-xl"
-     >
-      <div className="px-4 py-3 space-y-1">
-       {links.map(l => (
-        <Link
-         key={l.to}
-         to={l.to}
-         onClick={() => setMobile(false)}
-         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-          isA(l.to)
-           ? 'bg-primary/10 text-primary'
-           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-         }`}
-        >
-         {l.icon}
-         {l.label}
-        </Link>
-       ))}
-
-       <hr className="border-border/50 my-2" />
-
-       {isAuthenticated && author ? (
-        <>
-         <div className="flex items-center gap-3 px-3 py-2.5">
-          <Avatar src={author.avatar?.url} name={author.fullName} size="sm" />
-          <div>
-           <p className="text-sm font-medium text-foreground">{author.fullName}</p>
-           <p className="text-xs text-muted-foreground">{author.email}</p>
-          </div>
-         </div>
+    {/* Mobile Menu */}
+    <AnimatePresence>
+     {mobile && (
+      <motion.div
+       initial={{ opacity: 0, height: 0 }}
+       animate={{ opacity: 1, height: 'auto' }}
+       exit={{ opacity: 0, height: 0 }}
+       className="md:hidden overflow-hidden border-t border-border/50"
+      >
+       <div className="py-3 space-y-1">
+        {links.map(l => (
          <Link
-          to="/profile"
+          key={l.to}
+          to={l.to}
           onClick={() => setMobile(false)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+           isA(l.to) ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
          >
-          <Icons.user className="h-4 w-4" /> Profile
+          {l.icon} {l.label}
          </Link>
-         <button
-          onClick={() => { logout(); setMobile(false); }}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-destructive hover:bg-destructive/10"
-         >
-          <Icons.logout className="h-4 w-4" /> Sign Out
-         </button>
-        </>
-       ) : (
-        <div className="flex flex-col gap-2 pt-2">
-         <Link to="/login" onClick={() => setMobile(false)}>
-          <Button variant="outline" fullWidth size="sm">Sign In</Button>
-         </Link>
-         <Link to="/register" onClick={() => setMobile(false)}>
-          <Button fullWidth size="sm">Get Started</Button>
-         </Link>
-        </div>
-       )}
-      </div>
-     </motion.div>
-    )}
-   </AnimatePresence>
+        ))}
+        {isAuthenticated && (
+         <>
+          <Link to="/profile" onClick={() => setMobile(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
+           <Icons.user className="h-4 w-4" /> Profile
+          </Link>
+          <button onClick={() => { logout(); setMobile(false); }} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive w-full text-left">
+           <Icons.logout className="h-4 w-4" /> Sign Out
+          </button>
+         </>
+        )}
+       </div>
+      </motion.div>
+     )}
+    </AnimatePresence>
+   </div>
   </header>
  );
 }

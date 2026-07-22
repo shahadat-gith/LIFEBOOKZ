@@ -71,13 +71,14 @@ const storySchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 150,
+      default: "",
     },
     slug: {
       type: String,
       unique: true,
+      sparse: true,
       lowercase: true,
       index: true,
     },
@@ -138,12 +139,20 @@ storySchema.index(
 
 // --- Pre-Save Hooks ---
 storySchema.pre("save", function (next) {
-  // 1. Generate slug on new titles or modifications
+  // 1. Auto-generate title from content if empty
+  if (!this.title || !this.title.trim()) {
+    const plain = this.content.replace(/<[^>]*>/g, "").trim();
+    this.title = plain.length > 100
+      ? plain.slice(0, 100).replace(/\s+\S*$/, "") + "..."
+      : plain || "Untitled Story";
+  }
+
+  // 2. Generate slug on new titles or modifications
   if (this.isModified("title")) {
     this.slug = slugify(this.title, { lower: true, strict: true });
   }
 
-  // 2. Automate publishedAt timestamp handling
+  // 3. Automate publishedAt timestamp handling
   if (this.isModified("status") && this.status === "published" && !this.publishedAt) {
     this.publishedAt = new Date();
   }

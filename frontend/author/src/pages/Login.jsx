@@ -24,8 +24,8 @@ export default function AuthorLoginPage() {
    toast.success('Welcome back!');
    navigate('/dashboard');
   } catch (err) {
-   const msg = (err as { response?: { data?: { error?: { message? } } } })?.response?.data?.error?.message;
-   setError(msg || 'Invalid email or password');
+   const msg = err?.response?.data?.error?.message || 'Invalid email or password';
+   setError(msg);
   } finally { setLoading(false); }
  }
 
