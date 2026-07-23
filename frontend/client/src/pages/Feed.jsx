@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import api from "../config/axios";
 import StoryCard from "../components/story/StoryCard";
@@ -12,22 +12,35 @@ export default function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [sort, setSort] = useState("latest");
+
+  const [search, setSearch] = useState("");
+
   const observerRef = useRef(null);
   const sentinelRef = useRef(null);
+
+  const handleSearch = () => {
+    // TODO: Implement story search
+    console.log("Search:", search);
+  };
 
   async function loadStories(p, append = false) {
     if (!append) setLoading(true);
     else setLoadingMore(true);
 
     try {
-      const params = { limit: 10, page: p };
-      if (sort !== "latest") params.sort = sort;
-      const res = await api.get("/stories", { params });
+      const res = await api.get("/stories", {
+        params: {
+          page: p,
+          limit: 10,
+        },
+      });
+
       const data = res.data.data;
       const newStories = data.stories || [];
 
-      setStories((prev) => (append ? [...prev, ...newStories] : newStories));
+      setStories((prev) =>
+        append ? [...prev, ...newStories] : newStories
+      );
       setHasMore(newStories.length === 10);
       setPage(p);
     } catch (err) {
@@ -39,57 +52,73 @@ export default function FeedPage() {
   }
 
   useEffect(() => {
-    setPage(1);
     loadStories(1);
-  }, [sort]);
+  }, []);
 
-  // Infinite scroll with IntersectionObserver
   useEffect(() => {
     if (!sentinelRef.current) return;
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          !loadingMore
+        ) {
           loadStories(page + 1, true);
         }
       },
       { threshold: 0.1 }
     );
+
     observerRef.current.observe(sentinelRef.current);
+
     return () => observerRef.current?.disconnect();
-  }, [hasMore, loadingMore, loading, page]);
+  }, [page, hasMore, loading, loadingMore]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 select-none">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-8 space-y-6"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Feed
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Latest stories from the community
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground font-display">
+            Feed
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Discover the latest stories shared by our community.
+          </p>
+        </div>
 
-          {/* Sort filter */}
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-ring transition-all duration-200"
+        <div className="relative max-w-xl">
+          <Icons.search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
+            placeholder="Search stories..."
+            className="w-full rounded-xl border border-border/60 bg-card pl-11 pr-12 py-3 text-sm outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
           >
-            <option value="latest">Latest</option>
-            <option value="popular">Most Liked</option>
-            <option value="oldest">Oldest</option>
-          </select>
+            <Icons.search className="h-4 w-4" />
+          </button>
         </div>
       </motion.div>
 
-      {/* Feed Content */}
       {loading && stories.length === 0 ? (
         <div className="flex justify-center py-20">
           <Spinner size="lg" label="Loading feed..." />
@@ -113,17 +142,14 @@ export default function FeedPage() {
             </motion.div>
           ))}
 
-          {/* Sentinel for infinite scroll */}
           <div ref={sentinelRef} className="h-4" />
 
-          {/* Loading more indicator */}
           {loadingMore && (
             <div className="flex justify-center py-4">
               <Spinner size="md" label="Loading more..." />
             </div>
           )}
 
-          {/* End of feed */}
           {!hasMore && stories.length > 0 && (
             <div className="flex justify-center py-6">
               <div className="flex items-center gap-2 text-xs text-muted-foreground/50">

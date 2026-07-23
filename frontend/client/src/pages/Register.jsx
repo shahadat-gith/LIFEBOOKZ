@@ -8,18 +8,10 @@ import Avatar from "../components/ui/Avatar";
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
-const INTEREST_OPTIONS = [
-  "Fiction", "Poetry", "Romance", "Mystery", "Fantasy", "Science Fiction",
-  "Horror", "Thriller", "Historical", "Biography", "Self-Help", "Philosophy",
-  "Adventure", "Comedy", "Drama", "Spirituality", "Science", "Technology",
-  "Cooking", "Travel", "Nature", "Sports", "Music", "Art",
-];
-
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,14 +19,6 @@ export default function RegisterPage() {
   const { registerUser } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
-
-  function toggleInterest(interest) {
-    setSelectedInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  }
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0] || null;
@@ -59,8 +43,8 @@ export default function RegisterPage() {
       fd.append("email", email);
       fd.append("password", password);
       fd.append("fullName", fullName);
-      fd.append("interests", JSON.stringify(selectedInterests));
       if (avatarFile) fd.append("avatar", avatarFile);
+
       await registerUser(fd);
       toast.success("Account created successfully!");
       navigate("/");
@@ -91,7 +75,7 @@ export default function RegisterPage() {
                 Start sharing your journey today.
               </h1>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Create a personalized profile, select topics you care about, and publish your original stories to a global community.
+                Create your account, personalize your profile, and publish original stories to a global community.
               </p>
             </div>
           </div>
@@ -182,40 +166,6 @@ export default function RegisterPage() {
               icon={Icons?.lock ? <Icons.lock className="h-4 w-4" /> : null}
               showPasswordToggle
             />
-
-            {/* Interests */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <label className="text-sm font-medium text-foreground">
-                  Select your interests
-                </label>
-                {selectedInterests.length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {selectedInterests.length} selected
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1.5 rounded-xl border border-border/40 bg-muted/10">
-                {INTEREST_OPTIONS.map((interest) => {
-                  const isSelected = selectedInterests.includes(interest);
-                  return (
-                    <button
-                      key={interest}
-                      type="button"
-                      onClick={() => toggleInterest(interest)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-card text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
-                      }`}
-                    >
-                      {interest}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             {/* Error Display */}
             {error && (

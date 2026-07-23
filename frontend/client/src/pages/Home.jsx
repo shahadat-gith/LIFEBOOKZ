@@ -3,11 +3,10 @@ import api from "../config/axios";
 
 import {
   Hero,
-  FeaturedStories,
-  TrendingStories,
   TestimonialsSection,
-  CTASection,
+  LatestStories
 } from "../components/home";
+
 
 export function HomePage() {
   const [stories, setStories] = useState([]);
@@ -37,12 +36,8 @@ export function HomePage() {
   return (
     <div className="space-y-16 md:space-y-24">
       <Hero />
-      <FeaturedStories stories={stories} loading={loading} />
-      <TrendingStories stories={stories} loading={loading} />
-
+      <LatestStories />
       <TestimonialsSection />
-
-      <CTASection />
     </div>
   );
 }

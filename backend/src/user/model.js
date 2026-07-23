@@ -37,17 +37,6 @@ const userSchema = new mongoose.Schema(
         default: "",
       },
     },
-
-    interests: {
-      type: [
-        {
-          type: String,
-          trim: true,
-          lowercase: true,
-        },
-      ],
-      default: [],
-    },
   },
   {
     timestamps: true,

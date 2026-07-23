@@ -1,13 +1,9 @@
 import Hero from "./Hero";
-import CTASection from "./CTASection";
-import FeaturedStories from "./FeaturedStories";
-import TrendingStories from "./TrendingStories";
 import TestimonialsSection from "./TestimonialsSection";
+import LatestStories from "./LatestStories";
 
 export {
   Hero,
-  CTASection,
-  FeaturedStories,
-  TrendingStories,
+  LatestStories,
   TestimonialsSection,
 };

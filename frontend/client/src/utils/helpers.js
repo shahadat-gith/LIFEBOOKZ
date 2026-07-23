@@ -24,3 +24,13 @@ export function getTimeAgo(date) {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+
+
+// Helper to strip HTML tags for fixed text snippets
+export function getPlainTextSnippet(htmlContent, maxLength = 180) {
+  if (!htmlContent) return "";
+  const plainText = htmlContent.replace(/<[^>]+>/g, "").trim();
+  if (plainText.length <= maxLength) return plainText;
+  return plainText.substring(0, maxLength).trim() + "...";
+}

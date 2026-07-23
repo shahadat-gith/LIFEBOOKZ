@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../config/axios";
 import { useAuth } from "../../context/AuthContext";
-import { Avatar, Textarea, Button } from "../ui";
-import Spinner from "../ui/Spinner";
+import Avatar from "../ui/Avatar";
 import { Icons } from "../../icons";
+import { getTimeAgo } from "../../utils/helpers";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-function CommentSection({ storyId, commentTrigger }) {
+export default function CommentSection({ storyId, commentTrigger }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState("");
@@ -20,11 +20,11 @@ function CommentSection({ storyId, commentTrigger }) {
   const navigate = useNavigate();
   const inputRef = useRef(null);
 
-  // When commentTrigger changes, open comments and focus input
+  // Focus input & expand drawer when commentTrigger fires
   useEffect(() => {
     if (commentTrigger > 0) {
       setShowComments(true);
-      setTimeout(() => inputRef.current?.focus(), 300);
+      setTimeout(() => inputRef.current?.focus(), 250);
     }
   }, [commentTrigger]);
 
@@ -41,7 +41,7 @@ function CommentSection({ storyId, commentTrigger }) {
         res.data.data.pagination?.page < res.data.data.pagination?.pages,
       );
     } catch {
-      // silently fail
+      // Silently fail
     } finally {
       if (pageNum === 1) setLoading(false);
     }
@@ -57,7 +57,7 @@ function CommentSection({ storyId, commentTrigger }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast("Sign in to comment");
+      toast("Sign in to join the conversation");
       navigate("/login");
       return;
     }
@@ -80,45 +80,49 @@ function CommentSection({ storyId, commentTrigger }) {
   const commentCount = comments.length;
 
   return (
-    <div className="border-t border-border/40 pt-3 mt-2">
-      {/* Toggle comments button */}
+    <div className="pt-2">
+      {/* Toggle Comments Trigger */}
       <button
         onClick={() => setShowComments(!showComments)}
-        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-2"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 group"
       >
-        <Icons.chat className="h-3.5 w-3.5" />
+        {Icons?.chat && <Icons.chat className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />}
         <span>
           {commentCount > 0
             ? `View ${commentCount} comment${commentCount !== 1 ? "s" : ""}`
-            : "Comment"}
+            : "Write a comment"}
         </span>
-        <Icons.chevronDown
-          className={`h-3 w-3 transition-transform ${
-            showComments ? "rotate-180" : ""
-          }`}
-        />
+        {Icons?.chevronDown && (
+          <Icons.chevronDown
+            className={`h-3 w-3 transition-transform duration-300 ${
+              showComments ? "rotate-180 text-foreground" : ""
+            }`}
+          />
+        )}
       </button>
 
+      {/* Comment Drawer Animation */}
       <AnimatePresence>
         {showComments && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            {/* Comment form */}
-            <form onSubmit={handleSubmit} className="flex gap-2 mb-3">
+            {/* Input Form */}
+            <form onSubmit={handleSubmit} className="flex items-center gap-2.5 mt-3 mb-4">
               {isAuthenticated && (
                 <Avatar
                   src={user?.avatar?.url}
-                  name={user?.fullName}
+                  name={user?.fullName || "User"}
                   size="sm"
-                  className="flex-shrink-0 mt-1"
+                  className="shrink-0 ring-1 ring-border/60"
                 />
               )}
-              <div className="flex-1 flex gap-2">
+              
+              <div className="flex-1 flex items-center gap-2 bg-card border border-border/70 rounded-xl px-3 py-1.5 focus-within:border-accent/80 focus-within:ring-1 focus-within:ring-accent/30 transition-all shadow-xs">
                 <input
                   ref={inputRef}
                   type="text"
@@ -126,18 +130,22 @@ function CommentSection({ storyId, commentTrigger }) {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={
                     isAuthenticated
-                      ? "Write a comment..."
-                      : "Sign in to comment"
+                      ? "Add a thought..."
+                      : "Sign in to participate..."
                   }
-                  className="flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                  className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={!content.trim() || submitting}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 active:scale-95"
                 >
                   {submitting ? (
-                    <Icons.spinner className="h-4 w-4 animate-spin" />
+                    Icons?.spinner ? (
+                      <Icons.spinner className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      "..."
+                    )
                   ) : (
                     "Post"
                   )}
@@ -145,54 +153,64 @@ function CommentSection({ storyId, commentTrigger }) {
               </div>
             </form>
 
-            {/* Comments list */}
+            {/* Comments List */}
             {loading ? (
-              <div className="flex justify-center py-3">
-                <Icons.spinner className="h-4 w-4 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-4">
+                {Icons?.spinner ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin text-muted-foreground/60" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Loading...</span>
+                )}
               </div>
             ) : comments.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-3">
-                No comments yet. Be the first!
-              </p>
+              <div className="text-center py-4 rounded-xl bg-muted/20 border border-border/30">
+                <p className="text-xs text-muted-foreground font-medium">
+                  No comments yet. Start the conversation!
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5 mb-2">
                 {comments.map((comment) => (
                   <div
                     key={comment._id}
-                    className="flex gap-2 p-2 rounded-lg bg-muted/30"
+                    className="flex gap-2.5 p-3 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/30 transition-colors"
                   >
                     <Avatar
                       src={comment.user?.avatar?.url}
-                      name={comment.user?.fullName}
+                      name={comment.user?.fullName || "Anonymous"}
                       size="sm"
-                      className="flex-shrink-0"
+                      className="shrink-0 mt-0.5 ring-1 ring-border/50"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-foreground">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs font-semibold text-foreground tracking-tight truncate">
                           {comment.user?.fullName || "Anonymous"}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] text-muted-foreground shrink-0 font-sans">
                           {getTimeAgo(new Date(comment.createdAt))}
                         </span>
                       </div>
-                      <p className="text-xs text-foreground/90 mt-0.5 whitespace-pre-wrap">
+                      <p className="text-xs text-foreground/90 mt-1 leading-relaxed whitespace-pre-wrap">
                         {comment.content}
                       </p>
                     </div>
                   </div>
                 ))}
+
+                {/* Load More Trigger */}
                 {hasMoreComments && (
-                  <button
-                    onClick={() => {
-                      const next = commentPage + 1;
-                      setCommentPage(next);
-                      loadComments(next);
-                    }}
-                    className="text-xs text-accent hover:underline mt-1"
-                  >
-                    View more comments
-                  </button>
+                  <div className="pt-1 text-center">
+                    <button
+                      onClick={() => {
+                        const next = commentPage + 1;
+                        setCommentPage(next);
+                        loadComments(next);
+                      }}
+                      className="text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>View more comments</span>
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -202,5 +220,3 @@ function CommentSection({ storyId, commentTrigger }) {
     </div>
   );
 }
-
-export default CommentSection;

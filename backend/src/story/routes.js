@@ -24,9 +24,6 @@ router.post("/:storyId/verify", authenticate, story.verify);
 
 router.post("/:storyId/publish", authenticate, story.publish);
 
-/* ---------- Views ---------- */
-
-router.post("/:storyId/view", story.incrementView);
 
 /* ---------- Likes ---------- */
 

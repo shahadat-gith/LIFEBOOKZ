@@ -63,7 +63,9 @@ export async function update(req, res, next) {
     }
 
     if (!["draft", "rejected"].includes(story.status)) {
-      throw new ValidationError("Only draft or rejected stories can be edited.");
+      throw new ValidationError(
+        "Only draft or rejected stories can be edited.",
+      );
     }
 
     const { content, title } = req.body;
@@ -213,7 +215,9 @@ export async function remove(req, res, next) {
     }
 
     if (!["draft", "rejected"].includes(story.status)) {
-      throw new ValidationError("Only draft or rejected stories can be deleted.");
+      throw new ValidationError(
+        "Only draft or rejected stories can be deleted.",
+      );
     }
 
     await story.deleteOne();
@@ -266,43 +270,32 @@ export async function getStory(req, res, next) {
 
 export async function list(req, res, next) {
   try {
+    const type = req.query.type;
+
     const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Number(req.query.limit) || 20, 50);
+    const limit = type === "latest" || type === "trending"
+        ? 10
+        : Math.min(Number(req.query.limit) || 20, 50);
 
     const filter = {
       status: "published",
     };
 
-    // Text search support
-    if (req.query.q?.trim()) {
-      filter.$text = { $search: req.query.q.trim() };
-    }
+    let query = Story.find(filter).populate("author", "fullName avatar");
 
-    // Tag filter support
-    if (req.query.tag?.trim()) {
-      filter.tags = { $in: [req.query.tag.trim().toLowerCase()] };
-    }
-
-    const sortOptions =
-      req.query.sort === "popular"
-        ? { "stats.likes": -1, "stats.views": -1, publishedAt: -1 }
-        : req.query.sort === "oldest"
-          ? { publishedAt: 1 }
-          : req.query.q?.trim()
-            ? { score: { $meta: "textScore" }, publishedAt: -1 }
-            : { publishedAt: -1 };
-
-    let query = Story.find(filter);
-
-    if (req.query.q?.trim()) {
-      query = query.select({ score: { $meta: "textScore" } });
+    if (type === "trending") {
+      query = query.sort({
+        "stats.likes": -1,
+        "stats.comments": -1,
+        publishedAt: -1,
+      });
+    } else {
+      query = query.sort({ publishedAt: -1 });
     }
 
     const [stories, total] = await Promise.all([
       query
-        .populate("author", "fullName avatar")
-        .sort(sortOptions)
-        .skip((page - 1) * limit)
+        .skip(type ? 0 : (page - 1) * limit)
         .limit(limit)
         .lean(),
 
@@ -314,32 +307,12 @@ export async function list(req, res, next) {
       data: {
         stories,
         pagination: {
-          page,
+          page: type ? 1 : page,
           limit,
           total,
-          pages: Math.ceil(total / limit),
+          pages: type ? 1 : Math.ceil(total / limit),
         },
       },
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function incrementView(req, res, next) {
-  try {
-    const { storyId } = req.params;
-
-    const story = await Story.findByIdAndUpdate(storyId, {
-      $inc: { "stats.views": 1 },
-    }).select("_id");
-
-    if (!story) {
-      throw new NotFoundError("Story not found.");
-    }
-
-    res.json({
-      success: true,
     });
   } catch (error) {
     next(error);

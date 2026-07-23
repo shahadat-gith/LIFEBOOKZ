@@ -9,17 +9,7 @@ import { uploadAvatar, deleteFile } from "../shared/services/upload.js";
 
 export async function register(req, res, next) {
   try {
-    let { email, password, fullName, interests = [] } = req.body;
-
-    // Parse interests from JSON string when sent via FormData
-    if (typeof interests === "string") {
-      try {
-        interests = JSON.parse(interests);
-      } catch {
-        interests = [];
-      }
-    }
-
+    let { email, password, fullName } = req.body;
     const existing = await User.findOne({ email });
 
     if (existing) {
@@ -47,7 +37,6 @@ export async function register(req, res, next) {
       passwordHash: password,
       fullName,
       avatar,
-      interests,
     });
 
     const token = generateToken({
@@ -135,10 +124,6 @@ export async function updateMe(req, res, next) {
       user.fullName = fullName;
     }
 
-    if (interests !== undefined) {
-      user.interests = interests;
-    }
-
     if (req.file) {
       const uploaded = await uploadAvatar(req.file.buffer);
 
@@ -191,7 +176,7 @@ export async function deleteMe(req, res, next) {
 export async function getProfile(req, res, next) {
   try {
     const user = await User.findById(req.params.userId)
-      .select("fullName avatar interests createdAt")
+      .select("fullName avatar createdAt")
       .lean();
 
     if (!user) {

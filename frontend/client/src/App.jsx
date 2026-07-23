@@ -9,8 +9,6 @@ import LoadingScreen from './components/common/LoadingScreen';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Profile from './pages/Profile';
-import Preferences from './pages/Preferences';
 import StoryList from './pages/StoryList';
 
 import SearchResults from './pages/SearchResults';
@@ -34,8 +32,6 @@ export function App() {
        <Route path="/feed" element={<Feed />} />
        <Route path="/trending" element={<Trending />} />
        <Route path="/authors" element={<Authors />} />
-       <Route path="/profile" element={<ProtectedRoute roles={['user']}><Profile /></ProtectedRoute>} />
-       <Route path="/preferences" element={<ProtectedRoute roles={['user']}><Preferences /></ProtectedRoute>} />
       </Route>
       <Route element={<AuthLayout />}>
        <Route path="/login" element={<Login />} />
