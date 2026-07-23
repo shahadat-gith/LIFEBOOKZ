@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import api from "../config/axios";
-import FeedPost from "../components/story/FeedPost";
+import StoryCard from "../components/story/StoryCard";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
@@ -59,7 +59,7 @@ export default function FeedPage() {
   }, [hasMore, loadingMore, loading, page]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 select-none">
+    <div className="max-w-7xl mx-auto px-4 py-6 select-none">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -109,7 +109,7 @@ export default function FeedPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(idx * 0.03, 0.3) }}
             >
-              <FeedPost story={story} />
+              <StoryCard story={story} />
             </motion.div>
           ))}
 

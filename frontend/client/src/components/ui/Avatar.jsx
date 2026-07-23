@@ -1,17 +1,19 @@
 const sizeClasses = {
-  sm: "w-8 h-8",
-  md: "w-10 h-10",
-  lg: "w-14 h-14",
-  xl: "w-20 h-20",
+  sm: "w-8 h-8 text-xs",
+  md: "w-10 h-10 text-sm",
+  lg: "w-14 h-14 text-base",
+  xl: "w-20 h-20 text-lg",
 };
 
-export function Avatar({ src, alt, name, size = "md" }) {
+export function Avatar({ src, alt, name, size = "md", className = "" }) {
   return (
-    <div className={`relative shrink-0 p-2 rounded-full border border-border/60 bg-muted/40 overflow-hidden select-none flex items-center justify-center ${sizeClasses[size]}`}>
+    <div
+      className={`relative shrink-0 rounded-full border border-border/60 bg-muted/40 overflow-hidden select-none flex items-center justify-center ${sizeClasses[size]} ${className}`}
+    >
       <img
         src={src?.trim() || "/user.png"}
         alt={alt || name || "User Avatar"}
-        className="h-4 w-4 object-cover rounded-full"
+        className="w-full h-full object-cover"
       />
     </div>
   );

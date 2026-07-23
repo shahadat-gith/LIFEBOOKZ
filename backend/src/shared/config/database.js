@@ -3,9 +3,9 @@ import config from "./index.js";
 
 import dns from "node:dns";
 
-if (config.env === "dev") {
-  dns.setServers(["1.1.1.1", "1.0.0.1"]);
-}
+// if (config.env === "dev") {
+//   dns.setServers(["1.1.1.1", "1.0.0.1"]);
+// }
 
 export async function connectDatabase() {
   try {

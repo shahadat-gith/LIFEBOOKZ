@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { StoryCard } from '../story/StoryCard';
+import StoryCard from '../story/StoryCard';
 import { Button } from '../ui/Button';
 import { Icons } from '../../icons';
 import { Link } from 'react-router-dom';
@@ -76,7 +76,7 @@ export function TrendingStories({ stories, loading }) {
      >
       {stories.slice(0, 3).map((story) => (
        <motion.div key={String(story._id ?? story.id)} variants={itemVariants}>
-        <StoryCard story={story} />
+        <StoryCard story={story} showCommentSection={false} />
        </motion.div>
       ))}
      </motion.div>
