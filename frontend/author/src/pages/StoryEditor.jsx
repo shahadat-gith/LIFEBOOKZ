@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import Card, { CardContent } from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import LoadingScreen from "../components/common/LoadingScreen";
-import StoryEditorInput from "../components/editor/StoryEditor";
+import Editor from "../components/editor/Editor";
 
 import StoryHeader from "../components/editor/StoryHeader";
 import VerificationBanner from "../components/editor/VerificationBanner";
@@ -360,7 +360,7 @@ export default function StoryEditorPage() {
                 handleCoverChange={handleCoverChange}
               />
 
-              <StoryEditorInput
+              <Editor
                 key={storyType}
                 content={content}
                 onChange={handleContentChange}

@@ -28,30 +28,20 @@ export default function EditorToolbar({ editor, onImageUploadEnd }) {
     try {
       const result = await uploadImage(file);
 
-      // Insert figure with image
       editor
         .chain()
         .focus()
-        .insertContent({
-          type: "paragraph",
-          content: [],
-        })
+        .insertContent({ type: "paragraph", content: [] })
         .insertContent(
           `<figure class="not-prose my-8 mx-auto text-center">
             <img src="${result.url}" alt="Story image" class="rounded-xl max-w-full h-auto mx-auto shadow-md" />
             <figcaption contenteditable="true" class="mt-2 text-sm text-muted-foreground italic text-center">Add a caption...</figcaption>
           </figure>`
         )
-        .insertContent({
-          type: "paragraph",
-          content: [],
-        })
+        .insertContent({ type: "paragraph", content: [] })
         .run();
 
-      // Clear the file input for re-selection
       if (fileRef.current) fileRef.current.value = "";
-
-      // Notify parent to auto-save draft after image upload
       if (onImageUploadEnd) onImageUploadEnd(editor.getHTML());
 
       toast.success("Image added! Draft auto-saved.");
@@ -152,7 +142,7 @@ export default function EditorToolbar({ editor, onImageUploadEnd }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         active={editor.isActive("codeBlock")}
-        label="Code"
+        label="Code Block"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -161,7 +151,6 @@ export default function EditorToolbar({ editor, onImageUploadEnd }) {
 
       <div className="w-px h-5 bg-border mx-1" />
 
-      {/* Image Upload */}
       <ToolbarButton
         onClick={() => fileRef.current?.click()}
         active={false}

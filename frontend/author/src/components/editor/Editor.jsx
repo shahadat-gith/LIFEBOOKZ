@@ -5,7 +5,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import EditorToolbar from "./EditorToolbar";
 import EditorStyles from "./EditorStyles";
 
-export default function StoryEditor({
+export default function Editor({
   content,
   onChange,
   placeholder = "Write your story...",
@@ -39,7 +39,9 @@ export default function StoryEditor({
 
   return (
     <div className="border border-input rounded-xl bg-card overflow-hidden transition-all duration-200 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
-      {editable && <EditorToolbar editor={editor} onImageUploadEnd={onImageUploadEnd} />}
+      {editable && (
+        <EditorToolbar editor={editor} onImageUploadEnd={onImageUploadEnd} />
+      )}
       <div className="overflow-y-auto max-h-[600px]">
         <EditorContent editor={editor} />
       </div>
