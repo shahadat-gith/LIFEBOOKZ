@@ -27,6 +27,41 @@ const TYPE_PLACEHOLDERS = {
   legend: "Record the life, impactful accomplishments, and extraordinary legacy of this individual...",
 };
 
+/* ─── Extract plain text from TipTap JSON or HTML ─── */
+function extractPlainText(doc) {
+  if (!doc) return "";
+
+  // String — treat as HTML, strip tags
+  if (typeof doc === "string") {
+    return doc
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // Object — TipTap JSON node tree
+  if (typeof doc === "object") {
+    return extractTextFromNode(doc).trim();
+  }
+
+  return String(doc).trim();
+}
+
+function extractTextFromNode(node) {
+  if (!node) return "";
+
+  if (node.type === "text" && typeof node.text === "string") {
+    return node.text;
+  }
+
+  if (Array.isArray(node.content)) {
+    return node.content.map(extractTextFromNode).filter(Boolean).join(" ");
+  }
+
+  return "";
+}
+
 export default function StoryEditorPage() {
   const { storyId } = useParams();
   const { author, isLoading: authLoading } = useAuth();
@@ -36,7 +71,8 @@ export default function StoryEditorPage() {
   const [storyIdState, setStoryIdState] = useState(storyId || null);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  // document now stores TipTap JSON (from editor.getJSON())
+  const [document, setDocument] = useState(null);
   const [storyType, setStoryType] = useState("autobiography");
   const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
@@ -46,10 +82,10 @@ export default function StoryEditorPage() {
   const [currentStep, setCurrentStep] = useState("writing");
   const coverFileRef = useRef(null);
 
-  const formStateRef = useRef({ title, storyType, storyIdState });
+  const formStateRef = useRef({ title, document, storyType, storyIdState });
   useEffect(() => {
-    formStateRef.current = { title, storyType, storyIdState };
-  }, [title, storyType, storyIdState]);
+    formStateRef.current = { title, document, storyType, storyIdState };
+  }, [title, document, storyType, storyIdState]);
 
   const [loadingStory, setLoadingStory] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -58,9 +94,8 @@ export default function StoryEditorPage() {
   const [verificationIssues, setVerificationIssues] = useState([]);
   const [overallAssessment, setOverallAssessment] = useState("");
 
-  const handleContentChange = useCallback((html) => setContent(html), []);
-
-  const stripHtml = (html) => (html ? html.replace(/<[^>]*>/g, "").trim() : "");
+  // onChange receives TipTap JSON from the editor
+  const handleDocumentChange = useCallback((json) => setDocument(json), []);
 
   const makeSlug = (str) =>
     (str || "")
@@ -101,19 +136,20 @@ export default function StoryEditorPage() {
     };
   }, [coverPreview]);
 
+  // After image upload, auto-save the document JSON
   const handleImageUploadEnd = useCallback(
-    async (htmlWithImage) => {
-      if (!htmlWithImage) return;
-      setContent(htmlWithImage);
+    async (jsonDocument) => {
+      if (!jsonDocument) return;
+      setDocument(jsonDocument);
 
-      const plainText = stripHtml(htmlWithImage);
+      const plainText = extractPlainText(jsonDocument);
       if (!plainText) return;
 
       const { title: currentTitle, storyType: currentType, storyIdState: currentId } =
         formStateRef.current;
 
       try {
-        const payload = { content: htmlWithImage, storyType: currentType };
+        const payload = { document: jsonDocument, storyType: currentType };
         if (currentTitle.trim()) payload.title = currentTitle.trim();
 
         if (currentId) {
@@ -137,7 +173,8 @@ export default function StoryEditorPage() {
       .getMyStory(storyId)
       .then((s) => {
         setTitle(s.title || "");
-        setContent(s.content || "");
+        // Pass the document as-is (could be JSON object or HTML string for backward compat)
+        setDocument(s.document || null);
         setStoryType(s.storyType || "autobiography");
         setStoryStatus(s.status);
         if (s.coverImage?.url) {
@@ -154,7 +191,7 @@ export default function StoryEditorPage() {
 
   async function handleSaveDraft(e) {
     e.preventDefault();
-    const plainText = stripHtml(content);
+    const plainText = extractPlainText(document);
     if (!plainText) {
       setError("Story content is required");
       return;
@@ -166,45 +203,73 @@ export default function StoryEditorPage() {
     setError("");
     setSaving(true);
     try {
-      const payload = { content, storyType };
+      const payload = { document, storyType };
       if (title.trim()) payload.title = title.trim();
+      let savedStory;
 
       if (coverImage instanceof File) {
         const fd = new FormData();
-        fd.append("content", content);
+        fd.append("document", JSON.stringify(document));
         fd.append("title", title.trim());
         fd.append("storyType", storyType);
         fd.append("coverImage", coverImage);
 
         if (storyIdState) {
-          const updated = await storyApi.update(storyIdState, fd);
-          setStoryStatus(updated.status);
-          setStoryLanguage(updated.language || "");
-          setStoryStats(updated.stats || null);
-          if (updated.coverImage?.url) setCoverPreview(updated.coverImage.url);
+          savedStory = await storyApi.update(storyIdState, fd);
         } else {
           const story = await storyApi.create(fd);
           const newId = story.id || story._id;
           setStoryIdState(newId);
           navigate(`/stories/${newId}/edit`, { replace: true });
+          savedStory = story;
         }
       } else {
         if (storyIdState) {
-          const updated = await storyApi.update(storyIdState, payload);
-          setStoryStatus(updated.status);
-          setStoryLanguage(updated.language || "");
-          setStoryStats(updated.stats || null);
+          savedStory = await storyApi.update(storyIdState, payload);
         } else {
           const story = await storyApi.create(payload);
           const newId = story.id || story._id;
           setStoryIdState(newId);
           navigate(`/stories/${newId}/edit`, { replace: true });
+          savedStory = story;
         }
       }
 
-      setCurrentStep("writing");
-      setVerificationIssues([]);
-      toast.success("Draft saved successfully");
+      // Update local state from saved story
+      if (savedStory) {
+        setStoryStatus(savedStory.status);
+        setStoryLanguage(savedStory.language || "");
+        setStoryStats(savedStory.stats || null);
+        if (savedStory.coverImage?.url) setCoverPreview(savedStory.coverImage.url);
+      }
+
+      // For published stories: run AI verification after saving
+      if (storyStatus === "published" && storyIdState) {
+        setCurrentStep("verifying");
+        try {
+          const result = await storyApi.verify(storyIdState, { keepPublished: true });
+          setVerificationIssues(result.issues || []);
+          setOverallAssessment(result.overallAssessment || "");
+
+          if (result.canProceed) {
+            setCurrentStep("writing");
+            setStoryStatus("published");
+            toast.success("Changes saved and verified successfully!");
+          } else {
+            setCurrentStep("issues");
+            setStoryStatus("rejected");
+            toast.error("AI found issues with your changes.");
+          }
+        } catch {
+          // Verification failed silently, keep published
+          setCurrentStep("writing");
+          toast.success("Changes saved successfully.");
+        }
+      } else {
+        setCurrentStep("writing");
+        setVerificationIssues([]);
+        toast.success("Draft saved successfully");
+      }
     } catch (err) {
       const msg = err?.response?.data?.error?.message || "Failed to save story";
       setError(msg);
@@ -214,7 +279,7 @@ export default function StoryEditorPage() {
   }
 
   async function handleVerify() {
-    const plainText = stripHtml(content);
+    const plainText = extractPlainText(document);
     if (!plainText) {
       setError("Write your story before submitting for review.");
       return;
@@ -226,12 +291,32 @@ export default function StoryEditorPage() {
     setCurrentStep("verifying");
     try {
       let id = storyIdState || storyId;
-      const payload = { content, storyType };
-      if (title.trim()) payload.title = title.trim();
 
-      if (id) {
+      // Include cover image if present
+      if (id && coverImage instanceof File) {
+        const fd = new FormData();
+        fd.append("document", JSON.stringify(document));
+        fd.append("title", title.trim());
+        fd.append("storyType", storyType);
+        fd.append("coverImage", coverImage);
+        await storyApi.update(id, fd);
+      } else if (id) {
+        const payload = { document, storyType };
+        if (title.trim()) payload.title = title.trim();
         await storyApi.update(id, payload);
+      } else if (coverImage instanceof File) {
+        const fd = new FormData();
+        fd.append("document", JSON.stringify(document));
+        fd.append("title", title.trim());
+        fd.append("storyType", storyType);
+        fd.append("coverImage", coverImage);
+        const story = await storyApi.create(fd);
+        id = story.id || story._id;
+        setStoryIdState(id);
+        navigate(`/stories/${id}/edit`, { replace: true });
       } else {
+        const payload = { document, storyType };
+        if (title.trim()) payload.title = title.trim();
         const story = await storyApi.create(payload);
         id = story.id || story._id;
         setStoryIdState(id);
@@ -299,7 +384,7 @@ export default function StoryEditorPage() {
     return null;
   }
 
-  if (isEditMode && error && !loadingStory && !content) {
+  if (isEditMode && error && !loadingStory && !document) {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4">
         <Card padding="lg" className="text-center">
@@ -362,8 +447,8 @@ export default function StoryEditorPage() {
 
               <Editor
                 key={storyType}
-                content={content}
-                onChange={handleContentChange}
+                content={document}
+                onChange={handleDocumentChange}
                 onImageUploadEnd={handleImageUploadEnd}
                 placeholder={TYPE_PLACEHOLDERS[storyType] || "Start recording the narrative here..."}
               />
@@ -393,6 +478,7 @@ export default function StoryEditorPage() {
             <StoryActions
               saving={saving}
               currentStep={currentStep}
+              storyStatus={storyStatus}
               handlePublish={handlePublish}
               handleVerify={handleVerify}
               onCancel={() => navigate(-1)}

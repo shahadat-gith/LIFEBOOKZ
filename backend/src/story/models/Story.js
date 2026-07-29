@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
 import { nanoid } from "nanoid";
-import { imageSchema } from "../../shared/models/image.schema";
+import { imageSchema } from "../../shared/models/image.schema.js";
 
 
 const issueSchema = new mongoose.Schema(

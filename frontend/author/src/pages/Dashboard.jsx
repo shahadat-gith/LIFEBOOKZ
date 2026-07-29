@@ -242,7 +242,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2.5">
                         <h3 className="truncate font-display text-base font-semibold text-foreground">
-                          {story.title || getContentPreview(story.content)}
+                          {story.title || getContentPreview(typeof story.document === 'string' ? story.document : '')}
                         </h3>
                         <Badge variant={badge.variant}>
                           {badge.label}

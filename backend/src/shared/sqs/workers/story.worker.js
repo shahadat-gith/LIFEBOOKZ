@@ -11,6 +11,7 @@ import {
 
 import { getQdrantClient } from "../../config/qdrant.js";
 import config from "../../config/index.js";
+import { extractTextFromDocument } from "../../utils/helpers.js";
 
 const qdrant = getQdrantClient();
 
@@ -59,10 +60,12 @@ async function analyzeStory(storyId) {
   });
 
   try {
+    const plainText = extractTextFromDocument(story.document);
+
     const result = JSON.parse(
       await generateContent({
         system: getStoryAnalysisPrompt(),
-        prompt: story.content,
+        prompt: plainText,
         json: true,
       }),
     );
@@ -107,9 +110,11 @@ async function generateSummary(storyId) {
   });
 
   try {
+    const plainText = extractTextFromDocument(story.document);
+
     const summary = await generateContent({
       system: getSummaryPrompt(),
-      prompt: story.content,
+      prompt: plainText,
     });
 
     await Story.findByIdAndUpdate(storyId, {
@@ -142,10 +147,11 @@ async function generateStoryEmbedding(storyId) {
   }
 
   try {
-    // Get title from story or auto-generate from content
+    // Get title from story or auto-generate from document content
+    const plainText = extractTextFromDocument(story.document);
     const title = story.title?.trim()
-      || (story.content
-        ? story.content.replace(/<[^>]*>/g, "").trim().slice(0, 100).replace(/\s+\S*$/, "") + "..."
+      || (plainText
+        ? plainText.slice(0, 100).replace(/\s+\S*$/, "") + "..."
         : "Untitled");
 
     const embedding = await generateEmbedding(story.summary.content || title);

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import api from "../config/axios";
 import Avatar from "../components/ui/Avatar";
 import EmptyState from "../components/common/EmptyState";
+import AuthorsPageSkeleton from "../components/skeletons/AuthorsPageSkeleton";
 import { Icons } from "../icons";
 
 const fadeUp = {
@@ -124,19 +125,7 @@ export default function AuthorsPage() {
 
       {/* Loading Skeletons */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div
-              key={i}
-              className="p-6 rounded-2xl bg-card/40 border border-border/40 animate-pulse flex flex-col items-center space-y-4"
-            >
-              <div className="w-20 h-20 rounded-full bg-muted/60" />
-              <div className="h-4 bg-muted/60 rounded-md w-3/4" />
-              <div className="h-3 bg-muted/40 rounded-md w-1/2" />
-              <div className="h-10 bg-muted/30 rounded-md w-full mt-2" />
-            </div>
-          ))}
-        </div>
+        <AuthorsPageSkeleton />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={
@@ -215,8 +204,9 @@ export default function AuthorsPage() {
                   </div>
 
                   {/* Card Footer Meta */}
-                  <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-border/40 text-[11px] font-medium text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-border/40">
+                    {/* Story count */}
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
                       {Icons?.book ? (
                         <Icons.book className="h-3.5 w-3.5 text-accent/80" />
                       ) : null}
@@ -226,8 +216,9 @@ export default function AuthorsPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span>Joined</span>
+                    {/* Joined date */}
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                      <span className="hidden sm:inline">Joined</span>
                       <span className="text-foreground/80 font-sans">
                         {author.createdAt
                           ? new Date(author.createdAt).toLocaleDateString(

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import api from "../config/axios";
 import StoryCard from "../components/story/StoryCard";
+import StoryCardSkeleton from "../components/skeletons/StoryCardSkeleton";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
@@ -120,8 +121,10 @@ export default function FeedPage() {
       </motion.div>
 
       {loading && stories.length === 0 ? (
-        <div className="flex justify-center py-20">
-          <Spinner size="lg" label="Loading feed..." />
+        <div className="space-y-5">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <StoryCardSkeleton key={n} />
+          ))}
         </div>
       ) : stories.length === 0 ? (
         <EmptyState

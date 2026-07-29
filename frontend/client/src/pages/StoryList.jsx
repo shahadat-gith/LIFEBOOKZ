@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../config/axios";
 import StoryCard from "../components/story/StoryCard"
+import StoryCardSkeleton from "../components/skeletons/StoryCardSkeleton";
 import Button from "../components/ui/Button";
-import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
 
@@ -49,7 +49,13 @@ export default function StoryListPage() {
         </div>
       </div>
       {loading && stories.length === 0 ? (
-        <div className="flex justify-center py-20"><Spinner size="lg" label="Loading stories..." /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n}>
+              <StoryCardSkeleton />
+            </div>
+          ))}
+        </div>
       ) : stories.length === 0 ? (
         <EmptyState icon={<Icons.book className="h-16 w-16" />} title="No stories found" description="Try adjusting your filters." />
       ) : (

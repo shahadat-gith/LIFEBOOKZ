@@ -33,8 +33,8 @@ export async function update(storyId, data) {
   return res.data.data;
 }
 
-export async function verify(storyId) {
-  const res = await api.post(`/stories/${storyId}/verify`);
+export async function verify(storyId, data = {}) {
+  const res = await api.post(`/stories/${storyId}/verify`, data);
   return res.data.data;
 }
 

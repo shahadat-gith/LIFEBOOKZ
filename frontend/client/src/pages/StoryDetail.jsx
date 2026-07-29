@@ -1,14 +1,13 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import DOMPurify from "dompurify";
 import api from "../config/axios";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/ui/Avatar";
-import LikeButton from "../components/story/LikeButton";
+import TipTapReader from "../components/story/TipTapReader";
 import CommentSection from "../components/story/CommentSection";
 import FollowButton from "../components/story/FollowButton";
-import Spinner from "../components/ui/Spinner";
+import StoryDetailSkeleton from "../components/skeletons/StoryDetailSkeleton";
 import { Icons } from "../icons";
 import { getTimeAgo } from "../utils/helpers";
 import toast from "react-hot-toast";
@@ -24,6 +23,7 @@ export default function StoryDetailPage() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentTrigger, setCommentTrigger] = useState(0);
+  const commentSectionRef = useRef(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -45,21 +45,49 @@ export default function StoryDetailPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  function handleLike(nowLiked) {
-    setLiked(nowLiked);
-    setLikeCount((c) => (nowLiked ? c + 1 : c - 1));
+  async function handleLike() {
+    if (!isAuthenticated) {
+      toast("Sign in to like stories");
+      navigate("/login");
+      return;
+    }
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => (next ? c + 1 : c - 1));
+    try {
+      const res = await api.post(`/stories/${story._id}/like`);
+      if (res.data?.data?.liked !== undefined && res.data.data.liked !== next) {
+        setLiked(res.data.data.liked);
+        setLikeCount((c) => (res.data.data.liked ? c + 1 : c - 1));
+      }
+    } catch {
+      setLiked(liked);
+      setLikeCount((c) => (liked ? c + 1 : c - 1));
+      toast.error("Failed to update like");
+    }
   }
-  const sanitizedContent = useMemo(
-    () => (story?.content ? DOMPurify.sanitize(story.content) : ""),
-    [story?.content]
-  );
+
+  function handleCommentClick() {
+    setCommentTrigger((c) => c + 1);
+    setTimeout(() => {
+      commentSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }
+
+  function handleShare() {
+    if (navigator.share) {
+      navigator.share({
+        title: story?.title,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard");
+    }
+  }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Spinner size="lg" label="Loading story..." />
-      </div>
-    );
+    return <StoryDetailSkeleton />;
   }
 
   if (error || !story) {
@@ -86,6 +114,8 @@ export default function StoryDetailPage() {
   const author = story.author || {};
   const authorName = author.fullName || "Anonymous";
   const timeAgo = getTimeAgo(new Date(story.publishedAt || story.createdAt));
+  const commentCount = story.stats?.comments || 0;
+  const shareCount = story.stats?.shares || 0;
 
   return (
     <motion.div
@@ -120,6 +150,20 @@ export default function StoryDetailPage() {
           {story.title || "Untitled Story"}
         </h1>
 
+        {/* Cover Image */}
+        {story.coverImage?.url && (
+          <div className="mt-6 -mx-4 sm:-mx-6">
+            <div className="relative w-full h-64 sm:h-80 lg:h-96 overflow-hidden rounded-none sm:rounded-2xl">
+              <img
+                src={story.coverImage.url}
+                alt={story.title || "Story cover"}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/10 to-transparent" />
+            </div>
+          </div>
+        )}
+
         {/* Author Info */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 pb-6 border-b border-border/40">
           <div className="flex items-center gap-3">
@@ -138,16 +182,8 @@ export default function StoryDetailPage() {
               >
                 {authorName}
               </Link>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <span>{timeAgo}</span>
-                {story.language && (
-                  <>
-                    <span className="text-muted-foreground/40">•</span>
-                    <span className="text-accent font-medium">{story.language}</span>
-                  </>
-                )}
-                <span className="text-muted-foreground/40">•</span>
-                <span>{likeCount} like{likeCount !== 1 ? "s" : ""}</span>
               </div>
             </div>
           </div>
@@ -168,72 +204,64 @@ export default function StoryDetailPage() {
         transition={{ delay: 0.2 }}
         className="mt-8"
       >
-        <div
-          className="prose prose-lg dark:prose-invert max-w-none text-foreground/90 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-        />
+        {/* Story Summary — at the top */}
+        {story.summary?.content && (
+          <div className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border/40">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {story.summary.content}
+            </p>
+          </div>
+        )}
 
-        {/* Story Meta Footer */}
-        <div className="mt-12 pt-6 border-t border-border/40 flex flex-wrap items-center gap-6">
-          {story.language && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Icons.document className="h-4 w-4" />
-              <span>Written in <strong className="text-foreground">{story.language}</strong></span>
-            </div>
-          )}
-          {story.stats && (
-            <>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Icons.heartRegular className="h-4 w-4" />
-                <span>{story.stats.likes || 0} likes</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Icons.chat className="h-4 w-4" />
-                <span>{story.stats.comments || 0} comments</span>
-              </div>
-            </>
-          )}
-        </div>
+        <TipTapReader document={story.document} />
       </motion.div>
 
-      {/* Action Bar */}
-      <div className="flex items-center gap-2 mt-6 py-4 border-t border-border/40">
-        <LikeButton
-          storyId={story._id}
-          liked={liked}
-          likeCount={likeCount}
-          onLike={handleLike}
-        />
-        <button
-          type="button"
-          onClick={() => setCommentTrigger((c) => c + 1)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-        >
-          <Icons.chat className="h-4 w-4" />
-          <span>Comment</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: story.title,
-                url: window.location.href,
-              });
-            } else {
-              navigator.clipboard.writeText(window.location.href);
-              toast.success("Link copied to clipboard");
-            }
-          }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-        >
-          <Icons.share className="h-4 w-4" />
-          <span>Share</span>
-        </button>
+      {/* Interactive Stats Row: Like · Comment · Share — left aligned */}
+      <div className="mt-8 py-4 border-t border-border/40">
+        <div className="flex items-center gap-8">
+          {/* Like */}
+          <button
+            type="button"
+            onClick={handleLike}
+            className={`flex flex-col items-center gap-1 text-xs font-semibold transition-all duration-200 select-none ${
+              liked
+                ? "text-destructive"
+                : "text-muted-foreground hover:text-destructive"
+            }`}
+          >
+            {liked ? (
+              <Icons.heartSolid className="h-5 w-5" />
+            ) : (
+              <Icons.heartRegular className="h-5 w-5" />
+            )}
+            <span>{likeCount}</span>
+          </button>
+
+          {/* Comment */}
+          <button
+            type="button"
+            onClick={handleCommentClick}
+            className="flex flex-col items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Icons.chat className="h-5 w-5" />
+            <span>{commentCount}</span>
+          </button>
+
+          {/* Share */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex flex-col items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Icons.share className="h-5 w-5" />
+            <span>{shareCount}</span>
+          </button>
+        </div>
       </div>
 
       {/* Comments Section */}
-      <div className="mt-8 pt-6 border-t border-border/40">
+      <div ref={commentSectionRef} className="mt-8 pt-6 border-t border-border/40">
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Comments
         </h3>

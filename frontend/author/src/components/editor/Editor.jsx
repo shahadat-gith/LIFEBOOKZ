@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 
 import EditorToolbar from "./EditorToolbar";
 import EditorStyles from "./EditorStyles";
@@ -16,10 +17,14 @@ export default function Editor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder }),
+      Image.configure({
+        inline: false,
+        allowBase64: false,
+      }),
     ],
-    content: content || "",
+    content: content || { type: "doc", content: [] },
     editable,
-    onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
+    onUpdate: ({ editor: ed }) => onChange(ed.getJSON()),
     editorProps: {
       attributes: {
         class:

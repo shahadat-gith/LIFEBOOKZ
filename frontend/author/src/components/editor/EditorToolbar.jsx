@@ -31,18 +31,18 @@ export default function EditorToolbar({ editor, onImageUploadEnd }) {
       editor
         .chain()
         .focus()
-        .insertContent({ type: "paragraph", content: [] })
-        .insertContent(
-          `<figure class="not-prose my-8 mx-auto text-center">
-            <img src="${result.url}" alt="Story image" class="rounded-xl max-w-full h-auto mx-auto shadow-md" />
-            <figcaption contenteditable="true" class="mt-2 text-sm text-muted-foreground italic text-center">Add a caption...</figcaption>
-          </figure>`
-        )
+        .setImage({ src: result.url, alt: "Story image" })
+        .run();
+
+      // Insert a blank paragraph after the image for continued typing
+      editor
+        .chain()
+        .focus()
         .insertContent({ type: "paragraph", content: [] })
         .run();
 
       if (fileRef.current) fileRef.current.value = "";
-      if (onImageUploadEnd) onImageUploadEnd(editor.getHTML());
+      if (onImageUploadEnd) onImageUploadEnd(editor.getJSON());
 
       toast.success("Image added! Draft auto-saved.");
     } catch {

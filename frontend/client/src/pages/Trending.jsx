@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import api from "../config/axios";
 import StoryCard from "../components/story/StoryCard";
-import Spinner from "../components/ui/Spinner";
+import StoryCardSkeleton from "../components/skeletons/StoryCardSkeleton";
 import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
 
@@ -102,15 +102,8 @@ export default function TrendingPage() {
       {loading ? (
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="flex gap-4 items-start p-6 rounded-2xl bg-card/40 border border-border/40 animate-pulse"
-            >
-              <div className="w-8 h-8 rounded-lg bg-muted/60 shrink-0" />
-              <div className="flex-1 space-y-3">
-                <div className="h-4 bg-muted/60 rounded-md w-3/4" />
-                <div className="h-3 bg-muted/40 rounded-md w-1/2" />
-              </div>
+            <div key={i}>
+              <StoryCardSkeleton />
             </div>
           ))}
         </div>

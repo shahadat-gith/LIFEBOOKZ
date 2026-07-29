@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import StoryCard from "../story/StoryCard";
+import StoryCardSkeleton from "../skeletons/StoryCardSkeleton";
 import { Button } from "../ui";
 import { Icons } from "../../icons";
 import { Link } from "react-router-dom";
@@ -115,7 +116,7 @@ export function LatestStories() {
           >
             {stories.slice(0,3).map((story) => (
               <motion.div key={story._id} variants={itemVariants}>
-                <StoryCard story={story} />
+                <StoryCard story={story} showActions={false} />
               </motion.div>
             ))}
           </motion.div>
@@ -133,10 +134,9 @@ export function LatestStories() {
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-64 rounded-xl bg-muted/40 animate-pulse"
-              />
+              <div key={n}>
+                <StoryCardSkeleton showActions={false} />
+              </div>
             ))}
           </div>
         )}

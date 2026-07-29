@@ -1,0 +1,219 @@
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import api from "../config/axios";
+import Avatar from "../components/ui/Avatar";
+import FollowButton from "../components/story/FollowButton";
+import EmptyState from "../components/common/EmptyState";
+import { Icons } from "../icons";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
+
+export default function AuthorProfilePage() {
+  const { id } = useParams();
+  const [author, setAuthor] = useState(null);
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [storiesLoading, setStoriesLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError("");
+
+    api
+      .get(`/authors/${id}`)
+      .then((res) => {
+        setAuthor(res.data.data);
+      })
+      .catch((err) => {
+        const msg = err.response?.data?.error?.message || "Author not found";
+        setError(msg);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setStoriesLoading(true);
+
+    api
+      .get("/stories", { params: { author: id, limit: 20 } })
+      .then((res) => {
+        setStories(res.data.data.stories || []);
+      })
+      .catch(() => {
+        setStories([]);
+      })
+      .finally(() => setStoriesLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 animate-pulse">
+        {/* Back link */}
+        <div className="h-4 w-24 bg-foreground/8 rounded-md mb-8" />
+        {/* Author card skeleton */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/40 mb-8">
+          <div className="w-24 h-24 rounded-full bg-foreground/12 shrink-0" />
+          <div className="flex-1 space-y-3 text-center sm:text-left">
+            <div className="h-6 bg-foreground/12 rounded-md w-48 mx-auto sm:mx-0" />
+            <div className="h-4 bg-foreground/8 rounded-md w-32 mx-auto sm:mx-0" />
+            <div className="h-3 bg-foreground/8 rounded-md w-full max-w-md mx-auto sm:mx-0" />
+            <div className="h-3 bg-foreground/8 rounded-md w-3/4 max-w-sm mx-auto sm:mx-0" />
+            <div className="h-9 w-28 bg-foreground/12 rounded-xl mx-auto sm:mx-0" />
+          </div>
+        </div>
+        
+      </div>
+    );
+  }
+
+  if (error || !author) {
+    return (
+      <div className="max-w-3xl mx-auto py-20 px-4 text-center">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
+          <Icons.exclamationCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Author Not Found</h1>
+        <p className="text-muted-foreground mb-8">{error || "This author doesn't exist."}</p>
+        <Link
+          to="/authors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        >
+          <Icons.chevronLeft className="h-4 w-4" />
+          Back to Authors
+        </Link>
+      </div>
+    );
+  }
+
+  const socialLinks = author.socialLinks || {};
+  const hasSocial = Object.values(socialLinks).some((v) => v);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-5xl mx-auto py-10 px-4 sm:px-6"
+    >
+      {/* Back Link */}
+      <Link
+        to="/authors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+      >
+        <Icons.chevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+        All Authors
+      </Link>
+
+      {/* Author Profile Card */}
+      <motion.div variants={fadeUp} initial="hidden" animate="visible">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/40 mb-8">
+          {/* Avatar */}
+          <Avatar
+            src={author.avatar?.url}
+            name={author.fullName || "Author"}
+            size="xl"
+            className="ring-2 ring-border/40 shrink-0"
+          />
+
+          {/* Info */}
+          <div className="flex-1 text-center sm:text-left space-y-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground font-display">
+                {author.fullName || "Anonymous Author"}
+              </h1>
+              {author.profession && (
+                <p className="text-sm font-semibold text-accent mt-1">{author.profession}</p>
+              )}
+            </div>
+
+            {author.bio && (
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
+                {author.bio}
+              </p>
+            )}
+
+            {/* Follow & Meta */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+              <FollowButton authorId={author._id} size="md" />
+
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Icons.book className="h-3.5 w-3.5" />
+                  {stories.length} {stories.length === 1 ? "story" : "stories"}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Icons.clock className="h-3.5 w-3.5" />
+                  Joined {author.createdAt
+                    ? new Date(author.createdAt).toLocaleDateString(undefined, {
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "Recently"}
+                </span>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            {hasSocial && (
+              <div className="flex items-center gap-3 pt-2">
+                {socialLinks.website && (
+                  <a
+                    href={socialLinks.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Website"
+                  >
+                    <Icons.globe className="h-4 w-4" />
+                  </a>
+                )}
+                {socialLinks.x && (
+                  <a
+                    href={socialLinks.x}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="X (Twitter)"
+                  >
+                    <Icons.twitter className="h-4 w-4" />
+                  </a>
+                )}
+                {socialLinks.instagram && (
+                  <a
+                    href={socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Instagram"
+                  >
+                    <Icons.instagram className="h-4 w-4" />
+                  </a>
+                )}
+                {socialLinks.linkedin && (
+                  <a
+                    href={socialLinks.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="LinkedIn"
+                  >
+                    <Icons.linkedin className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+     
+    </motion.div>
+  );
+}

@@ -11,7 +11,8 @@ import EmptyState from '../components/common/EmptyState';
 import { Icons } from '../icons';
 import toast from 'react-hot-toast';
 
-function getPreview(html, max = 80) {
+function getPreview(doc, max = 80) {
+  const html = typeof doc === 'string' ? doc : '';
   const plain = html?.replace(/<[^>]*>/g, '').trim() || '';
   return plain.length > max ? plain.slice(0, max) + '...' : plain || 'Untitled';
 }
@@ -53,9 +54,10 @@ export default function StoriesPage() {
     if (statusFilter !== 'all' && s.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    const content = s.content?.replace(/<[^>]*>/g, '').toLowerCase() || '';
+    const docHtml = typeof s.document === 'string' ? s.document : '';
+    const contentText = docHtml.replace(/<[^>]*>/g, '').toLowerCase() || '';
     const authorName = s.author?.fullName?.toLowerCase() || '';
-    return content.includes(q) || authorName.includes(q);
+    return contentText.includes(q) || authorName.includes(q);
   });
 
   // Stats
@@ -175,7 +177,7 @@ export default function StoriesPage() {
                   >
                     <div className="col-span-4 min-w-0">
                       <p className="font-medium text-foreground text-sm truncate">
-                        {getPreview(story.content)}
+                        {getPreview(story.document)}
                       </p>
                       {story.tags?.length > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">

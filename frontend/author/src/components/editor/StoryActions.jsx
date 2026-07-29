@@ -5,10 +5,13 @@ import { Icons } from "../../icons";
 export default function StoryActions({
   saving,
   currentStep,
+  storyStatus,
   handlePublish,
   handleVerify,
   onCancel,
 }) {
+  const isPublished = storyStatus === "published";
+
   return (
     <CardFooter className="px-6 py-4 border-t border-border flex flex-wrap gap-3 justify-between">
       <div className="flex gap-2">
@@ -23,10 +26,10 @@ export default function StoryActions({
           loading={saving}
           icon={<Icons.save className="h-4 w-4" />}
         >
-          Save Draft
+          {isPublished ? "Save Changes" : "Save Draft"}
         </Button>
 
-        {currentStep === "verified" ? (
+        {!isPublished && (currentStep === "verified" ? (
           <Button
             type="button"
             size="lg"
@@ -44,7 +47,7 @@ export default function StoryActions({
           >
             {currentStep === "issues" ? "Re-submit for Review" : "Submit for Review"}
           </Button>
-        )}
+        ))}
       </div>
     </CardFooter>
   );
