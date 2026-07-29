@@ -45,7 +45,7 @@ export async function authenticate(req, _res, next) {
 
       case "user": {
         const user = await User.findById(decoded.userId).select(
-          "-passwordHash",
+          "-auth.passwordHash",
         );
 
         if (!user) {
@@ -59,7 +59,7 @@ export async function authenticate(req, _res, next) {
 
       case "author": {
         const author = await Author.findById(decoded.authorId).select(
-          "-passwordHash",
+          "-auth.passwordHash",
         );
 
         if (!author) {
@@ -109,18 +109,13 @@ export async function authenticateSoft(req, _res, next) {
 
     switch (decoded.role) {
       case "admin": {
-        if (decoded.key !== config.admin.key) {
-          throw new AuthenticationError("Invalid admin token.");
-        }
-
-        req.admin = true;
-
-        return next();
+        // Admin tokens should only access admin routes, not self-service routes
+        throw new AuthenticationError("Invalid token for this resource.");
       }
 
       case "user": {
         const user = await User.findById(decoded.userId).select(
-          "-passwordHash",
+          "-auth.passwordHash",
         );
 
         if (!user) {
@@ -134,7 +129,7 @@ export async function authenticateSoft(req, _res, next) {
 
       case "author": {
         const author = await Author.findById(decoded.authorId).select(
-          "-passwordHash",
+          "-auth.passwordHash",
         );
 
         if (!author) {

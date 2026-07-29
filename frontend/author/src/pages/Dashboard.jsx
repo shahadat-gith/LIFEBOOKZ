@@ -71,34 +71,34 @@ export default function Dashboard() {
   const isPending = !isApproved && !isRejected;
 
   if (authLoading || loading) {
-    return <LoadingScreen message="Loading your dashboard..." />;
+    return <LoadingScreen message="Loading your author workspace..." />;
   }
 
   if (!author) return null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 py-10 px-4">
-      {/* Welcome Card */}
+      {/* Author Header Banner */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col justify-between gap-6 rounded-3xl border bg-gradient-to-br from-card to-muted/30 p-8 md:flex-row md:items-center"
+        transition={{ duration: 0.4 }}
+        className="flex flex-col justify-between gap-6 rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-xs md:flex-row md:items-center"
       >
         <div className="flex items-center gap-5">
           <Avatar
             src={author.avatar?.url}
             name={author.fullName}
             size="xl"
-            className="ring-4 ring-primary/10"
+            className="ring-2 ring-border/80"
           />
           <div>
-            <h1 className="text-3xl font-bold">
-              Welcome back,{" "}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {author.fullName}
-              </span>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+              Welcome back, {author.fullName}
             </h1>
-            <p className="mt-1 text-muted-foreground">{author.profession}</p>
+            <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
+              {author.profession || "Author & Writer"}
+            </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge
                 variant={
@@ -113,11 +113,11 @@ export default function Dashboard() {
               </Badge>
               {isPending && (
                 <span className="text-xs text-muted-foreground">
-                  You&apos;ll be able to write once approved
+                  You&apos;ll be able to publish once reviewed
                 </span>
               )}
               {isRejected && author.verification?.rejectionReason && (
-                <span className="text-xs text-destructive">
+                <span className="text-xs text-destructive font-medium">
                   Reason: {author.verification.rejectionReason}
                 </span>
               )}
@@ -131,6 +131,7 @@ export default function Dashboard() {
               size="lg"
               icon={<Icons.plus className="h-4 w-4" />}
               disabled={!isApproved}
+              className="w-full sm:w-auto"
             >
               New Story
             </Button>
@@ -138,54 +139,70 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <Card padding="lg" className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+      {/* Overview Statistics Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card padding="md" className="border border-border/60 bg-card/60 shadow-xs">
           <CardContent>
-            <p className="text-3xl font-bold">{stats.total}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Total Stories</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Total Stories
+            </p>
+            <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+              {stats.total}
+            </p>
           </CardContent>
         </Card>
-        <Card padding="lg" className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-success/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+
+        <Card padding="md" className="border border-border/60 bg-card/60 shadow-xs">
           <CardContent>
-            <p className="text-3xl font-bold text-success">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Published
+            </p>
+            <p className="mt-2 font-display text-3xl font-semibold text-success">
               {stats.published}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">Published</p>
           </CardContent>
         </Card>
-        <Card padding="lg" className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-warning/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+
+        <Card padding="md" className="border border-border/60 bg-card/60 shadow-xs">
           <CardContent>
-            <p className="text-3xl font-bold text-warning">{stats.drafts}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Drafts</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Drafts
+            </p>
+            <p className="mt-2 font-display text-3xl font-semibold text-warning">
+              {stats.drafts}
+            </p>
           </CardContent>
         </Card>
-        <Card padding="lg" className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-info/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+
+        <Card padding="md" className="border border-border/60 bg-card/60 shadow-xs">
           <CardContent>
-            <p className="text-3xl font-bold text-info">{stats.submitted}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Submitted</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              In Review
+            </p>
+            <p className="mt-2 font-display text-3xl font-semibold text-info">
+              {stats.submitted}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Stories List */}
-      <Card>
+      {/* Stories Listing */}
+      <Card className="border border-border/60 bg-card shadow-xs">
         <CardContent className="p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <CardTitle>My Stories</CardTitle>
+          <div className="mb-6 flex items-center justify-between border-b border-border/40 pb-4">
+            <CardTitle className="font-display text-lg font-semibold tracking-tight">
+              My Stories
+            </CardTitle>
             {stories.length > 0 && (
-              <span className="text-sm text-muted-foreground">
-                {stories.length} total
+              <span className="text-xs text-muted-foreground font-medium">
+                {stories.length} {stories.length === 1 ? "entry" : "entries"}
               </span>
             )}
           </div>
+
           {stories.length === 0 ? (
             <EmptyState
-              icon={<Icons.book className="h-12 w-12" />}
+              icon={<Icons.book className="h-10 w-10 text-muted-foreground" />}
               title="No stories yet"
               description={
                 isApproved
@@ -195,7 +212,7 @@ export default function Dashboard() {
               action={
                 isApproved
                   ? {
-                      label: "Write Your First Story",
+                      label: "Compose First Story",
                       onClick: () => navigate("/stories/new"),
                     }
                   : undefined
@@ -213,9 +230,9 @@ export default function Dashboard() {
                 return (
                   <motion.div
                     key={story.id || story._id}
-                    whileHover={{ y: -2 }}
+                    whileHover={{ y: -1 }}
                     transition={{ duration: 0.15 }}
-                    className="group flex items-center justify-between rounded-2xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-md cursor-pointer"
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-border/60 bg-background/50 p-4 sm:p-5 transition-all hover:border-border hover:bg-card hover:shadow-xs cursor-pointer gap-4"
                     onClick={() =>
                       navigate(
                         `/stories/${story.id || story._id}/edit`,
@@ -223,8 +240,8 @@ export default function Dashboard() {
                     }
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="truncate text-lg font-semibold">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <h3 className="truncate font-display text-base font-semibold text-foreground">
                           {story.title || getContentPreview(story.content)}
                         </h3>
                         <Badge variant={badge.variant}>
@@ -232,13 +249,12 @@ export default function Dashboard() {
                         </Badge>
                         {issues.length > 0 && (
                           <Badge variant="danger">
-                            {issues.length} issue
-                            {issues.length > 1 ? "s" : ""}
+                            {issues.length} {issues.length > 1 ? "issues" : "issue"}
                           </Badge>
                         )}
                       </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        Last updated{" "}
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Last edited on{" "}
                         {new Date(
                           story.updatedAt || story.createdAt,
                         ).toLocaleDateString(undefined, {
@@ -249,7 +265,7 @@ export default function Dashboard() {
                       </p>
                     </div>
 
-                    <div className="ml-6 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-2 sm:opacity-0 transition-opacity group-hover:opacity-100 self-end sm:self-auto">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -259,7 +275,7 @@ export default function Dashboard() {
                             `/stories/${story.id || story._id}/edit`,
                           );
                         }}
-                        icon={<Icons.edit className="h-4 w-4" />}
+                        icon={<Icons.edit className="h-3.5 w-3.5" />}
                       >
                         Edit
                       </Button>
@@ -270,7 +286,7 @@ export default function Dashboard() {
                           onClick={(e) => {
                             e.stopPropagation();
                           }}
-                          icon={<Icons.eye className="h-4 w-4" />}
+                          icon={<Icons.eye className="h-3.5 w-3.5" />}
                         >
                           View
                         </Button>

@@ -23,6 +23,14 @@ router.get("/me/stories", authenticateSoft, author.getMyStories);
 
 router.get("/me/stories/:storyId", authenticateSoft, author.getMyStory);
 
+/* ---------- Password Reset ---------- */
+
+router.post("/forgot-password", author.forgotPassword);
+
+router.post("/verify-reset-otp", author.verifyResetOTP);
+
+router.post("/reset-password", author.resetPassword);
+
 /* ---------- Logout ---------- */
 
 router.post("/logout", author.logout);

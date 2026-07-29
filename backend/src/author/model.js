@@ -127,8 +127,7 @@ const authorSchema = new mongoose.Schema(
       trim: true,
       minlength: 3,
       maxlength: 30,
-      match: /^[a-z0-9_]+$/,
-      index: true,
+      match: /^[a-z0-9_.-]+$/,
     },
 
     email: {
@@ -138,7 +137,6 @@ const authorSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: /^\S+@\S+\.\S+$/,
-      index: true,
     },
 
     auth: {
@@ -211,7 +209,6 @@ const authorSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "suspended", "deleted"],
       default: "active",
-      index: true,
     },
   },
   {
@@ -230,8 +227,9 @@ const authorSchema = new mongoose.Schema(
           delete ret.auth.passwordHash;
           delete ret.auth.emailVerificationToken;
           delete ret.auth.emailVerificationExpires;
-          delete ret.auth.passwordResetToken;
-          delete ret.auth.passwordResetExpires;
+          delete ret.auth.passwordResetOTP;
+          delete ret.auth.passwordResetOTPExpires;
+          delete ret.auth.passwordResetVerified;
           delete ret.auth.lastLoginAt;
         }
 
@@ -245,10 +243,9 @@ const authorSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// Indexes — username & email already have `unique: true` on field definitions
+// so no need for duplicate schema.index() calls
 authorSchema.index({ fullName: "text" });
-authorSchema.index({ username: 1 }, { unique: true });
-authorSchema.index({ email: 1 }, { unique: true });
 authorSchema.index({ status: 1 });
 
 // Hash password before saving

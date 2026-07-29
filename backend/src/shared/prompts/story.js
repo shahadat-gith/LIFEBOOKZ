@@ -73,8 +73,10 @@ Return ONLY valid JSON.
 }`;
 }
 
-export function getGrammarCorrectionPrompt() {
-  return `You are a professional editor specializing in literary writing.
+export function getGrammarCorrectionPrompt(language = "English") {
+  return `You are a professional editor specializing in literary writing in ${language}.
+
+The story content below is written in **${language}**.
 
 Correct ONLY:
 - Grammar
@@ -93,9 +95,25 @@ Rules:
 - Do not change dialogue.
 - Preserve paragraph structure.
 - Preserve markdown formatting if present.
+- The content language is ${language}. Apply corrections accordingly for this language.
 - Return ONLY the corrected story.
 - Do not explain your edits.
 - Do not use code blocks.`;
+}
+
+export function getLanguageDetectionPrompt() {
+  return `You are a language detection expert. Analyze the provided story content and determine which language it is written in.
+
+Supported languages: English, Hindi, Bengali, Assamese, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Odia, Sanskrit, French, Spanish, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Turkish, Persian
+
+Rules:
+- Consider the majority of the text, not just a few words.
+- If the text contains mixed languages, choose the primary one.
+- Return ONLY valid JSON with the detected language.
+
+{
+  "language": "English"
+}`;
 }
 
 export function getSummaryPrompt() {

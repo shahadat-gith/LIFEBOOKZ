@@ -24,14 +24,20 @@ export const authSchema = new mongoose.Schema(
       select: false,
     },
 
-    passwordResetToken: {
+    passwordResetOTP: {
       type: String,
       default: "",
       select: false,
     },
 
-    passwordResetExpires: {
+    passwordResetOTPExpires: {
       type: Date,
+      select: false,
+    },
+
+    passwordResetVerified: {
+      type: Boolean,
+      default: false,
       select: false,
     },
 

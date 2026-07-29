@@ -1,14 +1,19 @@
 import Story from "./models/Story.js";
 import Like from "./models/Like.js";
 import Comment from "./models/Comment.js";
+import Follow from "../following/model.js";
+import Author from "../author/model.js";
 import { generateContent } from "../shared/services/llm.js";
 import {
   getStoryAnalysisPrompt,
   getGrammarCorrectionPrompt,
   getSummaryPrompt,
+  getLanguageDetectionPrompt,
 } from "../shared/prompts/story.js";
-import { uploadStoryImage } from "../shared/services/upload.js";
+import { uploadStoryImage, uploadAvatar } from "../shared/services/upload.js";
 import { NotFoundError, ValidationError } from "../shared/utils/errors.js";
+import slugify from "slugify";
+import { nanoid } from "nanoid";
 
 export async function uploadImage(req, res, next) {
   try {
@@ -32,12 +37,35 @@ export async function uploadImage(req, res, next) {
 
 export async function create(req, res, next) {
   try {
-    const { content = "", title = "" } = req.body;
+    const { content = "", title = "", storyType = "autobiography" } = req.body;
+
+    const cleanTitle = title?.trim() || "";
+
+    // Generate slug from title if provided
+    let slug = "";
+    if (cleanTitle) {
+      slug = slugify(cleanTitle, { lower: true, strict: true, trim: true });
+      // Ensure uniqueness
+      const existing = await Story.findOne({ slug });
+      if (existing) {
+        slug = `${slug}-${nanoid(8)}`;
+      }
+    }
+
+    // Handle cover image upload if provided
+    let coverImage = {};
+    if (req.file) {
+      const uploaded = await uploadAvatar(req.file.buffer);
+      coverImage = { url: uploaded.url, publicId: uploaded.publicId };
+    }
 
     const story = await Story.create({
       author: req.user.id,
       content,
-      title: title.trim(),
+      title: cleanTitle,
+      slug,
+      storyType,
+      coverImage,
     });
 
     res.status(201).json({
@@ -68,14 +96,28 @@ export async function update(req, res, next) {
       );
     }
 
-    const { content, title } = req.body;
+    const { content, title, storyType } = req.body;
 
     if (content !== undefined) {
       story.content = content;
     }
 
     if (title !== undefined) {
-      story.title = title.trim();
+      const cleanTitle = title.trim();
+      story.title = cleanTitle;
+      if (cleanTitle) {
+        story.slug = slugify(cleanTitle, { lower: true, strict: true, trim: true });
+      }
+    }
+
+    if (storyType !== undefined) {
+      story.storyType = storyType;
+    }
+
+    // Handle cover image upload if provided
+    if (req.file) {
+      const uploaded = await uploadAvatar(req.file.buffer);
+      story.coverImage = { url: uploaded.url, publicId: uploaded.publicId };
     }
 
     // If story was rejected and author saves as draft, reset to draft
@@ -171,13 +213,28 @@ export async function publish(req, res, next) {
       throw new ValidationError("Story content is required.");
     }
 
-    // 1. Grammar correction
+    if (!story.title?.trim()) {
+      throw new ValidationError("Story title is required before publishing.");
+    }
+
+    // 1. Language detection
+    const langResult = JSON.parse(
+      await generateContent({
+        system: getLanguageDetectionPrompt(),
+        prompt: story.content.substring(0, 2000),
+        json: true,
+      }),
+    );
+
+    story.language = langResult.language || "English";
+
+    // 2. Grammar correction
     const corrected = await generateContent({
-      system: getGrammarCorrectionPrompt(),
+      system: getGrammarCorrectionPrompt(langResult.language || "English"),
       prompt: story.content,
     });
 
-    // 2. Summary generation
+    // 3. Summary generation
     const summary = await generateContent({
       system: getSummaryPrompt(),
       prompt: corrected,
@@ -189,6 +246,16 @@ export async function publish(req, res, next) {
     story.summary.content = summary.trim();
     story.status = "published";
     story.publishedAt = new Date();
+
+    // Ensure slug exists
+    if (!story.slug && story.title) {
+      story.slug = slugify(story.title, { lower: true, strict: true, trim: true });
+    }
+
+    // Increment author stats
+    await Author.findByIdAndUpdate(story.author, {
+      $inc: { "stats.stories": 1 },
+    });
 
     await story.save();
 
@@ -235,11 +302,20 @@ export async function getStory(req, res, next) {
   try {
     const { storyId } = req.params;
 
-    const story = await Story.findOne({
-      _id: storyId,
-      status: "published",
-    })
-      .populate("author", "fullName avatar bio website socialLinks")
+    // Support both slug and ID lookups
+    const filter = { status: "published" };
+    
+    // Check if it's a valid ObjectId (24 hex chars) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(storyId);
+    
+    if (isObjectId) {
+      filter._id = storyId;
+    } else {
+      filter.slug = storyId;
+    }
+
+    const story = await Story.findOne(filter)
+      .populate("author", "fullName username avatar bio profession stats socialLinks")
       .lean();
 
     if (!story) {
@@ -248,12 +324,22 @@ export async function getStory(req, res, next) {
 
     // Check if the requesting user has liked this story
     let likedByUser = false;
+    let followingAuthor = false;
     if (req.user) {
       const existing = await Like.findOne({
-        story: storyId,
+        story: story._id,
         user: req.user.id,
       });
       likedByUser = !!existing;
+
+      // Check if user follows the author
+      if (req.role === "user") {
+        const followExists = await Follow.findOne({
+          who: req.user.id,
+          whom: story.author?._id || story.author,
+        });
+        followingAuthor = !!followExists;
+      }
     }
 
     res.json({
@@ -261,6 +347,7 @@ export async function getStory(req, res, next) {
       data: {
         ...story,
         likedByUser,
+        followingAuthor,
       },
     });
   } catch (error) {
@@ -281,7 +368,10 @@ export async function list(req, res, next) {
       status: "published",
     };
 
-    let query = Story.find(filter).populate("author", "fullName avatar");
+    // Select only needed fields for the feed listing
+    let query = Story.find(filter)
+      .select("title slug summary content author storyType language stats publishedAt createdAt")
+      .populate("author", "fullName username avatar profession");
 
     if (type === "trending") {
       query = query.sort({
@@ -302,10 +392,66 @@ export async function list(req, res, next) {
       Story.countDocuments(filter),
     ]);
 
+    // Check follow status, like status, and recent likers
+    let followingMap = {};
+    let likedMap = {};
+    const recentLikersMap = {};
+    
+    if (req.user && req.role === "user") {
+      const storyIds = stories.map(s => s._id.toString()).filter(Boolean);
+      const authorIds = stories.map(s => s.author?._id?.toString()).filter(Boolean);
+      
+      if (authorIds.length > 0) {
+        const follows = await Follow.find({
+          who: req.user.id,
+          whom: { $in: authorIds },
+        }).lean();
+        follows.forEach(f => {
+          followingMap[f.whom.toString()] = true;
+        });
+      }
+      
+      // Get likedByUser status for each story
+      if (storyIds.length > 0) {
+        const likes = await Like.find({
+          story: { $in: storyIds },
+          user: req.user.id,
+        }).lean();
+        likes.forEach(l => {
+          likedMap[l.story.toString()] = true;
+        });
+      }
+      
+      // Get 2 most recent likers per story for "Liked by X and Y others" display
+      if (storyIds.length > 0) {
+        const allRecentLikes = await Like.find({ story: { $in: storyIds } })
+          .sort({ createdAt: -1 })
+          .populate("user", "fullName")
+          .lean();
+        
+        // Take first 2 unique user likes per story
+        for (const like of allRecentLikes) {
+          const sid = like.story.toString();
+          if (!recentLikersMap[sid]) recentLikersMap[sid] = [];
+          if (recentLikersMap[sid].length < 2 && like.user?.fullName) {
+            recentLikersMap[sid].push(like.user.fullName);
+          }
+        }
+      }
+    }
+
+    // Attach following, liked status, and recent likers
+    const enrichedStories = stories.map(s => ({
+      ...s,
+      followingAuthor: followingMap[s.author?._id?.toString()] || false,
+      likedByUser: likedMap[s._id.toString()] || false,
+      recentLikers: recentLikersMap[s._id.toString()] || [],
+    }));
+
     res.json({
       success: true,
       data: {
-        stories,
+        stories: enrichedStories,
         pagination: {
           page: type ? 1 : page,
           limit,
@@ -326,7 +472,7 @@ export async function toggleLike(req, res, next) {
     const story = await Story.findOne({
       _id: storyId,
       status: "published",
-    }).select("_id");
+    }).select("_id author");
 
     if (!story) {
       throw new NotFoundError("Story not found.");
@@ -344,6 +490,10 @@ export async function toggleLike(req, res, next) {
           $inc: {
             "stats.likes": -1,
           },
+        }),
+        // Decrement author likes count
+        Author.findByIdAndUpdate(story.author, {
+          $inc: { "stats.likes": -1 },
         }),
       ]);
 
@@ -364,6 +514,10 @@ export async function toggleLike(req, res, next) {
         $inc: {
           "stats.likes": 1,
         },
+      }),
+      // Increment author likes count
+      Author.findByIdAndUpdate(story.author, {
+        $inc: { "stats.likes": 1 },
       }),
     ]);
 

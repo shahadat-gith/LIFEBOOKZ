@@ -19,12 +19,17 @@ api.interceptors.request.use(
 
 // Story API methods
 export async function create(data) {
-  const res = await api.post('/stories', data);
+  // data can be a plain object (JSON) or FormData
+  const res = await api.post('/stories', data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  });
   return res.data.data;
 }
 
 export async function update(storyId, data) {
-  const res = await api.patch(`/stories/${storyId}`, data);
+  const res = await api.patch(`/stories/${storyId}`, data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  });
   return res.data.data;
 }
 

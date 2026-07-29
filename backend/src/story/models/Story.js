@@ -238,18 +238,10 @@ storySchema.index({
   content: "text",
 });
 
-// Generate title, slug and publishedAt
+// Generate slug from title if no slug exists
 storySchema.pre("save", function (next) {
-  if (!this.title.trim()) {
-    const plain = this.content.replace(/<[^>]*>/g, "").trim();
-
-    this.title =
-      plain.length > 100
-        ? plain.substring(0, 100).replace(/\s+\S*$/, "") + "..."
-        : plain || "Untitled Story";
-  }
-
-  if (this.isModified("title")) {
+  // Generate slug from title if not set and title exists
+  if (this.title?.trim() && (!this.slug || this.isModified("title"))) {
     this.slug = slugify(this.title, {
       lower: true,
       strict: true,

@@ -1,5 +1,5 @@
-import { HiOutlineMenu, HiOutlineX, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineArrowLeft, HiOutlineUser, HiOutlineUserAdd, HiOutlineLogin, HiOutlineLogout, HiOutlineLockClosed, HiOutlineMail, HiOutlineBookOpen, HiOutlinePencil, HiOutlineTrash, HiOutlineClock, HiOutlineTag, HiOutlineDocumentText, HiOutlineDocumentAdd, HiOutlinePlus, HiOutlineCheck, HiOutlineSave, HiOutlineCog, HiOutlineRefresh, HiOutlineLink, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineSparkles, HiOutlineSearch, HiOutlineHome, HiOutlineViewGrid, HiOutlineShieldCheck, HiCamera, HiEye } from 'react-icons/hi';
-import { FaTwitter, FaLinkedin, FaInstagram, FaSpinner } from 'react-icons/fa';
+import { HiOutlineMenu, HiOutlineX, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineArrowLeft, HiOutlineUser, HiOutlineUserAdd, HiOutlineLogin, HiOutlineLogout, HiOutlineLockClosed, HiOutlineMail, HiOutlineBookOpen, HiOutlinePencil, HiOutlineTrash, HiOutlineClock, HiOutlineTag, HiOutlineDocumentText, HiOutlineDocumentAdd, HiOutlinePlus, HiOutlineCheck, HiOutlineSave, HiOutlineCog, HiOutlineRefresh, HiOutlineLink, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineSparkles, HiOutlineSearch, HiOutlineHome, HiOutlineViewGrid, HiOutlineShieldCheck, HiCamera, HiEye, HiOutlineGlobe, HiOutlinePhone, HiOutlineAtSymbol, HiOutlineChat, HiOutlineShare, HiOutlineTranslate } from 'react-icons/hi';
+import { FaTwitter, FaLinkedin, FaInstagram, FaFacebook, FaYoutube, FaSpinner, FaRegHeart } from 'react-icons/fa';
 import { MdVerified, MdPending } from 'react-icons/md';
 export const Icons = {
  home: HiOutlineHome, menu: HiOutlineMenu, close: HiOutlineX,
@@ -12,6 +12,9 @@ export const Icons = {
  checkCircle: HiOutlineCheckCircle, exclamationCircle: HiOutlineExclamationCircle,
  infoCircle: HiOutlineInformationCircle, sparkles: HiOutlineSparkles, search: HiOutlineSearch,
  dashboard: HiOutlineViewGrid, shieldCheck: HiOutlineShieldCheck, camera: HiCamera, eye: HiEye,
- twitter: FaTwitter, linkedin: FaLinkedin, instagram: FaInstagram, spinner: FaSpinner,
+ globe: HiOutlineGlobe, phone: HiOutlinePhone, atSymbol: HiOutlineAtSymbol,
+ chat: HiOutlineChat, share: HiOutlineShare, translate: HiOutlineTranslate,
+ heartRegular: FaRegHeart,
+ twitter: FaTwitter, linkedin: FaLinkedin, instagram: FaInstagram, facebook: FaFacebook, youtube: FaYoutube, spinner: FaSpinner,
  verified: MdVerified, pending: MdPending,
 };

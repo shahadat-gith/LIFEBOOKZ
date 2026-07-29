@@ -10,6 +10,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const StoryEditor = lazy(() => import('./pages/StoryEditor'));
 
@@ -33,6 +34,7 @@ export default function App() {
       <Route element={<AuthLayout />}>
        <Route path="/login" element={<Login />} />
        <Route path="/register" element={<Register />} />
+       <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
       <Route path="*" element={<div className="flex flex-col items-center justify-center min-h-screen gap-4"><h1 className="text-6xl font-bold">404</h1><p className="text-muted-foreground">Page not found</p><a href="/" className="text-primary hover:underline">Go to Home</a></div>} />
      </Routes>

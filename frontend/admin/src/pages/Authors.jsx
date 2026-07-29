@@ -193,17 +193,26 @@ export default function AuthorsPage() {
                               {author.bio}
                             </p>
                           )}
-                          {author.socialLinks?.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2 ml-11">
-                              {author.socialLinks.slice(0, 3).map((link, i) => (
-                                <span key={i} className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                  {link.platform || link.type}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {/* Author Additional Details */}
+                          <div className="flex flex-wrap items-center gap-3 mt-2 ml-11">
+                            {author.phone && (
+                              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                                📞 {author.phone}
+                              </span>
+                            )}
+                            {author.gender && (
+                              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                                {author.gender}
+                              </span>
+                            )}
+                            {author.address?.country && (
+                              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                                📍 {[author.address.city, author.address.state, author.address.country].filter(Boolean).join(', ')}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground mt-2 ml-11">
-                            <Icons.calendar className="h-3 w-3 inline mr-1" />
+                            <Icons.clock className="h-3 w-3 inline mr-1" />
                             Applied {new Date(author.createdAt).toLocaleDateString(undefined, {
                               year: 'numeric', month: 'short', day: 'numeric'
                             })}

@@ -17,7 +17,12 @@ export default function AuthorProfilePage() {
   const [fullName, setFullName] = useState(author?.fullName || "");
   const [profession, setProfession] = useState(author?.profession || "");
   const [bio, setBio] = useState(author?.bio || "");
+  const [phone, setPhone] = useState(author?.phone || "");
   const [website, setWebsite] = useState(author?.website || "");
+  const [country, setCountry] = useState(author?.address?.country || "");
+  const [state, setState] = useState(author?.address?.state || "");
+  const [city, setCity] = useState(author?.address?.city || "");
+  const [zipCode, setZipCode] = useState(author?.address?.zipCode || "");
   const [x, setX] = useState(author?.socialLinks?.x || "");
   const [linkedin, setLinkedin] = useState(author?.socialLinks?.linkedin || "");
   const [instagram, setInstagram] = useState(
@@ -49,7 +54,9 @@ export default function AuthorProfilePage() {
       fd.append("fullName", fullName);
       fd.append("profession", profession);
       fd.append("bio", bio);
+      fd.append("phone", phone);
       fd.append("website", website);
+      fd.append("address", JSON.stringify({ country, state, city, zipCode }));
       fd.append("socialLinks", JSON.stringify({ x, linkedin, instagram }));
       if (avatarFile) fd.append("avatar", avatarFile);
       await updateProfile(fd);
@@ -85,7 +92,7 @@ export default function AuthorProfilePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-3xl mx-auto py-10 px-4 space-y-8"
+      className="max-w-4xl mx-auto py-10 px-4 space-y-8"
     >
       {/* Profile Header */}
       <div className="flex flex-col sm:flex-row items-center gap-6 p-8 rounded-3xl border bg-gradient-to-br from-card to-muted/30">
@@ -164,6 +171,25 @@ export default function AuthorProfilePage() {
               helperText="Email cannot be changed"
             />
 
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label="Phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                icon={<Icons.phone className="h-4 w-4" />}
+                placeholder="+91 98765 43210"
+              />
+              <Input
+                label="Website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                icon={<Icons.link className="h-4 w-4" />}
+                placeholder="https://yourwebsite.com"
+              />
+            </div>
+
             <Textarea
               label="Bio"
               value={bio}
@@ -172,14 +198,39 @@ export default function AuthorProfilePage() {
               placeholder="Tell readers about yourself..."
             />
 
-            <Input
-              label="Website"
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              icon={<Icons.link className="h-4 w-4" />}
-              placeholder="https://yourwebsite.com"
-            />
+            {/* Address Section */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Address
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Input
+                  label="Country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="India"
+                  icon={<Icons.globe className="h-4 w-4" />}
+                />
+                <Input
+                  label="State"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="Maharashtra"
+                />
+                <Input
+                  label="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Mumbai"
+                />
+                <Input
+                  label="Zip Code"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value)}
+                  placeholder="400001"
+                />
+              </div>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">

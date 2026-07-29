@@ -47,10 +47,10 @@ export const Input = forwardRef(function Input(
         <input
           ref={ref}
           id={inputId}
+          {...props}
           type={inputType}
           className={`${baseClasses} ${paddingClasses} ${stateClasses} ${className}`}
           aria-invalid={!!error}
-          {...props}
         />
 
         {isPassword && showPasswordToggle && (

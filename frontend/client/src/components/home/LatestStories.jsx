@@ -115,7 +115,7 @@ export function LatestStories() {
           >
             {stories.slice(0,3).map((story) => (
               <motion.div key={story._id} variants={itemVariants}>
-                <StoryCard story={story} showCommentSection={false} showReadMore={false}/>
+                <StoryCard story={story} />
               </motion.div>
             ))}
           </motion.div>

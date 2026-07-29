@@ -1,23 +1,30 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as storyApi from "../utils/client";
 import { useAuth } from "../context/AuthContext";
+
+import Card, { CardContent } from "../components/ui/Card";
 import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
-import Card, { CardContent, CardFooter } from "../components/ui/Card";
-import StoryEditorInput from "../components/editor/StoryEditor";
 import LoadingScreen from "../components/common/LoadingScreen";
-import Badge from "../components/ui/Badge";
+import StoryEditorInput from "../components/editor/StoryEditor";
+
+import StoryHeader from "../components/editor/StoryHeader";
+import VerificationBanner from "../components/editor/VerificationBanner";
+import CategorySelect from "../components/editor/CategorySelect";
+import StoryStats from "../components/editor/StoryStats";
+import StoryTitleInput from "../components/editor/StoryTitleInput";
+import CoverImageUploader from "../components/editor/CoverImageUploader";
+import StoryActions from "../components/editor/StoryActions";
+import PublishingOverlay from "../components/editor/PublishingOverlay";
+
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
-const STATUS_BADGE = {
-  draft: "warning",
-  rejected: "danger",
-  verified: "success",
-  submitted: "info",
-  processing: "info",
+const TYPE_PLACEHOLDERS = {
+  autobiography: "Document your life journey, personal milestones, key memories, or core lessons learned...",
+  biography: "Share their life journey, heritage, achievements, and lasting legacy...",
+  legend: "Record the life, impactful accomplishments, and extraordinary legacy of this individual...",
 };
 
 export default function StoryEditorPage() {
@@ -26,29 +33,104 @@ export default function StoryEditorPage() {
   const navigate = useNavigate();
 
   const isEditMode = Boolean(storyId);
+  const [storyIdState, setStoryIdState] = useState(storyId || null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [storyType, setStoryType] = useState("autobiography");
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
   const [storyStatus, setStoryStatus] = useState("");
+  const [storyLanguage, setStoryLanguage] = useState("");
+  const [storyStats, setStoryStats] = useState(null);
   const [currentStep, setCurrentStep] = useState("writing");
+  const coverFileRef = useRef(null);
 
-  // Loading states
+  const formStateRef = useRef({ title, storyType, storyIdState });
+  useEffect(() => {
+    formStateRef.current = { title, storyType, storyIdState };
+  }, [title, storyType, storyIdState]);
+
   const [loadingStory, setLoadingStory] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Verification state
   const [verificationIssues, setVerificationIssues] = useState([]);
   const [overallAssessment, setOverallAssessment] = useState("");
 
   const handleContentChange = useCallback((html) => setContent(html), []);
 
-  const stripHtml = (html) => {
-    if (!html) return "";
-    return html.replace(/<[^>]*>/g, "").trim();
+  const stripHtml = (html) => (html ? html.replace(/<[^>]*>/g, "").trim() : "");
+
+  const makeSlug = (str) =>
+    (str || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  const slugPreview = title?.trim() ? makeSlug(title.trim()) : "";
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10 MB.");
+      return;
+    }
+
+    if (coverPreview && coverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(coverPreview);
+    }
+
+    setCoverImage(file);
+    setCoverPreview(URL.createObjectURL(file));
   };
 
-  // Load existing story in edit mode
+  useEffect(() => {
+    return () => {
+      if (coverPreview && coverPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(coverPreview);
+      }
+    };
+  }, [coverPreview]);
+
+  const handleImageUploadEnd = useCallback(
+    async (htmlWithImage) => {
+      if (!htmlWithImage) return;
+      setContent(htmlWithImage);
+
+      const plainText = stripHtml(htmlWithImage);
+      if (!plainText) return;
+
+      const { title: currentTitle, storyType: currentType, storyIdState: currentId } =
+        formStateRef.current;
+
+      try {
+        const payload = { content: htmlWithImage, storyType: currentType };
+        if (currentTitle.trim()) payload.title = currentTitle.trim();
+
+        if (currentId) {
+          await storyApi.update(currentId, payload);
+        } else {
+          const story = await storyApi.create(payload);
+          const newId = story.id || story._id;
+          setStoryIdState(newId);
+          navigate(`/stories/${newId}/edit`, { replace: true });
+        }
+      } catch {
+        // Silently fail auto-save
+      }
+    },
+    [navigate]
+  );
+
   useEffect(() => {
     if (!storyId || !author) return;
     storyApi
@@ -56,7 +138,14 @@ export default function StoryEditorPage() {
       .then((s) => {
         setTitle(s.title || "");
         setContent(s.content || "");
+        setStoryType(s.storyType || "autobiography");
         setStoryStatus(s.status);
+        if (s.coverImage?.url) {
+          setCoverPreview(s.coverImage.url);
+          setCoverImage(s.coverImage);
+        }
+        if (s.language) setStoryLanguage(s.language);
+        if (s.stats) setStoryStats(s.stats);
         if (s.status === "verified") setCurrentStep("verified");
       })
       .catch(() => setError("Story not found"))
@@ -70,26 +159,54 @@ export default function StoryEditorPage() {
       setError("Story content is required");
       return;
     }
+    if (!title.trim()) {
+      setError("Story title is required");
+      return;
+    }
     setError("");
     setSaving(true);
     try {
-      const payload = { content };
+      const payload = { content, storyType };
       if (title.trim()) payload.title = title.trim();
 
-      if (isEditMode && storyId) {
-        const updated = await storyApi.update(storyId, payload);
-        setStoryStatus(updated.status);
-        setCurrentStep("writing");
-        setVerificationIssues([]);
-        toast.success("Draft saved successfully");
+      if (coverImage instanceof File) {
+        const fd = new FormData();
+        fd.append("content", content);
+        fd.append("title", title.trim());
+        fd.append("storyType", storyType);
+        fd.append("coverImage", coverImage);
+
+        if (storyIdState) {
+          const updated = await storyApi.update(storyIdState, fd);
+          setStoryStatus(updated.status);
+          setStoryLanguage(updated.language || "");
+          setStoryStats(updated.stats || null);
+          if (updated.coverImage?.url) setCoverPreview(updated.coverImage.url);
+        } else {
+          const story = await storyApi.create(fd);
+          const newId = story.id || story._id;
+          setStoryIdState(newId);
+          navigate(`/stories/${newId}/edit`, { replace: true });
+        }
       } else {
-        const story = await storyApi.create(payload);
-        navigate(`/stories/${story.id}/edit`, { replace: true });
-        toast.success("Draft saved!");
+        if (storyIdState) {
+          const updated = await storyApi.update(storyIdState, payload);
+          setStoryStatus(updated.status);
+          setStoryLanguage(updated.language || "");
+          setStoryStats(updated.stats || null);
+        } else {
+          const story = await storyApi.create(payload);
+          const newId = story.id || story._id;
+          setStoryIdState(newId);
+          navigate(`/stories/${newId}/edit`, { replace: true });
+        }
       }
+
+      setCurrentStep("writing");
+      setVerificationIssues([]);
+      toast.success("Draft saved successfully");
     } catch (err) {
-      const msg =
-        err?.response?.data?.error?.message || "Failed to save story";
+      const msg = err?.response?.data?.error?.message || "Failed to save story";
       setError(msg);
     } finally {
       setSaving(false);
@@ -108,16 +225,17 @@ export default function StoryEditorPage() {
     setError("");
     setCurrentStep("verifying");
     try {
-      let id = storyId;
-      const payload = { content };
+      let id = storyIdState || storyId;
+      const payload = { content, storyType };
       if (title.trim()) payload.title = title.trim();
 
-      if (isEditMode && id) {
+      if (id) {
         await storyApi.update(id, payload);
       } else {
         const story = await storyApi.create(payload);
-        id = story.id;
-        navigate(`/stories/${story.id}/edit`, { replace: true });
+        id = story.id || story._id;
+        setStoryIdState(id);
+        navigate(`/stories/${id}/edit`, { replace: true });
       }
 
       if (!id) throw new Error("Failed to get story ID");
@@ -149,34 +267,32 @@ export default function StoryEditorPage() {
         setStoryStatus("rejected");
       }
     } catch (err) {
-      const msg =
-        err?.response?.data?.error?.message || "Verification failed";
+      const msg = err?.response?.data?.error?.message || "Verification failed";
       setError(msg);
       setCurrentStep("writing");
     }
   }
 
   async function handlePublish() {
-    if (!storyId) {
+    const id = storyIdState || storyId;
+    if (!id) {
       setError("Story ID not found.");
       return;
     }
     setError("");
     setCurrentStep("publishing");
     try {
-      await storyApi.publish(storyId);
+      await storyApi.publish(id);
       setCurrentStep("published");
       toast.success("Story published successfully!");
       setTimeout(() => navigate("/dashboard"), 2500);
     } catch (err) {
-      const msg =
-        err?.response?.data?.error?.message || "Failed to publish story";
+      const msg = err?.response?.data?.error?.message || "Failed to publish story";
       setError(msg);
       setCurrentStep("verified");
     }
   }
 
-  // ─── Auth & loading guards ───
   if (authLoading) return <LoadingScreen message="Loading..." />;
   if (!author) {
     navigate("/login");
@@ -191,9 +307,7 @@ export default function StoryEditorPage() {
             <Icons.exclamationCircle className="h-12 w-12 text-destructive mx-auto" />
           </div>
           <p className="text-destructive font-medium mb-4">{error}</p>
-          <Button onClick={() => navigate("/dashboard")}>
-            Back to Dashboard
-          </Button>
+          <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
         </Card>
       </div>
     );
@@ -201,236 +315,22 @@ export default function StoryEditorPage() {
 
   if (loadingStory) return <LoadingScreen message="Loading story..." />;
 
-  // ─── Publishing overlay ───
-  if (currentStep === "publishing") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-lg mx-auto py-20 px-4 text-center"
-        >
-          <div className="mb-6">
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-              <Icons.sparkles className="h-10 w-10 text-primary animate-pulse" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Submitting Your Story</h2>
-          <p className="text-muted-foreground mb-6">
-            Please wait while we finalize your story...
-          </p>
-          <div className="flex justify-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "0ms" }}
-            />
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "150ms" }}
-            />
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "300ms" }}
-            />
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ─── Published overlay ───
-  if (currentStep === "published") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-lg mx-auto py-20 px-4 text-center"
-        >
-          <div className="mb-6">
-            <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto">
-              <Icons.checkCircle className="h-10 w-10 text-success" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Story Published! 🎉</h2>
-          <p className="text-muted-foreground mb-6">
-            Your story has been published successfully.
-          </p>
-          <div className="w-12 h-1 bg-success rounded-full mx-auto animate-pulse" />
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ─── Verifying overlay ───
-  if (currentStep === "verifying") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-lg mx-auto py-20 px-4 text-center"
-        >
-          <div className="mb-6">
-            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-              <Icons.shieldCheck className="h-10 w-10 text-primary animate-pulse" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Verifying Your Story</h2>
-          <p className="text-muted-foreground mb-6">
-            Checking your story for content guidelines...
-          </p>
-          <div className="flex justify-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "0ms" }}
-            />
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "150ms" }}
-            />
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"
-              style={{ animationDelay: "300ms" }}
-            />
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
-      {/* Fixed header */}
-      <div className="sticky top-0 z-20 bg-background pb-6 pt-2 -mx-4 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-foreground">
-              {isEditMode ? "Edit Story" : "Write a Story"}
-            </h1>
-            {storyStatus && (
-              <Badge variant={STATUS_BADGE[storyStatus] || "info"}>
-                {storyStatus === "verified"
-                  ? "Ready to Publish"
-                  : storyStatus.charAt(0).toUpperCase() + storyStatus.slice(1)}
-              </Badge>
-            )}
-          </div>
-          <p className="text-muted-foreground">
-            {currentStep === "issues"
-              ? "Fix the issues below and resubmit for review."
-              : currentStep === "verified"
-                ? "Your story passed verification! Click Publish to finalize."
-                : "Write your story, then submit for review before publishing."}
-          </p>
-        </motion.div>
-      </div>
+      <PublishingOverlay currentStep={currentStep} />
 
-      {/* Verified Banner */}
-      <AnimatePresence>
-        {currentStep === "verified" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6 p-5 rounded-2xl bg-success/10 border border-success/30"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-                <Icons.checkCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-success">
-                  Review Passed &check;
-                </h3>
-                {overallAssessment && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {overallAssessment}
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <StoryHeader
+        isEditMode={isEditMode}
+        storyStatus={storyStatus}
+        currentStep={currentStep}
+      />
 
-      {/* Verification Issues Panel */}
-      <AnimatePresence>
-        {currentStep === "issues" && verificationIssues.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/5 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 p-4 bg-destructive/10 border-b border-destructive/20">
-              <Icons.exclamationCircle className="h-5 w-5 text-destructive" />
-              <h3 className="text-sm font-semibold text-destructive">
-                Issues Found ({verificationIssues.length})
-              </h3>
-            </div>
-            <div className="divide-y divide-destructive/10">
-              {verificationIssues.map((issue, i) => (
-                <div key={i} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          issue.severity === "high"
-                            ? "bg-destructive"
-                            : issue.severity === "medium"
-                              ? "bg-warning"
-                              : "bg-muted-foreground"
-                        }`}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-foreground capitalize">
-                          {issue.category?.replace(/_/g, " ")}
-                        </span>
-                        <Badge
-                          variant={
-                            issue.severity === "high"
-                              ? "danger"
-                              : issue.severity === "medium"
-                                ? "warning"
-                                : "default"
-                          }
-                        >
-                          {issue.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-foreground">
-                        {issue.description}
-                      </p>
-                      {issue.suggestion && (
-                        <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
-                          <Icons.sparkles className="h-3 w-3 flex-shrink-0 mt-0.5 text-primary" />
-                          {issue.suggestion}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {overallAssessment && (
-              <div className="p-4 bg-destructive/5 border-t border-destructive/10">
-                <p className="text-xs text-muted-foreground italic">
-                  {overallAssessment}
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <VerificationBanner
+        currentStep={currentStep}
+        overallAssessment={overallAssessment}
+        verificationIssues={verificationIssues}
+      />
 
-      {/* Main form */}
       <form onSubmit={handleSaveDraft}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -438,37 +338,34 @@ export default function StoryEditorPage() {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <Card>
-            <CardContent className="p-6 space-y-5">
-              {/* Title Input */}
-              <div>
-                <Input
-                  label="Story Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Give your story a captivating title..."
-                  icon={<Icons.edit className="h-4 w-4" />}
-                  maxLength={150}
-                />
-                <div className="flex justify-between mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {title.length > 100
-                      ? "Tip: Shorter titles perform better"
-                      : ""}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {title.length}/150
-                  </span>
-                </div>
-              </div>
+            <CardContent className="p-6 space-y-6">
+              <CategorySelect
+                storyType={storyType}
+                setStoryType={setStoryType}
+                storyLanguage={storyLanguage}
+              />
+
+              <StoryStats stats={storyStats} />
+
+              <StoryTitleInput
+                title={title}
+                setTitle={setTitle}
+                storyType={storyType}
+                slugPreview={slugPreview}
+              />
+
+              <CoverImageUploader
+                coverPreview={coverPreview}
+                coverFileRef={coverFileRef}
+                handleCoverChange={handleCoverChange}
+              />
 
               <StoryEditorInput
+                key={storyType}
                 content={content}
                 onChange={handleContentChange}
-                placeholder={
-                  isEditMode
-                    ? "Edit your story..."
-                    : "Once upon a time... Write your story here..."
-                }
+                onImageUploadEnd={handleImageUploadEnd}
+                placeholder={TYPE_PLACEHOLDERS[storyType] || "Start recording the narrative here..."}
               />
 
               <AnimatePresence>
@@ -493,45 +390,13 @@ export default function StoryEditorPage() {
               </AnimatePresence>
             </CardContent>
 
-            <CardFooter className="px-6 py-4 border-t border-border flex flex-wrap gap-3 justify-between">
-              <div className="flex gap-2">
-                <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-                  Cancel
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="submit"
-                  variant="outline"
-                  loading={saving}
-                  icon={<Icons.save className="h-4 w-4" />}
-                >
-                  Save Draft
-                </Button>
-
-                {currentStep === "verified" ? (
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={handlePublish}
-                    icon={<Icons.documentAdd className="h-4 w-4" />}
-                    className="shadow-lg shadow-success/25 bg-success hover:brightness-110"
-                  >
-                    Publish Now
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleVerify}
-                    icon={<Icons.shieldCheck className="h-4 w-4" />}
-                  >
-                    {currentStep === "issues"
-                      ? "Re-submit for Review"
-                      : "Submit for Review"}
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
+            <StoryActions
+              saving={saving}
+              currentStep={currentStep}
+              handlePublish={handlePublish}
+              handleVerify={handleVerify}
+              onCancel={() => navigate(-1)}
+            />
           </Card>
         </motion.div>
       </form>

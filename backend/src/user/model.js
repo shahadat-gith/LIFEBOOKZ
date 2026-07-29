@@ -32,7 +32,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: /^\S+@\S+\.\S+$/,
-      index: true,
     },
 
     username: {
@@ -66,7 +65,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "suspended", "deleted"],
       default: "active",
-      index: true,
     },
   },
   {
@@ -85,8 +83,9 @@ const userSchema = new mongoose.Schema(
           delete ret.auth.passwordHash;
           delete ret.auth.emailVerificationToken;
           delete ret.auth.emailVerificationExpires;
-          delete ret.auth.passwordResetToken;
-          delete ret.auth.passwordResetExpires;
+          delete ret.auth.passwordResetOTP;
+          delete ret.auth.passwordResetOTPExpires;
+          delete ret.auth.passwordResetVerified;
           delete ret.auth.lastLoginAt;
         }
 

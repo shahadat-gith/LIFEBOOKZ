@@ -12,10 +12,10 @@ const Input = forwardRef(function Input({ label, icon, helperText, error, showPa
         {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">{icon}</div>}
         <input
           ref={ref}
+          {...props}
           type={inputType}
           className={`w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 ${icon ? 'pl-10' : 'pl-3'} ${showPasswordToggle ? 'pr-10' : 'pr-3'} ${error ? 'border-destructive focus:ring-destructive' : 'hover:border-muted-foreground/30'} disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted ${className}`}
           aria-invalid={!!error}
-          {...props}
         />
         {isPassword && showPasswordToggle && (
           <button

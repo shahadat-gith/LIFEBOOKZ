@@ -8,7 +8,7 @@ const router = Router();
 
 /* ---------- Stories ---------- */
 
-router.post("/", authenticate, story.create);
+router.post("/", authenticate, upload.single("coverImage"), story.create);
 
 router.post("/upload-image", authenticate, upload.single("image"), story.uploadImage);
 
@@ -16,7 +16,7 @@ router.get("/", story.list);
 
 router.get("/:storyId", authenticateSoft, story.getStory);
 
-router.patch("/:storyId", authenticate, story.update);
+router.patch("/:storyId", authenticate, upload.single("coverImage"), story.update);
 
 router.delete("/:storyId", authenticate, story.remove);
 

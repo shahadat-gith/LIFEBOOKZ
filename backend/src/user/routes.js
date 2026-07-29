@@ -21,6 +21,14 @@ router.patch("/me", authenticate, upload.single("avatar"), user.updateMe);
 
 router.delete("/me", authenticate, user.deleteMe);
 
+/* ---------- Password Reset ---------- */
+
+router.post("/forgot-password", user.forgotPassword);
+
+router.post("/verify-reset-otp", user.verifyResetOTP);
+
+router.post("/reset-password", user.resetPassword);
+
 /* ---------- Logout ---------- */
 
 router.post("/logout", user.logout);
