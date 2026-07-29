@@ -1,8 +1,136 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { imageSchema } from "../shared/models/image.schema.js"
+import { authSchema } from "../shared/models/auth.schema.js"
+
+const socialLinksSchema = new mongoose.Schema(
+  {
+    website: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    x: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    instagram: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    facebook: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    linkedin: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    youtube: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
+const addressSchema = new mongoose.Schema(
+  {
+    country: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    zipCode: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+const verificationSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+
+    verifiedAt: {
+      type: Date,
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
+const statsSchema = new mongoose.Schema(
+  {
+    followers: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    stories: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    likes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false }
+);
 
 const authorSchema = new mongoose.Schema(
   {
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 100,
+    },
+
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      match: /^[a-z0-9_]+$/,
+      index: true,
+    },
+
     email: {
       type: String,
       required: true,
@@ -10,127 +138,142 @@ const authorSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: /^\S+@\S+\.\S+$/,
+      index: true,
     },
 
-    passwordHash: {
-      type: String,
-      required: true,
-      select: false,
+    auth: {
+      type: authSchema,
+      default: () => ({}),
     },
 
-    fullName: {
+    phone: {
       type: String,
-      required: true,
       trim: true,
+      required: true,
+    },
+
+    dob: {
+      type: Date,
+      required: true,
+    },
+
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      required: true,
     },
 
     profession: {
       type: String,
-      required: true,
       trim: true,
+      maxlength: 100,
+      required: true,
     },
 
-    avatar: {
-      url: {
-        type: String,
-        trim: true,
-        default: "",
-      },
-
-      publicId: {
-        type: String,
-        trim: true,
-        default: "",
-      },
-    },
     bio: {
       type: String,
       trim: true,
       maxlength: 2000,
-      default: "",
+      required: true,
     },
 
+    avatar: {
+      type: imageSchema,
+      required: true,
+    },
 
-    website: {
-      type: String,
-      trim: true,
-      default: "",
+    coverImage: {
+      type: imageSchema,
+      default: () => ({}),
+    },
+
+    address: {
+      type: addressSchema,
+      required: true,
     },
 
     socialLinks: {
-      x: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+      type: socialLinksSchema,
+      default: () => ({}),
+    },
 
-      linkedin: {
-        type: String,
-        trim: true,
-        default: "",
-      },
-
-      instagram: {
-        type: String,
-        trim: true,
-        default: "",
-      },
+    stats: {
+      type: statsSchema,
+      default: () => ({}),
     },
 
     verification: {
-      status: {
-        type: String,
-        enum: ["pending", "approved", "rejected"],
-        default: "pending",
-      },
+      type: verificationSchema,
+      default: () => ({}),
+    },
 
-      rejectionReason: {
-        type: String,
-        default: "",
-      },
-
-      verifiedAt: {
-        type: Date,
-      },
+    status: {
+      type: String,
+      enum: ["active", "suspended", "deleted"],
+      default: "active",
+      index: true,
     },
   },
   {
     timestamps: true,
 
     toJSON: {
+      virtuals: true,
+
       transform(_doc, ret) {
-        delete ret.passwordHash;
-        delete ret.__v;
         ret.id = ret._id;
+
+        delete ret._id;
+        delete ret.__v;
+
+        if (ret.auth) {
+          delete ret.auth.passwordHash;
+          delete ret.auth.emailVerificationToken;
+          delete ret.auth.emailVerificationExpires;
+          delete ret.auth.passwordResetToken;
+          delete ret.auth.passwordResetExpires;
+          delete ret.auth.lastLoginAt;
+        }
+
         return ret;
       },
     },
-  },
+
+    toObject: {
+      virtuals: true,
+    },
+  }
 );
 
-authorSchema.index({
-  fullName: "text",
-  bio: "text",
-});
+// Indexes
+authorSchema.index({ fullName: "text" });
+authorSchema.index({ username: 1 }, { unique: true });
+authorSchema.index({ email: 1 }, { unique: true });
+authorSchema.index({ status: 1 });
 
+// Hash password before saving
 authorSchema.pre("save", async function (next) {
-  if (!this.isModified("passwordHash")) {
-    return next();
-  }
+  if (!this.isModified("auth.passwordHash")) return next();
 
   try {
     const salt = await bcrypt.genSalt(12);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+    this.auth.passwordHash = await bcrypt.hash(
+      this.auth.passwordHash,
+      salt
+    );
     next();
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 });
 
-authorSchema.methods.comparePassword = function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.passwordHash);
+// Compare password
+authorSchema.methods.comparePassword = function (password) {
+  return bcrypt.compare(password, this.auth.passwordHash);
 };
 
-const Author = mongoose.models.Author || mongoose.model("Author", authorSchema);
+const Author =
+  mongoose.models.Author ||
+  mongoose.model("Author", authorSchema);
 
 export default Author;
