@@ -73,55 +73,42 @@ export default function StoryCard({
     <motion.article
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="group bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-border transition-all duration-300"
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="group bg-card border border-border/60 rounded-xl overflow-hidden hover:border-border transition-all duration-200 select-none"
     >
       {/* Cover Image */}
       <Link to={`/feed/story/${storySlug}`} className="block">
-        <div className="relative w-full h-48 sm:h-56 overflow-hidden bg-muted/60">
+        <div className="relative w-full h-48 sm:h-56 overflow-hidden bg-muted">
           {story.coverImage?.url ? (
             <img
               src={story.coverImage.url}
               alt={storyTitle}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <svg
-                className="w-16 h-16 text-muted-foreground/30"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
+            <div className="w-full h-full flex items-center justify-center border-b border-border/40">
+              <Icons.book className="w-12 h-12 text-muted-foreground/30" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
       </Link>
 
       {/* Header: Author Info & Follow Button */}
-      <div className={`flex items-center justify-between gap-4 ${story.coverImage?.url ? 'p-5 pb-3' : 'p-5 pb-3'}`}>
+      <div className="flex items-center justify-between gap-4 p-5 pb-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link to={`/authors/${author._id}`}>
             <Avatar
               src={author.avatar?.url}
               name={authorName}
               size="md"
-              className="ring-1 ring-border/80 transition-transform group-hover:scale-105"
+              className="ring-1 ring-border/60 transition-opacity hover:opacity-80 shrink-0"
             />
           </Link>
           <div className="min-w-0 flex-1">
             <Link
               to={`/authors/${author._id}`}
-              className="text-sm font-semibold text-foreground tracking-tight truncate block hover:text-accent transition-colors"
+              className="text-sm font-semibold text-foreground tracking-tight truncate block hover:underline transition-all"
             >
               {authorName}
             </Link>
@@ -136,7 +123,7 @@ export default function StoryCard({
 
       {/* Story Title */}
       <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
-        <h2 className="font-display text-xl font-bold text-foreground leading-snug tracking-tight hover:text-accent transition-colors">
+        <h2 className="font-display text-lg font-bold text-foreground leading-snug tracking-tight hover:underline transition-all">
           {storyTitle}
         </h2>
       </Link>
@@ -144,66 +131,68 @@ export default function StoryCard({
       {/* Story Summary */}
       {story.summary?.content ? (
         <div className="px-5 pb-2">
-          <p className="text-sm text-foreground/80 leading-relaxed font-sans line-clamp-3">
+          <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
             {story.summary.content}
           </p>
         </div>
       ) : (
-        <Link to={`/feed/story/${storySlug}`} className="block px-5">
-          <p className="text-sm text-foreground/80 leading-relaxed font-sans line-clamp-3">
+        <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
+          <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
             {snippetText}
           </p>
         </Link>
       )}
-      <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:text-accent/80 transition-colors">
+
+      {/* Read link */}
+      <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-3">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline transition-all">
           Read full story
           <Icons.chevronRight className="h-3 w-3" />
         </span>
       </Link>
 
-      {/* Interactive Stats Row: Like · Comment · Share — left aligned */}
+      {/* Interactive Stats Row */}
       {showActions && (
-        <div className="px-5 pt-4 pb-5 mt-1 border-t border-border/40">
-        <div className="flex items-center gap-6">
-          {/* Like */}
-          <button
-            type="button"
-            onClick={handleLike}
-            className={`flex items-center gap-1.5 text-xs font-semibold transition-all duration-200 select-none ${
-              liked
-                ? "text-destructive"
-                : "text-muted-foreground hover:text-destructive"
-            }`}
-          >
-            {liked ? (
-              <Icons.heartSolid className="h-4 w-4" />
-            ) : (
-              <Icons.heartRegular className="h-4 w-4" />
-            )}
-            <span>{likeCount}</span>
-          </button>
+        <div className="px-5 pt-3 pb-4 border-t border-border/60">
+          <div className="flex items-center gap-6">
+            {/* Like */}
+            <button
+              type="button"
+              onClick={handleLike}
+              className={`flex items-center gap-1.5 text-xs font-semibold transition-colors select-none ${
+                liked
+                  ? "text-destructive"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {liked ? (
+                <Icons.heartSolid className="h-4 w-4" />
+              ) : (
+                <Icons.heartRegular className="h-4 w-4" />
+              )}
+              <span>{likeCount}</span>
+            </button>
 
-          {/* Comment */}
-          <Link
-            to={`/feed/story/${storySlug}`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Icons.chat className="h-4 w-4" />
-            <span>{commentCount}</span>
-          </Link>
+            {/* Comment */}
+            <Link
+              to={`/feed/story/${storySlug}`}
+              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Icons.chat className="h-4 w-4" />
+              <span>{commentCount}</span>
+            </Link>
 
-          {/* Share */}
-          <button
-            type="button"
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Icons.share className="h-4 w-4" />
-            <span>{shareCount}</span>
-          </button>
+            {/* Share */}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Icons.share className="h-4 w-4" />
+              <span>{shareCount}</span>
+            </button>
+          </div>
         </div>
-      </div>
       )}
     </motion.article>
   );

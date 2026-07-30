@@ -1,146 +1,155 @@
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion } from "framer-motion";
 import { Avatar } from "../ui/Avatar";
-import { Badge } from "../ui/Badge";
-import { Icons } from "../../icons";
 
 const testimonials = [
   {
     name: "Priya Sharma",
-    role: "Hindi Story Writer",
+    role: "author",
+    title: "Hindi Story Writer",
     avatar: "",
     content:
       "Lifebookz gave me the platform to share my Hindi stories with readers across India. The editing tools helped me refine my work beautifully.",
-    badge: "Top Author",
-    badgeVariant: "success",
   },
   {
     name: "Arun Kumar",
-    role: "Tamil Poet & Author",
+    role: "author",
+    title: "Tamil Poet & Author",
     avatar: "",
     content:
       "Writing in Tamil and reaching thousands of readers was a dream. Lifebookz made it real. The community is incredibly supportive.",
-    badge: "Verified Author",
-    badgeVariant: "primary",
   },
   {
     name: "Sneha Patel",
-    role: "Gujarati Storyteller",
+    role: "user",
+    title: "Avid Reader",
     avatar: "",
     content:
-      "The platform is so intuitive! I love how I can write in my native language and still reach a wider audience across India.",
-    badge: "Rising Star",
-    badgeVariant: "info",
+      "The platform is so intuitive! I love how I can read stories in my native language and discover regional voices from across India.",
+  },
+  {
+    name: "Rajesh Das",
+    role: "guest",
+    title: "Literary Enthusiast",
+    avatar: "",
+    content:
+      "A wonderfully crafted space for modern Indian literature. Exploring distinct regional stories has never been easier.",
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.2 },
+const roleConfig = {
+  author: {
+    label: "Author",
+    className: "bg-accent/10 text-accent border-accent/30",
   },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 40, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.6, ease: "easeOut" },
+  user: {
+    label: "Reader",
+    className: "bg-primary/10 text-primary border-primary/20",
+  },
+  guest: {
+    label: "Guest",
+    className: "bg-muted text-muted-foreground border-border",
   },
 };
 
 export function TestimonialsSection() {
-  const sectionRef = useRef(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  // Duplicate array so seamless loop has no visible breaks
+  const carouselItems = [...testimonials, ...testimonials];
 
   return (
-    <section ref={sectionRef} className="py-20 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0">
+    <section className="py-20 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/50 to-background" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 blur-3xl rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        {/* Section Header */}
+        <div className="text-center">
           <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
             Loved by{" "}
             <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-              Storytellers
+              Storytellers & Readers
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Hear from our community of authors across India
+            Hear from our community across India
           </p>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Testimonials grid */}
+      {/* Infinite Moving Track */}
+      <div className="relative w-full overflow-hidden py-4">
+        {/* Fade masks on sides for clean visual transition */}
+        <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-r from-background to-transparent z-20 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none" />
+
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-          className="grid md:grid-cols-3 gap-6 sm:gap-8"
+          className="flex gap-6 w-max"
+          animate={{
+            x: ["0%", "-50%"],
+          }}
+          transition={{
+            duration: 25,
+            ease: "linear",
+            repeat: Infinity,
+          }}
         >
-          {testimonials.map((testimonial) => (
-            <motion.div
-              key={testimonial.name}
-              variants={cardVariants}
-              className="group relative"
-            >
-              <div className="relative h-full p-6 sm:p-8 rounded-2xl bg-card border border-border/50 hover:border-border transition-all duration-300 hover:shadow-lg">
-                {/* Quote mark */}
-                <div className="mb-6">
-                  <svg
-                    className="w-8 h-8 text-primary/20 group-hover:text-primary/30 transition-colors duration-300"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z" />
-                  </svg>
-                </div>
+          {carouselItems.map((testimonial, index) => {
+            const roleStyle = roleConfig[testimonial.role] || roleConfig.guest;
 
-                {/* Content */}
-                <p className="text-muted-foreground leading-relaxed mb-8">
-                  {testimonial.content}
-                </p>
+            return (
+              <div
+                key={`${testimonial.name}-${index}`}
+                className="w-[320px] sm:w-[380px] shrink-0"
+              >
+                <div className="h-full flex flex-col justify-between p-6 sm:p-8 rounded-2xl bg-card border border-border/60 hover:border-border transition-all duration-300 hover:shadow-md">
+                  <div>
+                    {/* Header: Quote Icon & Role Pill */}
+                    <div className="flex items-center justify-between mb-6">
+                      <svg
+                        className="w-8 h-8 text-primary/20 group-hover:text-accent/40 transition-colors duration-300"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z" />
+                      </svg>
 
-                {/* Author info */}
-                <div className="flex items-center gap-4 mt-auto">
-                  <Avatar
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    fallback={testimonial.name.charAt(0)}
-                    className="w-12 h-12 ring-2 ring-border/50"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-foreground truncate">
-                      {testimonial.name}
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border tracking-wide uppercase ${roleStyle.className}`}
+                      >
+                        {roleStyle.label}
+                      </span>
                     </div>
-                    <div className="text-sm text-muted-foreground truncate">
-                      {testimonial.role}
+
+                    {/* Content */}
+                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-8">
+                      "{testimonial.content}"
+                    </p>
+                  </div>
+
+                  {/* Author Info Footer */}
+                  <div className="flex items-center gap-3.5 pt-4 border-t border-border/40">
+                    <Avatar
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
+                      fallback={testimonial.name.charAt(0)}
+                      className="w-10 h-10 ring-2 ring-border/50 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-foreground text-sm truncate">
+                        {testimonial.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {testimonial.title}
+                      </div>
                     </div>
                   </div>
-                  <Badge variant={testimonial.badgeVariant} size="sm">
-                    {testimonial.badge}
-                  </Badge>
                 </div>
-
-                {/* Hover glow */}
-                <div
-                  className={`absolute -bottom-20 -right-20 w-40 h-40 rounded-full bg-gradient-to-br ${testimonial.gradient} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-500`}
-                />
               </div>
-            </motion.div>
-          ))}
+            );
+          })}
         </motion.div>
       </div>
     </section>

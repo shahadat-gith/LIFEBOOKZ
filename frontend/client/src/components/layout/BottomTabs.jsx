@@ -1,12 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Icons } from "../../icons";
-
-const tabs = [
-  { to: "/", label: "Home", icon: Icons.home },
-  { to: "/feed", label: "Feed", icon: Icons.document },
-  { to: "/authors", label: "Authors", icon: Icons.user },
-  { to: "/trending", label: "Trending", icon: Icons.sparkles },
-];
+import { tabs } from "./utils";
 
 export default function BottomTabs() {
   const location = useLocation();

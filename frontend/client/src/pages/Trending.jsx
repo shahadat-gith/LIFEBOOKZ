@@ -7,11 +7,11 @@ import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -20,18 +20,18 @@ const listContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.07,
-      delayChildren: 0.1,
+      staggerChildren: 0.05,
+      delayChildren: 0.05,
     },
   },
 };
 
 const listItem = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -68,34 +68,20 @@ export default function TrendingPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 select-none">
-      {/* Hero Header */}
+      {/* Header */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={fadeUp}
-        className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12 border-b border-border/40 pb-8"
+        className="flex flex-col justify-between gap-3 mb-10 border-b border-border/60 pb-8"
       >
-        <div className="space-y-2.5">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight font-display text-foreground">
-            Trending{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-accent">
-              Stories
-            </span>
-          </h1>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight font-display text-foreground">
+          Trending Stories
+        </h1>
 
-          <p className="text-muted-foreground text-sm sm:text-base max-w-xl font-sans leading-relaxed">
-            The most engaging narratives across the platform right now, ranked by reader applause and thoughtful discussions.
-          </p>
-        </div>
-
-        <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/60 shadow-xs text-xs font-medium text-muted-foreground">
-          {Icons?.trendingUp ? (
-            <Icons.trendingUp className="h-4 w-4 text-accent" />
-          ) : Icons?.sparkles ? (
-            <Icons.sparkles className="h-4 w-4 text-accent" />
-          ) : null}
-          <span>Top {stories.length > 0 ? stories.length : 10} Stories</span>
-        </div>
+        <p className="text-muted-foreground text-sm sm:text-base max-w-xl font-sans leading-relaxed">
+          The most engaging narratives across the platform right now, calculated by reader interactions and community engagement.
+        </p>
       </motion.div>
 
       {/* Content Section */}
@@ -111,11 +97,11 @@ export default function TrendingPage() {
         <EmptyState
           icon={
             Icons?.sparkles ? (
-              <Icons.sparkles className="h-12 w-12 text-muted-foreground/50" />
+              <Icons.sparkles className="h-10 w-10 text-muted-foreground/40" />
             ) : null
           }
           title="No trending stories yet"
-          description="Stories with active reader engagement and comments will be featured here."
+          description="Stories with active reader engagement and discussions will be featured here."
         />
       ) : (
         <motion.div
@@ -124,23 +110,15 @@ export default function TrendingPage() {
           variants={listContainer}
           className="space-y-6"
         >
-          {stories.map((story, index) => {
-            const rank = String(index + 1).padStart(2, "0");
-            const isTopThree = index < 3;
-
-            return (
-              <motion.div
-                key={story._id}
-                variants={listItem}
-                className="group relative flex items-start gap-3 sm:gap-6"
-              >
-                {/* Main Card Container */}
-                <div className="flex-1 min-w-0">
-                  <StoryCard story={story} />
-                </div>
-              </motion.div>
-            );
-          })}
+          {stories.map((story) => (
+            <motion.div
+              key={story._id}
+              variants={listItem}
+              className="group relative"
+            >
+              <StoryCard story={story} />
+            </motion.div>
+          ))}
         </motion.div>
       )}
     </div>

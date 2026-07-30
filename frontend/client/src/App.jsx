@@ -17,7 +17,6 @@ import SearchResults from './pages/SearchResults';
 import Feed from './pages/Feed';
 import StoryDetail from './pages/StoryDetail';
 import Trending from './pages/Trending';
-import Authors from './pages/Authors';
 import AuthorProfile from './pages/AuthorProfile';
 
 function LazyFallback() { return <LoadingScreen message="Loading page..." />; }
@@ -37,8 +36,7 @@ export function App() {
        <Route path="/feed" element={<Feed />} />
        <Route path="/feed/story/:slug" element={<StoryDetail />} />
        <Route path="/trending" element={<Trending />} />
-       <Route path="/authors" element={<Authors />} />
-       <Route path="/author/:id" element={<AuthorProfile />} />
+       <Route path="/authors/:id" element={<AuthorProfile />} />
       </Route>
       <Route element={<AuthLayout />}>
        <Route path="/login" element={<Login />} />

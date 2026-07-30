@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../config/axios";
 import Avatar from "../components/ui/Avatar";
@@ -8,8 +8,12 @@ import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+  },
 };
 
 export default function AuthorProfilePage() {
@@ -19,6 +23,8 @@ export default function AuthorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [storiesLoading, setStoriesLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!id) return;
@@ -54,36 +60,39 @@ export default function AuthorProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 animate-pulse">
-        {/* Back link */}
-        <div className="h-4 w-24 bg-foreground/8 rounded-md mb-8" />
+      <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 animate-pulse select-none">
+        {/* Back link skeleton */}
+        <div className="h-4 w-24 bg-muted rounded-md mb-8" />
         {/* Author card skeleton */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/40 mb-8">
-          <div className="w-24 h-24 rounded-full bg-foreground/12 shrink-0" />
-          <div className="flex-1 space-y-3 text-center sm:text-left">
-            <div className="h-6 bg-foreground/12 rounded-md w-48 mx-auto sm:mx-0" />
-            <div className="h-4 bg-foreground/8 rounded-md w-32 mx-auto sm:mx-0" />
-            <div className="h-3 bg-foreground/8 rounded-md w-full max-w-md mx-auto sm:mx-0" />
-            <div className="h-3 bg-foreground/8 rounded-md w-3/4 max-w-sm mx-auto sm:mx-0" />
-            <div className="h-9 w-28 bg-foreground/12 rounded-xl mx-auto sm:mx-0" />
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/60 mb-8">
+          <div className="w-24 h-24 rounded-full bg-muted shrink-0" />
+          <div className="flex-1 space-y-3 text-center sm:text-left w-full">
+            <div className="h-6 bg-muted rounded-md w-48 mx-auto sm:mx-0" />
+            <div className="h-4 bg-muted rounded-md w-32 mx-auto sm:mx-0" />
+            <div className="h-3 bg-muted rounded-md w-full max-w-md mx-auto sm:mx-0" />
+            <div className="h-3 bg-muted rounded-md w-3/4 max-w-sm mx-auto sm:mx-0" />
+            <div className="h-9 w-28 bg-muted rounded-xl mx-auto sm:mx-0" />
           </div>
         </div>
-        
       </div>
     );
   }
 
   if (error || !author) {
     return (
-      <div className="max-w-3xl mx-auto py-20 px-4 text-center">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
-          <Icons.exclamationCircle className="h-8 w-8 text-destructive" />
+      <div className="max-w-3xl mx-auto py-20 px-4 text-center select-none">
+        <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-destructive/10 flex items-center justify-center">
+          <Icons.exclamationCircle className="h-6 w-6 text-destructive" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Author Not Found</h1>
-        <p className="text-muted-foreground mb-8">{error || "This author doesn't exist."}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2 font-display">
+          Author Not Found
+        </h1>
+        <p className="text-sm text-muted-foreground mb-6">
+          {error || "This author profile could not be located."}
+        </p>
         <Link
           to="/authors"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-foreground hover:underline"
         >
           <Icons.chevronLeft className="h-4 w-4" />
           Back to Authors
@@ -97,44 +106,46 @@ export default function AuthorProfilePage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-5xl mx-auto py-10 px-4 sm:px-6"
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-5xl mx-auto py-10 px-4 sm:px-6 select-none"
     >
       {/* Back Link */}
-      <Link
-        to="/authors"
+      <button
+        onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-8 group"
       >
         <Icons.chevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-        All Authors
-      </Link>
+        Back
+      </button>
 
-      {/* Author Profile Card */}
+      {/* Author Profile Header */}
       <motion.div variants={fadeUp} initial="hidden" animate="visible">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/40 mb-8">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-border/60 mb-8">
           {/* Avatar */}
           <Avatar
             src={author.avatar?.url}
             name={author.fullName || "Author"}
             size="xl"
-            className="ring-2 ring-border/40 shrink-0"
+            className="ring-2 ring-border/60 shrink-0"
           />
 
           {/* Info */}
-          <div className="flex-1 text-center sm:text-left space-y-3">
+          <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground font-display">
                 {author.fullName || "Anonymous Author"}
               </h1>
               {author.profession && (
-                <p className="text-sm font-semibold text-accent mt-1">{author.profession}</p>
+                <p className="text-xs font-semibold text-muted-foreground mt-0.5 uppercase tracking-wider">
+                  {author.profession}
+                </p>
               )}
             </div>
 
             {author.bio && (
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
                 {author.bio}
               </p>
             )}
@@ -143,14 +154,15 @@ export default function AuthorProfilePage() {
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
               <FollowButton authorId={author._id} size="md" />
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Icons.book className="h-3.5 w-3.5" />
+                  <Icons.book className="h-3.5 w-3.5 text-muted-foreground" />
                   {stories.length} {stories.length === 1 ? "story" : "stories"}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Icons.clock className="h-3.5 w-3.5" />
-                  Joined {author.createdAt
+                  <Icons.clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  Joined{" "}
+                  {author.createdAt
                     ? new Date(author.createdAt).toLocaleDateString(undefined, {
                         month: "long",
                         year: "numeric",
@@ -162,13 +174,13 @@ export default function AuthorProfilePage() {
 
             {/* Social Links */}
             {hasSocial && (
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center justify-center sm:justify-start gap-3 pt-2">
                 {socialLinks.website && (
                   <a
                     href={socialLinks.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all"
                     title="Website"
                   >
                     <Icons.globe className="h-4 w-4" />
@@ -179,7 +191,7 @@ export default function AuthorProfilePage() {
                     href={socialLinks.x}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all"
                     title="X (Twitter)"
                   >
                     <Icons.twitter className="h-4 w-4" />
@@ -190,7 +202,7 @@ export default function AuthorProfilePage() {
                     href={socialLinks.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all"
                     title="Instagram"
                   >
                     <Icons.instagram className="h-4 w-4" />
@@ -201,7 +213,7 @@ export default function AuthorProfilePage() {
                     href={socialLinks.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all"
                     title="LinkedIn"
                   >
                     <Icons.linkedin className="h-4 w-4" />
@@ -212,8 +224,6 @@ export default function AuthorProfilePage() {
           </div>
         </div>
       </motion.div>
-
-     
     </motion.div>
   );
 }
