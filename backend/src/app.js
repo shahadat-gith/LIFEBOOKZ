@@ -21,7 +21,11 @@ app.use(
 
 app.use(
   cors({
-    origin: "*",
+    origin: [
+      config.frontend.admin,
+      config.frontend.client,
+      config.frontend.author,
+    ],
     credentials: true,
   })
 );
