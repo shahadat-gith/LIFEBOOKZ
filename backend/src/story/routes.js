@@ -14,7 +14,7 @@ router.post("/upload-image", authenticate, upload.single("image"), story.uploadI
 
 router.get("/", story.list);
 
-router.get("/:storyId", authenticateSoft, story.getStory);
+router.get("/:storyId", story.getStory);
 
 router.patch("/:storyId", authenticate, upload.single("coverImage"), story.update);
 
