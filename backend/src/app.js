@@ -21,14 +21,8 @@ app.use(
 
 app.use(
   cors({
-    origin: [
-      config.frontend.admin,
-      config.frontend.client,
-      config.frontend.author,
-    ],
+    origin: "*",
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
