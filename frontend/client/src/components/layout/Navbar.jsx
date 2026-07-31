@@ -6,7 +6,7 @@ import Button from "../ui/Button";
 import UserDropdown from "./UserDropdown";
 
 export function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,37 +14,9 @@ export function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const dropdownItems = [
-    {
-      label: "Profile",
-      icon: Icons?.user && <Icons.user className="h-3.5 w-3.5 text-muted-foreground" />,
-      onClick: () => navigate("/profile"),
-    },
-    {
-      label: "Preferences",
-      icon: Icons?.sparkles && <Icons.sparkles className="h-3.5 w-3.5 text-muted-foreground" />,
-      onClick: () => navigate("/preferences"),
-    },
-    {
-      label: "Settings",
-      icon: Icons?.cog ? (
-        <Icons.cog className="h-3.5 w-3.5 text-muted-foreground" />
-      ) : Icons?.document ? (
-        <Icons.document className="h-3.5 w-3.5 text-muted-foreground" />
-      ) : null,
-      onClick: () => navigate("/settings"),
-    },
-  ];
-
-  const handleLogout = () => {
-    if (logout) logout();
-    navigate("/login");
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-xs">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0 group">
           <img
@@ -79,7 +51,6 @@ export function Navbar() {
 
         {/* Right Corner: Always Visible Actions (Author Join + Profile/Login) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          
           {/* Join as Author Button */}
           <a
             href={`${authorPortal}/register`}
@@ -87,20 +58,19 @@ export function Navbar() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-accent/15 text-accent border border-accent/30 hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-xs active:scale-[0.98]"
           >
-          
             <span>Join as Author</span>
           </a>
 
           {/* User Account / Login */}
           {isAuthenticated ? (
-            <UserDropdown
-              user={user}
-              items={dropdownItems}
-              onLogout={handleLogout}
-            />
+            <UserDropdown />
           ) : (
             <Link to="/login">
-              <Button variant="primary" size="sm" className="font-semibold text-xs rounded-xl px-3.5 sm:px-4">
+              <Button
+                variant="primary"
+                size="sm"
+                className="font-semibold text-xs rounded-xl px-3.5 sm:px-4"
+              >
                 Log In
               </Button>
             </Link>

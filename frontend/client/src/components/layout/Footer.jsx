@@ -38,13 +38,13 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5">
               <li>
-                <Link to="/feed" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Feed
+                <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link to="/authors" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Authors
+                <Link to="/feed" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Feed
                 </Link>
               </li>
               <li>

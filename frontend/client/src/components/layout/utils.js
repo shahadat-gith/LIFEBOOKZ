@@ -4,7 +4,6 @@ export const navLinks = [
   { to: "/", label: "Home" },
   { to: "/feed", label: "Feed" },
   { to: "/trending", label: "Trending" },
-  { to: "/settings", label: "Settings"}
 ];
 
 export const tabs = [
@@ -13,3 +12,24 @@ export const tabs = [
   { to: "/trending", label: "Trending", icon: Icons.sparkles },
   { to: "/settings", label: "Settings", icon: Icons.settings },
 ];
+
+
+export function getDropdownItems(navigate) {
+  return [
+    {
+      label: "Profile",
+      icon: Icons.user,
+      onClick: () => navigate("/profile"),
+    },
+    {
+      label: "Preferences",
+      icon: Icons.sparkles,
+      onClick: () => navigate("/preferences"),
+    },
+    {
+      label: "Settings",
+      icon: Icons.cog,
+      onClick: () => navigate("/settings"),
+    },
+  ];
+}

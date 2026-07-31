@@ -39,7 +39,7 @@ export function HomePage() {
   return (
     <div className="bg-background text-foreground min-h-screen">
       {/* SECTION 1: HERO */}
-      <section className="relative overflow-hidden pt-8 pb-16 md:py-20">
+      <section className="relative overflow-hidden pt-8 pb-16">
         <div 
           className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl -z-10" 
           aria-hidden="true"

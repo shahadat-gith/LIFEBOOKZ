@@ -2,10 +2,23 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
+import { getDropdownItems } from "./utils";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function UserDropdown({ user, items, onLogout }) {
+export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const { isAuthenticated, user, logout } = useAuth();
+
+  const navigate = useNavigate();
+  const dropdownItems = getDropdownItems(navigate);
+
+  const handleLogout = () => {
+    logout?.();
+    navigate("/login");
+  };
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -63,20 +76,26 @@ export default function UserDropdown({ user, items, onLogout }) {
 
             {/* Menu Items */}
             <div className="space-y-0.5">
-              {items.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    item.onClick();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors text-left"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
+              {dropdownItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      item.onClick();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors text-left"
+                  >
+                    {Icon && (
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="my-1 border-t border-border/40" />
@@ -86,7 +105,7 @@ export default function UserDropdown({ user, items, onLogout }) {
               type="button"
               onClick={() => {
                 setIsOpen(false);
-                onLogout();
+                handleLogout();
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-destructive hover:bg-destructive/10 transition-colors text-left"
             >
