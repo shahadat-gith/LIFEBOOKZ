@@ -9,6 +9,7 @@ import { getTimeAgo } from "../../utils/helpers";
 import api from "../../config/axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
+import { share } from "../../utils/share";
 
 export default function StoryCard({
   story,
@@ -60,15 +61,19 @@ export default function StoryCard({
   async function handleShare(e) {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/feed/story/${storySlug}`;
-    if (navigator.share) {
-      navigator.share({ title: storyTitle, url });
+
+    const shared = await share({
+      title: storyTitle,
+      text: `📖 ${storyTitle}\n\nRead this story on Lifebookz.`,
+      url: `/feed/story/${storySlug}`,
+    });
+
+    if (shared) {
+      toast.success("Shared successfully!");
     } else {
-      navigator.clipboard.writeText(url);
       toast.success("Link copied to clipboard");
     }
   }
-
   return (
     <motion.article
       initial={{ opacity: 0, y: 16 }}
