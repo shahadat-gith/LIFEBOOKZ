@@ -30,3 +30,5 @@ export function getPlainTextSnippet(htmlContent, maxLength = 180) {
   if (plainText.length <= maxLength) return plainText;
   return plainText.substring(0, maxLength).trim() + "...";
 }
+
+

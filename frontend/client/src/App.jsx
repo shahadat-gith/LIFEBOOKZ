@@ -6,6 +6,7 @@ import { FollowingProvider } from './context/FollowingContext';
 import AppLayout, { AuthLayout, MinimalLayout } from './components/layout/AppLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoadingScreen from './components/common/LoadingScreen';
+import NotFound from './pages/NotFound';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -44,13 +45,7 @@ export function App() {
        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
       <Route element={<MinimalLayout />}>
-       <Route path="*" element={
-        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-         <h1 className="text-6xl font-bold text-foreground">404</h1>
-         <p className="text-muted-foreground">Page not found</p>
-         <a href="/" className="text-primary hover:underline text-sm">Go home</a>
-        </div>
-       } />
+       <Route path="*" element={<NotFound />} />
       </Route>
      </Routes>
     </Suspense>
