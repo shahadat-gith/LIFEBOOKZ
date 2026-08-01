@@ -28,7 +28,7 @@ export function getDropdownItems(navigate) {
     },
     {
       label: "Settings",
-      icon: Icons.cog,
+      icon: Icons.settings,
       onClick: () => navigate("/settings"),
     },
   ];
