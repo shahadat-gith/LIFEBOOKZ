@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import cookieParser from "cookie-parser";
 
 import config from "./shared/config/index.js";
 
@@ -29,10 +28,6 @@ app.use(
     credentials: true,
   })
 );
-
-/* ---------- Cookies ---------- */
-
-app.use(cookieParser());
 
 /* ---------- Body Parsing ---------- */
 

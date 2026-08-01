@@ -1,7 +1,27 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../config/api';
 
+const TOKEN_KEY = 'token';
+
 const Ctx = createContext(undefined);
+
+function getStoredToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredToken(token) {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch { /* storage unavailable */ }
+}
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,20 +30,25 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     api.get('/admin/dashboard')
       .then(() => setIsAuthenticated(true))
-      .catch(() => {})
+      .catch(() => {
+        setStoredToken(null);
+        setIsAuthenticated(false);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
-  const loginAdmin = async (email, password) => {
+  const loginAdmin = useCallback(async (email, password) => {
     const res = await api.post('/admin/login', { email, password });
+    setStoredToken(res.data.data.token);
     setIsAuthenticated(true);
     return res.data;
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try { await api.post('/admin/logout'); } catch { }
+    setStoredToken(null);
     setIsAuthenticated(false);
-  };
+  }, []);
 
   return (
     <Ctx.Provider value={{ isAuthenticated, isLoading, loginAdmin, logout }}>

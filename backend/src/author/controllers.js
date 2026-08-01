@@ -2,11 +2,7 @@ import crypto from "crypto";
 import Author from "./model.js";
 import Story from "../story/models/Story.js";
 
-import {
-  generateToken,
-  setTokenCookie,
-  clearTokenCookie,
-} from "../shared/utils/helpers.js";
+import { generateToken } from "../shared/utils/helpers.js";
 import config from "../shared/config/index.js";
 import * as Errors from "../shared/utils/errors.js";
 import { sendEmail } from "../shared/services/email.js";
@@ -120,12 +116,11 @@ export async function register(req, res, next) {
       authorId: author.id,
     });
 
-    setTokenCookie(res, token);
-
     res.status(201).json({
       success: true,
       data: {
         author,
+        token,
       },
     });
   } catch (error) {
@@ -166,12 +161,11 @@ export async function login(req, res, next) {
       authorId: author.id,
     });
 
-    setTokenCookie(res, token);
-
     return res.json({
       success: true,
       data: {
         author,
+        token,
       },
     });
   } catch (error) {
@@ -508,10 +502,8 @@ export async function resetPassword(req, res, next) {
   }
 }
 
-export async function logout(req, res, next) {
+export async function logout(_req, res, next) {
   try {
-    clearTokenCookie(res);
-
     return res.json({
       success: true,
       message: "Logged out successfully.",

@@ -1,10 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
-  headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
-});
+import api from '../config/api';
 
 export const adminApi = {
   login: (data) => api.post('/admin/login', data),

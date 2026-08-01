@@ -4,7 +4,7 @@ import Author from "../author/model.js";
 import User from "../user/model.js";
 import Story from "../story/models/Story.js";
 
-import { generateToken, setTokenCookie, clearTokenCookie } from "../shared/utils/helpers.js";
+import { generateToken } from "../shared/utils/helpers.js";
 import * as Errors from "../shared/utils/errors.js";
 
 import { sendApplicationApproved, sendApplicationRejected } from "./utils.js";
@@ -24,11 +24,11 @@ export async function login(req, res, next) {
       key: config.admin.key,
     });
 
-    setTokenCookie(res, token);
-
     return res.json({
       success: true,
-      data: {},
+      data: {
+        token,
+      },
     });
   } catch (error) {
     next(error);
@@ -218,10 +218,8 @@ export async function getStories(req, res, next) {
   }
 }
 
-export async function logout(req, res, next) {
+export async function logout(_req, res, next) {
   try {
-    clearTokenCookie(res);
-
     return res.json({
       success: true,
       message: "Logged out successfully.",

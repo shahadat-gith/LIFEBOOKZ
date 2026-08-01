@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import User from "./model.js";
 
-import { generateToken, setTokenCookie, clearTokenCookie } from "../shared/utils/helpers.js";
+import { generateToken } from "../shared/utils/helpers.js";
 import config from "../shared/config/index.js";
 import * as Errors from "../shared/utils/errors.js";
 import { sendEmail } from "../shared/services/email.js";
@@ -65,12 +65,11 @@ export async function register(req, res, next) {
       userId: user.id,
     });
 
-    setTokenCookie(res, token);
-
     return res.status(201).json({
       success: true,
       data: {
         user,
+        token,
       },
     });
   } catch (error) {
@@ -99,12 +98,11 @@ export async function login(req, res, next) {
       userId: user.id,
     });
 
-    setTokenCookie(res, token);
-
     return res.json({
       success: true,
       data: {
         user,
+        token,
       },
     });
   } catch (error) {
@@ -194,8 +192,6 @@ export async function deleteMe(req, res, next) {
     }
 
     await user.deleteOne();
-
-    clearTokenCookie(res);
 
     return res.json({
       success: true,
@@ -352,10 +348,8 @@ export async function resetPassword(req, res, next) {
   }
 }
 
-export async function logout(req, res, next) {
+export async function logout(_req, res, next) {
   try {
-    clearTokenCookie(res);
-
     return res.json({
       success: true,
       message: "Logged out successfully.",

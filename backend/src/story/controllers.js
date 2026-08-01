@@ -384,6 +384,14 @@ export async function list(req, res, next) {
       filter.author = req.query.author;
     }
 
+    // Support full-text search by query (used by /search and feed search)
+    const q = req.query.q?.trim();
+    if (q) {
+      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = new RegExp(escapeRegex(q), "i");
+      filter.$or = [{ title: pattern }, { slug: pattern }, { "summary.content": pattern }];
+    }
+
     // Select only needed fields for the feed listing
     let query = Story.find(filter)
       .select("title slug summary document coverImage author storyType language stats publishedAt createdAt")

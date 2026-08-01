@@ -7,12 +7,11 @@ import Author from "../../author/model.js";
 import { AuthenticationError } from "../utils/errors.js";
 
 /**
- * Extract token from Authorization header or cookie.
+ * Extract token from the Authorization header.
  */
 function extractToken(req) {
   const auth = req.headers.authorization;
   if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  if (req.cookies?.token) return req.cookies.token;
   return null;
 }
 
