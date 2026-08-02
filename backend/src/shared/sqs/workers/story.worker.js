@@ -1,4 +1,5 @@
 import Story from "../../../story/models/Story.js";
+import Author from "../../../author/model.js";
 import { publishMessage } from "../publishers.js";
 
 import { generateContent } from "../../services/llm.js";
@@ -142,43 +143,67 @@ async function generateSummary(storyId) {
 async function generateStoryEmbedding(storyId) {
   const story = await getStory(storyId);
 
-  if (story.status === "published") {
+  const plainText = extractTextFromDocument(story.document);
+  const title = story.title?.trim()
+    || (plainText
+      ? plainText.slice(0, 100).replace(/\s+\S*$/, "") + "..."
+      : "Untitled");
+
+  const summary = story.summary?.content || plainText.slice(0, 500);
+  if (!summary) {
     return;
   }
 
-  try {
-    // Get title from story or auto-generate from document content
-    const plainText = extractTextFromDocument(story.document);
-    const title = story.title?.trim()
-      || (plainText
-        ? plainText.slice(0, 100).replace(/\s+\S*$/, "") + "..."
-        : "Untitled");
+  // Include author details so the embedding + payload capture the necessary context
+  const author = story.author
+    ? await Author.findById(story.author).select("fullName profession").lean()
+    : null;
 
-    const embedding = await generateEmbedding(story.summary.content || title);
+  // Embed the story together with its key metadata for richer semantics
+  const embeddingText = [
+    `Title: ${title}`,
+    `Story type: ${story.storyType || ""}`,
+    `Language: ${story.language || ""}`,
+    author?.profession ? `Author profession: ${author.profession}` : "",
+    `Summary: ${summary}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-    await qdrant.upsert(config.qdrant.collections.story, {
-      wait: true,
-      points: [
-        {
-          id: story.id,
-          vector: embedding,
-          payload: {
-            storyId: story.id,
-            authorId: story.author.toString(),
-            title,
-            summary: story.summary.content || "",
-          },
+  const embedding = await generateEmbedding(embeddingText);
+
+  await qdrant.upsert(config.qdrant.collections.story, {
+    wait: true,
+    points: [
+      {
+        id: story.id,
+        vector: embedding,
+        payload: {
+          storyId: story.id,
+          authorId: story.author.toString(),
+          authorName: author?.fullName || "",
+          authorProfession: (author?.profession || "").toLowerCase(),
+          title,
+          summary: story.summary.content || "",
+          storyType: story.storyType || "",
+          language: story.language || "",
+          slug: story.slug || "",
+          coverImage: story.coverImage?.url || "",
+          publishedAt: story.publishedAt
+            ? new Date(story.publishedAt).toISOString()
+            : "",
         },
-      ],
-    });
+      },
+    ],
+  });
 
+  // Only transition status if the story isn't already published
+  if (story.status !== "published") {
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: "published",
         publishedAt: new Date(),
       },
     });
-  } catch (error) {
-    throw error;
   }
 }

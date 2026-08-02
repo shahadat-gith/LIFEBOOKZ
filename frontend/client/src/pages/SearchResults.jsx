@@ -16,10 +16,10 @@ export default function SearchResultsPage() {
   useEffect(() => {
     if (!query) return;
     setLoading(true);
-    api.get('/stories', { params: { q: query } })
+    api.get('/search', { params: { q: query, limit: 30 } })
       .then((res) => {
         const data = res.data.data;
-        setResults(data.stories || []);
+        setResults(data.results || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

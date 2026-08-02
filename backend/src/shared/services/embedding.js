@@ -1,4 +1,4 @@
-import OpenRouter from "@openrouter/sdk";
+import { OpenRouter } from "@openrouter/sdk";
 import config from "../config/index.js";
 
 const client = new OpenRouter({

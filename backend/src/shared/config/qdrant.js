@@ -8,6 +8,10 @@ export function getQdrantClient() {
     client = new QdrantClient({
       url: config.qdrant.url,
       apiKey: config.qdrant.apiKey,
+      // The version-compat check fires GET / at client creation and logs a
+      // scary warning when Qdrant is unreachable/restarting. It doesn't gate
+      // any functionality, so skip it to keep startup logs clean.
+      checkCompatibility: false,
     });
   }
 

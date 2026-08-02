@@ -11,6 +11,7 @@ import {
   getLanguageDetectionPrompt,
 } from "../shared/prompts/story.js";
 import { uploadStoryImage, uploadAvatar } from "../shared/services/upload.js";
+import { publishMessage } from "../shared/sqs/publishers.js";
 import { NotFoundError, ValidationError } from "../shared/utils/errors.js";
 import { extractTextFromDocument } from "../shared/utils/helpers.js";
 import slugify from "slugify";
@@ -20,6 +21,10 @@ function getDocPreview(doc, maxLen = 100) {
   const text = extractTextFromDocument(doc);
   if (!text) return "";
   return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function uploadImage(req, res, next) {
@@ -136,6 +141,15 @@ export async function update(req, res, next) {
     }
 
     await story.save();
+
+    // Keep semantic search fresh when a published story is edited
+    if (story.status === "published") {
+      publishMessage({ jobType: "story_embedding", storyId: story.id }).catch(
+        (error) => {
+          console.error("Failed to enqueue story embedding job:", error);
+        },
+      );
+    }
 
     res.json({
       success: true,
@@ -270,6 +284,13 @@ export async function publish(req, res, next) {
 
     await story.save();
 
+    // Generate the story's semantic embedding in the background via SQS
+    publishMessage({ jobType: "story_embedding", storyId: story.id }).catch(
+      (error) => {
+        console.error("Failed to enqueue story embedding job:", error);
+      },
+    );
+
     res.json({
       success: true,
       data: story,
@@ -384,12 +405,38 @@ export async function list(req, res, next) {
       filter.author = req.query.author;
     }
 
-    // Support full-text search by query (used by /search and feed search)
+    // Support full-text search by query (fallback for /stories?q=)
     const q = req.query.q?.trim();
     if (q) {
-      const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const pattern = new RegExp(escapeRegex(q), "i");
       filter.$or = [{ title: pattern }, { slug: pattern }, { "summary.content": pattern }];
+    }
+
+    // Support filtering by author profession (feed filter box)
+    const profession = req.query.profession?.trim();
+    if (profession) {
+      const authors = await Author.find({
+        profession: new RegExp(`^${escapeRegex(profession)}$`, "i"),
+      })
+        .select("_id")
+        .lean();
+
+      const authorIds = authors.map((a) => a._id);
+      if (authorIds.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            stories: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              pages: 0,
+            },
+          },
+        });
+      }
+      filter.author = { $in: authorIds };
     }
 
     // Select only needed fields for the feed listing
