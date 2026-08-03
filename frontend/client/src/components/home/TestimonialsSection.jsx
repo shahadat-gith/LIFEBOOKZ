@@ -1,11 +1,12 @@
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Avatar } from "../ui/Avatar";
+import api from "../../config/axios";
 
-const testimonials = [
+const FALLBACK_TESTIMONIALS = [
   {
     name: "Priya Sharma",
-    role: "author",
+    role: "Author",
     title: "Hindi Story Writer",
     avatar: "",
     content:
@@ -13,7 +14,7 @@ const testimonials = [
   },
   {
     name: "Arun Kumar",
-    role: "author",
+    role: "Author",
     title: "Tamil Poet & Author",
     avatar: "",
     content:
@@ -21,7 +22,7 @@ const testimonials = [
   },
   {
     name: "Sneha Patel",
-    role: "user",
+    role: "Reader",
     title: "Avid Reader",
     avatar: "",
     content:
@@ -29,7 +30,7 @@ const testimonials = [
   },
   {
     name: "Rajesh Das",
-    role: "guest",
+    role: "Guest",
     title: "Literary Enthusiast",
     avatar: "",
     content:
@@ -37,24 +38,66 @@ const testimonials = [
   },
 ];
 
-const roleConfig = {
-  author: {
-    label: "Author",
-    className: "bg-accent/10 text-accent border-accent/30",
-  },
-  user: {
-    label: "Reader",
-    className: "bg-primary/10 text-primary border-primary/20",
-  },
-  guest: {
-    label: "Guest",
-    className: "bg-muted text-muted-foreground border-border",
-  },
+const ROLE_STYLES = {
+  Author: "bg-accent/10 text-accent border-accent/30",
+  Reader: "bg-primary/10 text-primary border-primary/20",
+  Guest: "bg-muted text-muted-foreground border-border",
 };
 
+/**
+ * Map the API response shape to the card display shape.
+ * The API returns:
+ *   { person: { fullName, avatar, profession }, personType: "Author"|"User",
+ *     message, rating, createdAt }
+ */
+function mapApiToCard(t) {
+  const person = t.person || {};
+  const role = t.personType === "Author" ? "Author" : "Reader";
+  return {
+    name: person.fullName || "Anonymous",
+    role,
+    title: person.profession || "Community Member",
+    avatar: person.avatar?.url || "",
+    content: t.message || "",
+  };
+}
+
 export function TestimonialsSection() {
-  // Duplicate array so seamless loop has no visible breaks
-  const carouselItems = [...testimonials, ...testimonials];
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get("/testimonials", { params: { limit: 10 } })
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data.data || [];
+        if (data.length > 0) {
+          setCards(data.map(mapApiToCard));
+        } else {
+          setCards(FALLBACK_TESTIMONIALS);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCards(FALLBACK_TESTIMONIALS);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Use hardcoded fallback while loading to avoid visual blankness
+  const displayCards = (loading ? [] : cards).length > 0 ? cards : FALLBACK_TESTIMONIALS;
+  const isShowingFallback = loading || cards.length === 0;
+
+  // Duplicate array so the seamless infinite loop has no visible break
+  const carouselItems = [...displayCards, ...displayCards];
 
   return (
     <section className="py-20 relative overflow-hidden">
@@ -74,7 +117,9 @@ export function TestimonialsSection() {
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Hear from our community across India
+            {isShowingFallback
+              ? "Loading voices from our community..."
+              : "Hear from our community across India"}
           </p>
         </div>
       </div>
@@ -97,7 +142,7 @@ export function TestimonialsSection() {
           }}
         >
           {carouselItems.map((testimonial, index) => {
-            const roleStyle = roleConfig[testimonial.role] || roleConfig.guest;
+            const roleStyle = ROLE_STYLES[testimonial.role] ?? "bg-muted text-muted-foreground border-border";
 
             return (
               <div
@@ -109,7 +154,7 @@ export function TestimonialsSection() {
                     {/* Header: Quote Icon & Role Pill */}
                     <div className="flex items-center justify-between mb-6">
                       <svg
-                        className="w-8 h-8 text-primary/20 group-hover:text-accent/40 transition-colors duration-300"
+                        className="w-8 h-8 text-primary/20"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -117,15 +162,15 @@ export function TestimonialsSection() {
                       </svg>
 
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border tracking-wide uppercase ${roleStyle.className}`}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border tracking-wide uppercase ${roleStyle}`}
                       >
-                        {roleStyle.label}
+                        {testimonial.role}
                       </span>
                     </div>
 
                     {/* Content */}
                     <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-8">
-                      "{testimonial.content}"
+                      &ldquo;{testimonial.content}&rdquo;
                     </p>
                   </div>
 

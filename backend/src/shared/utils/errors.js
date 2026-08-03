@@ -32,6 +32,12 @@ export class AuthorizationError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'Access forbidden') {
+    super(message, 403, 'FORBIDDEN');
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message = 'Resource already exists') {
     super(message, 409, 'CONFLICT_ERROR');

@@ -1,13 +1,14 @@
 import Input from "../ui/Input";
 import { Icons } from "../../icons";
 
-export default function StoryTitleInput({ title, setTitle, storyType, slugPreview }) {
+export default function StoryTitleInput({ title, setTitle, storyType, slugPreview, disabled }) {
   return (
     <div>
       <Input
         label="Title *"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
+        disabled={disabled}
         placeholder={
           storyType === "autobiography"
             ? "e.g., My Journey Through Life..."

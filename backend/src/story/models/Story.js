@@ -173,15 +173,17 @@ const storySchema = new mongoose.Schema(
 
     analysis: {
       type: analysisSchema,
+      default: () => ({}),
     },
 
     processing: {
       type: processingSchema,
+      default: () => ({ currentStep: "idle" }),
     },
 
     stats: {
       type: statsSchema,
-      default: {},
+      default: () => ({}),
     },
 
     recentLikers: [

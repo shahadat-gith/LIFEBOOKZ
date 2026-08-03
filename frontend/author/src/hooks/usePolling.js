@@ -6,6 +6,7 @@ export function usePolling(onSuccess) {
   const [pollStatus, setPollStatus] = useState("idle");
   const [pollMessage, setPollMessage] = useState("");
   const [issues, setIssues] = useState([]);
+  const [storyStatus, setStoryStatus] = useState(null);
 
   useEffect(() => {
     if (!storyId || pollStatus !== "polling") return;
@@ -14,6 +15,7 @@ export function usePolling(onSuccess) {
       try {
         const res = await api.get(`/authors/me/stories/${storyId}`);
         const story = res.data.data;
+        setStoryStatus(story.status);
         if (story.status === "published") {
           clearInterval(interval);
           setPollStatus("success");
@@ -23,8 +25,17 @@ export function usePolling(onSuccess) {
           clearInterval(interval);
           setPollStatus("failed");
           setPollMessage("Your story was rejected during verification.");
-          if (story.verification?.issues) {
-            setIssues(story.verification.issues);
+          if (story.analysis?.issues) {
+            setIssues(story.analysis.issues);
+          }
+        } else if (story.status === "failed") {
+          clearInterval(interval);
+          setPollStatus("failed");
+          setPollMessage(
+            "Your story could not be processed. You can edit and resubmit it.",
+          );
+          if (story.analysis?.issues) {
+            setIssues(story.analysis.issues);
           }
         } else {
           setPollMessage(
@@ -46,6 +57,7 @@ export function usePolling(onSuccess) {
     setPollStatus("polling");
     setPollMessage("Story submitted! Analyzing your story...");
     setIssues([]);
+    setStoryStatus(null);
   }, []);
 
   const stopPolling = useCallback(() => {
@@ -58,7 +70,16 @@ export function usePolling(onSuccess) {
     setPollMessage("");
     setIssues([]);
     setStoryId(null);
+    setStoryStatus(null);
   }, []);
 
-  return { pollStatus, pollMessage, issues, startPolling, stopPolling, resetPolling };
+  return {
+    pollStatus,
+    pollMessage,
+    issues,
+    storyStatus,
+    startPolling,
+    stopPolling,
+    resetPolling,
+  };
 }

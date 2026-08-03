@@ -11,17 +11,26 @@ import EmptyState from '../components/common/EmptyState';
 import { Icons } from '../icons';
 import toast from 'react-hot-toast';
 
-function getPreview(doc, max = 80) {
-  const html = typeof doc === 'string' ? doc : '';
-  const plain = html?.replace(/<[^>]*>/g, '').trim() || '';
+function getPreview(story, max = 80) {
+  const title = story?.title?.trim();
+  if (title) return title.length > max ? title.slice(0, max) + '...' : title;
+
+  // Fallback: strip plain text from an HTML string document (legacy drafts)
+  const html = typeof story?.content === 'string' ? story.content : '';
+  const plain = html.replace(/<[^>]*>/g, '').trim() || '';
   return plain.length > max ? plain.slice(0, max) + '...' : plain || 'Untitled';
 }
 
 const statusBadge = {
-  published: { variant: 'success', label: 'Published' },
   draft: { variant: 'warning', label: 'Draft' },
-  pending: { variant: 'info', label: 'Pending' },
+  submitted: { variant: 'info', label: 'Submitted' },
+  analyzing: { variant: 'info', label: 'Analyzing' },
+  verified: { variant: 'info', label: 'Verified' },
+  enriching: { variant: 'info', label: 'Enriching' },
+  enriched: { variant: 'info', label: 'Enriched' },
+  published: { variant: 'success', label: 'Published' },
   rejected: { variant: 'danger', label: 'Rejected' },
+  failed: { variant: 'danger', label: 'Failed' },
 };
 
 export default function StoriesPage() {
@@ -54,10 +63,9 @@ export default function StoriesPage() {
     if (statusFilter !== 'all' && s.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    const docHtml = typeof s.document === 'string' ? s.document : '';
-    const contentText = docHtml.replace(/<[^>]*>/g, '').toLowerCase() || '';
+    const title = s.title?.toLowerCase() || '';
     const authorName = s.author?.fullName?.toLowerCase() || '';
-    return contentText.includes(q) || authorName.includes(q);
+    return title.includes(q) || authorName.includes(q);
   });
 
   // Stats
@@ -177,16 +185,12 @@ export default function StoriesPage() {
                   >
                     <div className="col-span-4 min-w-0">
                       <p className="font-medium text-foreground text-sm truncate">
-                        {getPreview(story.document)}
+                        {getPreview(story)}
                       </p>
-                      {story.tags?.length > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {story.tags.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
+                      {story.storyType && (
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded mt-1 inline-block">
+                          {story.storyType}
+                        </span>
                       )}
                     </div>
                     <div className="col-span-2">

@@ -191,6 +191,7 @@ async function generateStoryEmbedding(storyId) {
           summary: story.summary || "",
           storyType: story.storyType || "",
           language: story.language || "English",
+          authorProfession: story.authorProfession || "",
           slug: story.slug || "",
           coverImage: story.coverImage?.url || "",
           publishedAt: story.publishedAt

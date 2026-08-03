@@ -31,8 +31,8 @@ export default function StoryCard({
   const shareCount = story.stats?.shares || 0;
 
   const snippetText = useMemo(() => {
-    return extractTextFromDocument(story.document, fixedSnippetLength);
-  }, [story.document, fixedSnippetLength]);
+    return extractTextFromDocument(story.content, fixedSnippetLength);
+  }, [story.content, fixedSnippetLength]);
 
   async function handleLike(e) {
     e.preventDefault();
@@ -134,10 +134,10 @@ export default function StoryCard({
       </Link>
 
       {/* Story Summary */}
-      {story.summary?.content ? (
+      {story.summary ? (
         <div className="px-5 pb-2">
           <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
-            {story.summary.content}
+            {story.summary}
           </p>
         </div>
       ) : (

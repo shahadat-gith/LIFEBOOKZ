@@ -11,7 +11,7 @@ const qdrant = getQdrantClient();
 
 // Fields needed by the client feed/search cards
 const STORY_SELECT =
-  "title slug summary document coverImage author storyType language stats publishedAt createdAt";
+  "title slug summary content coverImage author storyType language stats publishedAt createdAt";
 
 /**
  * Semantic story search.

@@ -1,13 +1,15 @@
 import { Icons } from "../../icons";
 
-export default function CoverImageUploader({ coverPreview, coverFileRef, handleCoverChange }) {
+export default function CoverImageUploader({ coverPreview, coverFileRef, handleCoverChange, disabled }) {
   return (
     <div>
       <label className="block text-sm font-medium text-foreground mb-2">
         Cover Image / Portrait
       </label>
       <div
-        onClick={() => coverFileRef.current?.click()}
+        onClick={() => {
+          if (!disabled) coverFileRef.current?.click();
+        }}
         className="relative cursor-pointer rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors overflow-hidden bg-muted/20 group"
       >
         {coverPreview ? (

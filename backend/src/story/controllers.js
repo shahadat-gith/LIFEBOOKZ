@@ -6,6 +6,13 @@ import Author from "../author/model.js";
 import User from "../user/model.js";
 import { uploadStoryImage } from "../shared/services/upload.js";
 import { publishMessage } from "../shared/sqs/publishers.js";
+import { generateContent } from "../shared/services/llm.js";
+import { getStoryAnalysisPrompt } from "../shared/prompts/story.js";
+import {
+  extractTextFromDocument,
+  parseJsonFromLLM,
+} from "../shared/utils/helpers.js";
+import config from "../shared/config/index.js";
 import {
   NotFoundError,
   ValidationError,
@@ -162,6 +169,8 @@ export async function update(req, res, next) {
     // Reset status back to draft if user is editing a rejected/failed submission
     if (["rejected", "failed"].includes(story.status)) {
       story.status = "draft";
+      // Guard against legacy docs missing the processing sub-document
+      if (!story.processing) story.processing = {};
       story.processing.currentStep = "idle";
       story.processing.error = "";
     }
@@ -171,6 +180,64 @@ export async function update(req, res, next) {
     res.json({
       success: true,
       data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /stories/:storyId/verify
+ * Synchronous pre-flight content moderation check.
+ * Runs the same LLM analysis as the background pipeline and stores the
+ * result in `story.analysis` WITHOUT changing the story status — the
+ * async pipeline remains the single source of truth for status changes.
+ */
+export async function verify(req, res, next) {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    const plainText = extractTextFromDocument(story.content);
+
+    if (!plainText?.trim()) {
+      throw new ValidationError(
+        "Story content is empty; add some text before verifying.",
+      );
+    }
+
+    const rawResponse = await generateContent({
+      system: getStoryAnalysisPrompt(),
+      prompt: `Title: ${story.title}\n\n${plainText}`,
+      json: true,
+    });
+
+    const result = parseJsonFromLLM(rawResponse);
+
+    story.analysis = {
+      canProceed: !!result.canProceed,
+      issues: Array.isArray(result.issues) ? result.issues : [],
+      analyzedAt: new Date(),
+      model: config.openrouter.chatModel || "",
+    };
+
+    await story.save();
+
+    res.json({
+      success: true,
+      data: {
+        canProceed: story.analysis.canProceed,
+        issues: story.analysis.issues,
+        analysis: story.analysis,
+      },
     });
   } catch (error) {
     next(error);
@@ -430,6 +497,7 @@ export async function list(req, res, next) {
         title
         slug
         summary
+        content
         coverImage
         author
         authorProfession

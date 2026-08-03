@@ -83,9 +83,9 @@ export default function PollingModal({
                 <p className="text-sm font-medium text-foreground">
                   {issue.description}
                 </p>
-                {issue.suggestion && (
+                {issue.suggestedChange && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Suggestion: {issue.suggestion}
+                    Suggested change: {issue.suggestedChange}
                   </p>
                 )}
               </div>

@@ -10,7 +10,7 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Card, { CardContent, CardTitle } from "../components/ui/Card";
 
-import { getContentPreview } from "../utils/helpers";
+import { getContentPreview, getDocumentText } from "../utils/helpers";
 import EmptyState from "../components/common/EmptyState";
 import LoadingScreen from "../components/common/LoadingScreen";
 
@@ -19,10 +19,13 @@ import { Icons } from "../icons";
 const STATUS_BADGE = {
   draft: { variant: "warning", label: "Draft" },
   submitted: { variant: "info", label: "Submitted" },
-  processing: { variant: "info", label: "Processing" },
-  verified: { variant: "success", label: "Ready to Publish" },
+  analyzing: { variant: "info", label: "Analyzing" },
+  verified: { variant: "success", label: "Verified" },
+  enriching: { variant: "info", label: "Enriching" },
+  enriched: { variant: "info", label: "Enriched" },
   published: { variant: "success", label: "Published" },
   rejected: { variant: "danger", label: "Rejected" },
+  failed: { variant: "danger", label: "Failed" },
 };
 
 export default function Dashboard() {
@@ -56,11 +59,10 @@ export default function Dashboard() {
       total: stories.length,
       published: stories.filter((s) => s.status === "published").length,
       drafts: stories.filter((s) => s.status === "draft").length,
-      submitted: stories.filter(
-        (s) =>
-          s.status === "submitted" ||
-          s.status === "processing" ||
-          s.status === "verified",
+      submitted: stories.filter((s) =>
+        ["submitted", "analyzing", "verified", "enriching", "enriched"].includes(
+          s.status,
+        ),
       ).length,
     }),
     [stories],
@@ -225,7 +227,7 @@ export default function Dashboard() {
                   label: story.status,
                   variant: "default",
                 };
-                const issues = story.verification?.issues || [];
+                const issues = story.analysis?.issues || [];
 
                 return (
                   <motion.div
@@ -242,7 +244,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2.5">
                         <h3 className="truncate font-display text-base font-semibold text-foreground">
-                          {story.title || getContentPreview(typeof story.document === 'string' ? story.document : '')}
+                          {story.title || getContentPreview(getDocumentText(story.content))}
                         </h3>
                         <Badge variant={badge.variant}>
                           {badge.label}

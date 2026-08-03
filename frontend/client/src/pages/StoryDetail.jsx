@@ -205,16 +205,16 @@ export default function StoryDetailPage() {
         className="mt-8"
       >
         {/* Story Summary — at the top */}
-        {story.summary?.content && (
+        {story.summary && (
           <div className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border/40">
             <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {story.summary.content}
+              {story.summary}
             </p>
           </div>
         )}
 
-        <TipTapReader document={story.document} />
+        <TipTapReader document={story.content} />
       </motion.div>
 
       {/* Interactive Stats Row: Like · Comment · Share — left aligned */}

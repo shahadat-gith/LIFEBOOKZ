@@ -1,10 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import Badge from "../ui/Badge";
 import { Icons } from "../../icons";
 
 export default function VerificationBanner({
   currentStep,
-  overallAssessment,
   verificationIssues = [],
 }) {
   return (
@@ -25,11 +23,10 @@ export default function VerificationBanner({
                 <h3 className="text-sm font-semibold text-success">
                   Verification Passed &check;
                 </h3>
-                {overallAssessment && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {overallAssessment}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Your story passed content review and is being finalized for
+                  publication.
+                </p>
               </div>
             </div>
           </motion.div>
@@ -55,40 +52,16 @@ export default function VerificationBanner({
                 <div key={i} className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-0.5">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          issue.severity === "high"
-                            ? "bg-destructive"
-                            : issue.severity === "medium"
-                            ? "bg-warning"
-                            : "bg-muted-foreground"
-                        }`}
-                      />
+                      <div className="w-2 h-2 rounded-full bg-destructive" />
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-foreground capitalize">
-                          {issue.category?.replace(/_/g, " ")}
-                        </span>
-                        <Badge
-                          variant={
-                            issue.severity === "high"
-                              ? "danger"
-                              : issue.severity === "medium"
-                              ? "warning"
-                              : "default"
-                          }
-                        >
-                          {issue.severity}
-                        </Badge>
-                      </div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-foreground">
                         {issue.description}
                       </p>
-                      {issue.suggestion && (
+                      {issue.suggestedChange && (
                         <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
                           <Icons.sparkles className="h-3 w-3 flex-shrink-0 mt-0.5 text-primary" />
-                          {issue.suggestion}
+                          {issue.suggestedChange}
                         </p>
                       )}
                     </div>
@@ -96,13 +69,6 @@ export default function VerificationBanner({
                 </div>
               ))}
             </div>
-            {overallAssessment && (
-              <div className="p-4 bg-destructive/5 border-t border-destructive/10">
-                <p className="text-xs text-muted-foreground italic">
-                  {overallAssessment}
-                </p>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

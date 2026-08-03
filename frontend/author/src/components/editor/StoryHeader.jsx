@@ -4,9 +4,13 @@ import Badge from "../ui/Badge";
 const STATUS_BADGE = {
   draft: "warning",
   rejected: "danger",
-  verified: "success",
+  failed: "danger",
   submitted: "info",
-  processing: "info",
+  analyzing: "info",
+  verified: "success",
+  enriching: "info",
+  enriched: "info",
+  published: "success",
 };
 
 export default function StoryHeader({ isEditMode, storyStatus, currentStep }) {
@@ -33,7 +37,7 @@ export default function StoryHeader({ isEditMode, storyStatus, currentStep }) {
           {currentStep === "issues"
             ? "Fix the verification issues below and resubmit your manuscript."
             : currentStep === "verified"
-            ? "Your narrative passed verification! Click Publish to make it live."
+            ? "Your narrative passed verification — it will be published shortly."
             : "Record authentic life stories, family histories, or biographies."}
         </p>
       </motion.div>

@@ -237,8 +237,7 @@ export default function AdminDashboardPage() {
             ) : (
               <div className="divide-y divide-border">
                 {recentStories.map((story) => {
-                  const docHtml = typeof story.document === 'string' ? story.document : '';
-                  const preview = docHtml.replace(/<[^>]*>/g, '').trim() || 'Untitled';
+                  const preview = story.title?.trim() || 'Untitled';
                   const truncated = preview.length > 60 ? preview.slice(0, 60) + '...' : preview;
                   return (
                     <div key={story._id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
