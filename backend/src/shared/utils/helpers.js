@@ -1,17 +1,39 @@
 import jwt from "jsonwebtoken";
+import { v5 as uuidv5 } from "uuid";
 import config from "../config/index.js";
+import Story from "../../story/models/Story.js";
 
 export function generateToken(payload) {
-  // Token lifetime is 7 days.
   return jwt.sign(payload, config.jwt.secret, { expiresIn: "7d" });
 }
 
-/**
- * Extract plain text from a story document.
- * The document can be either:
- * - A string (HTML content), in which case HTML tags are stripped
- * - An object (TipTap JSON), in which case text is recursively extracted from nodes
- */
+
+
+const QDRANT_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+export function toQdrantUuid(mongoId) {
+  return uuidv5(mongoId.toString(), QDRANT_NAMESPACE);
+}
+
+export function parseJsonFromLLM(text) {
+  // Strip markdown code blocks if the LLM wraps the json response
+  const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
+  return JSON.parse(cleanedText);
+}
+
+
+export async function getStory(storyId) {
+  const story = await Story.findById(storyId);
+
+  if (!story) {
+    throw new Error(`Story not found: ${storyId}`);
+  }
+
+  return story;
+}
+
+
+
 export function extractTextFromDocument(document) {
   if (!document) return "";
 
@@ -48,3 +70,6 @@ function extractTextFromNode(node) {
 
   return "";
 }
+
+
+

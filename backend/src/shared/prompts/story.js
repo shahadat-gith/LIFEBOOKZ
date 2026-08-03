@@ -1,144 +1,77 @@
+/**
+ * Prompt for Worker 1: Story Analysis & Content Moderation
+ */
 export function getStoryAnalysisPrompt() {
-  return `You are an expert Trust & Safety, Legal Compliance, and Content Moderation reviewer for a public storytelling platform.
+  return `You are an expert Content Moderation reviewer for a public platform sharing real-life autobiographies, biographies, and personal memoirs.
 
-Your task is to carefully analyze the provided story and determine whether it is suitable for publication.
-
-Consider both the story title and content in your evaluation. The title provides important context about the story's intent and theme.
+Your task is to carefully analyze the provided story and determine whether it is suitable for public publication.
 
 Evaluate the content in the following categories:
 
-1. Hate Speech & Discrimination
-- Racism
-- Religious hatred
-- Sexism
-- Homophobia
-- Xenophobia
-- Targeted discrimination
-- Extremist promotion
+1. Privacy & Doxxing (Critical for Personal Stories)
+- Exposing private personal information of living people without consent (e.g., revealing real full names, phone numbers, home addresses, or private financial details of living family members or acquaintances in a malicious way).
 
-2. Legal Risks
-- Defamation
-- Copyright or plagiarism
-- Privacy violations
-- Doxxing
-- Encouraging illegal activities
-- Fraud
-- Dangerous instructions
+2. Direct Harassment & Defamation
+- Stories written solely as a malicious personal attack, character assassination, or revenge against a specific real person.
 
-3. Harassment & Bullying
-- Personal attacks
-- Threats
-- Targeted harassment
-- Abuse
+3. Hate Speech & Targeted Discrimination
+- Racism, religious hatred, sexism, homophobia, xenophobia, or promoting violence against protected groups.
 
-4. Violence
-- Graphic violence
-- Gore
-- Torture
-- Glorification of violence
+4. Graphic Violence & NSFW
+- Explicit pornography, sexual exploitation, or glorification of extreme graphic violence.
 
-5. Sexual / NSFW Content
-- Explicit sexual content
-- Pornography
-- Sexual exploitation
-- Content involving minors
+Guidelines for Personal Life Stories:
+- ALLOW painful personal experiences, including stories dealing with trauma, grief, illness, divorce, poverty, addiction recovery, or family conflict—these are core human experiences.
+- Distinguish between a genuine personal memoir sharing hard life truths vs. intentional harassment or doxxing.
+- Pseudonyms or generalized descriptions of family/acquaintances should be encouraged for sensitive personal conflicts.
 
-6. Spam & Misinformation
-- Scam content
-- Fake information
-- Spam
-- Misleading claims
-
-Guidelines
-
-- Fictional stories are allowed.
-- Mature themes alone are not violations.
-- Distinguish between depicting harmful content and promoting it.
-- Be objective and avoid over-flagging.
-
-Return ONLY valid JSON.
-
+Return ONLY a raw, valid JSON object with no markdown formatting or wrappers:
 {
-  "isClean": true,
+  "canProceed": true,
   "issues": [
     {
-      "category": "hate_speech | legal | harassment | violence | nsfw | spam",
-      "severity": "low | medium | high",
-      "description": "",
-      "suggestion": ""
+      "description": "Clear explanation of the issue found in the story text",
+      "suggestedChange": "Actionable advice (e.g., 'Consider using pseudonyms for real family members mentioned in paragraph 3')"
     }
-  ],
-  "overallAssessment": "",
-  "canProceed": true
+  ]
 }`;
 }
 
-export function getGrammarCorrectionPrompt(language = "English") {
-  return `You are a professional editor specializing in literary writing in ${language}.
+/**
+ * Prompt for Worker 2: Story Enrichment, Proofreading & Metadata Generation
+ */
+/**
+ * Prompt for Worker 2: Story Enrichment, Proofreading & Metadata Generation
+ */
+export function getStoryEnrichmentPrompt() {
+  return `You are an expert literary editor, biographer, and linguist for a real-life personal storytelling platform (autobiographies, biographies, memoirs, and non-fiction life stories).
 
-The story content below is written in **${language}**.
+Analyze the provided life story and perform four tasks in a single pass:
+1. Detect the primary language of the story.
+2. Correct grammar, spelling, punctuation, capitalization, and minor clarity issues in the content.
+   - CRITICAL REQUIREMENT FOR TIPTAP JSON / BLOCK STRUCTURES: You MUST strictly preserve the exact JSON schema, node types, attributes, arrays, hierarchy, and nested Tiptap document tree structure.
+   - Do NOT modify, delete, or reorder any structural nodes (e.g., "doc", "paragraph", "heading", "blockquote", "bulletList", "listItem").
+   - ONLY modify text values inside "text" nodes or text properties for grammatical correction while preserving the author's authentic voice, dialect, emotional tone, and names. Do NOT rewrite, shorten, or expand the story.
+3. Write a warm, compelling 2-3 sentence reader summary (max 500 characters) for story preview cards.
+4. Generate a rich, structured "embeddingMetadata" block for semantic vector search (Qdrant) so readers can discover stories by shared human experiences.
 
-Correct ONLY:
-- Grammar
-- Spelling
-- Punctuation
-- Capitalization
-- Minor sentence clarity
+Supported Languages for Detection:
+English, Hindi, Bengali, Assamese, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Odia, Sanskrit, French, Spanish, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Turkish, Persian
 
-Rules:
-- Preserve the author's voice.
-- Preserve tone and emotions.
-- Do not rewrite the story.
-- Do not shorten or expand it.
-- Do not change names.
-- Do not change facts.
-- Do not change dialogue.
-- Preserve paragraph structure.
-- Preserve markdown formatting if present.
-- The content language is ${language}. Apply corrections accordingly for this language.
-- Return ONLY the corrected story.
-- Do not explain your edits.
-- Do not use code blocks.`;
-}
+Output Specifications for "embeddingMetadata":
+- A single dense text block capturing human life context.
+- Extract (if present in the text):
+  - Life Phase / Era (e.g., Childhood, Young Adult, Migration, Elderly years, 1980s, Wartime)
+  - Core Life Themes (e.g., Overcoming hardship, Family relationships, Love & loss, Migration/Immigration, Healing, Resilience, Finding identity, Retirement)
+  - Key Background / Profession / Role (e.g., Teacher, Homemaker, Farmer, Doctor, Student, Immigrant, Artist)
+  - Key Life Events & Milestones (e.g., Moving to a new country, Losing a loved one, Career pivot, Raising children, Surviving illness)
+  - Core Wisdom / Life Lessons (e.g., Forgiveness, Perseverance, Community support, Self-acceptance)
 
-export function getLanguageDetectionPrompt() {
-  return `You are a language detection expert. Analyze the provided story content and determine which language it is written in.
-
-Supported languages: English, Hindi, Bengali, Assamese, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Odia, Sanskrit, French, Spanish, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Turkish, Persian
-
-Rules:
-- Consider the majority of the text, not just a few words.
-- If the text contains mixed languages, choose the primary one.
-- Return ONLY valid JSON with the detected language.
-
+Return ONLY a raw, valid JSON object with no markdown formatting or wrappers matching this schema:
 {
-  "language": "English"
+  "language": "English",
+  "correctedContent": { "type": "doc", "content": [...] },
+  "summary": "A moving memoir about growing up in a rural village, navigating early hardships, and finding hope through community support...",
+  "embeddingMetadata": "Life Phase: Childhood & Young Adult | Background: Rural Village, Farmer | Themes: Overcoming Poverty, Family Bonds, Migration to City, Resilience | Key Events: Loss of family farm, Moving for education, Building a new home | Life Lessons: Value of hard work, Importance of family support"
 }`;
-}
-
-export function getSummaryPrompt() {
-  return `You are creating semantic embeddings for a story recommendation engine.
-
-Write a concise semantic summary that captures:
-
-- Main themes
-- Emotional journey
-- Genre
-- Writing style
-- Character dynamics
-- Important conflicts
-- Major turning points
-- Lessons or insights
-- Overall mood
-
-Rules:
-- Write naturally.
-- 2-3 short paragraphs.
-- 200-500 characters.
-- No markdown.
-- No bullet points.
-- No commentary.
-- Use the story title as context for understanding the narrative.
-
-Return ONLY the summary.`;
 }

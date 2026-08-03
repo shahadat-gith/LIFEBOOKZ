@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from "uuid";
 import Story from "../../../story/models/Story.js";
 import Author from "../../../author/model.js";
 import { publishMessage } from "../publishers.js";
@@ -7,12 +8,13 @@ import { generateEmbedding } from "../../services/embedding.js";
 
 import {
   getStoryAnalysisPrompt,
-  getSummaryPrompt,
+  getStoryEnrichmentPrompt,
 } from "../../prompts/story.js";
 
 import { getQdrantClient } from "../../config/qdrant.js";
 import config from "../../config/index.js";
 import { extractTextFromDocument } from "../../utils/helpers.js";
+import { parseJsonFromLLM, toQdrantUuid, getStory } from "../../utils/helpers.js";
 
 const qdrant = getQdrantClient();
 
@@ -21,8 +23,8 @@ export async function processStoryJob({ jobType, storyId }) {
     case "story_analysis":
       return analyzeStory(storyId);
 
-    case "story_summary":
-      return generateSummary(storyId);
+    case "story_enrichment":
+      return enrichStory(storyId);
 
     case "story_embedding":
       return generateStoryEmbedding(storyId);
@@ -32,64 +34,54 @@ export async function processStoryJob({ jobType, storyId }) {
   }
 }
 
-async function getStory(storyId) {
-  const story = await Story.findById(storyId);
-
-  if (!story) {
-    throw new Error(`Story not found: ${storyId}`);
-  }
-
-  return story;
-}
-
 async function analyzeStory(storyId) {
   const story = await getStory(storyId);
 
-  // idempotency
-  if (
-    story.verification.status === "completed" ||
-    story.status === "rejected"
-  ) {
+  // Idempotency check
+  if (story.status === "verified" || story.status === "rejected") {
     return;
   }
 
   await Story.findByIdAndUpdate(storyId, {
     $set: {
-      status: "processing",
-      "verification.status": "processing",
+      status: "analyzing",
+      "processing.currentStep": "analysis",
+      "processing.startedAt": story.processing?.startedAt || new Date(),
     },
   });
 
   try {
-    const plainText = extractTextFromDocument(story.document);
+    const plainText = extractTextFromDocument(story.content);
 
-    const result = JSON.parse(
-      await generateContent({
-        system: getStoryAnalysisPrompt(),
-        prompt: plainText,
-        json: true,
-      }),
-    );
+    const systemPrompt = getStoryAnalysisPrompt();
+    const rawResponse = await generateContent({
+      system: systemPrompt,
+      prompt: `Title: ${story.title}\n\n${plainText}`,
+      json: true,
+    });
+
+    const result = parseJsonFromLLM(rawResponse);
 
     await Story.findByIdAndUpdate(storyId, {
       $set: {
-        "verification.status": "completed",
-        "verification.canProceed": result.canProceed,
-        "verification.issues": result.issues ?? [],
-        status: result.canProceed ? "processing" : "rejected",
+        status: result.canProceed ? "verified" : "rejected",
+        "analysis.canProceed": result.canProceed,
+        "analysis.issues": result.issues ?? [],
+        "analysis.analyzedAt": new Date(),
       },
     });
 
     if (!result.canProceed) return;
 
     await publishMessage({
-      jobType: "story_summary",
+      jobType: "story_enrichment",
       storyId,
     });
   } catch (error) {
     await Story.findByIdAndUpdate(storyId, {
       $set: {
-        "verification.status": "failed",
+        status: "failed",
+        "processing.error": error.message || "Story analysis failed",
       },
     });
 
@@ -97,31 +89,50 @@ async function analyzeStory(storyId) {
   }
 }
 
-async function generateSummary(storyId) {
+async function enrichStory(storyId) {
   const story = await getStory(storyId);
 
-  if (story.summary.status === "completed") {
+  // Idempotency check
+  if (story.status === "enriched" || story.status === "published") {
     return;
   }
 
   await Story.findByIdAndUpdate(storyId, {
     $set: {
-      "summary.status": "processing",
+      status: "enriching",
+      "processing.currentStep": "enrichment",
     },
   });
 
   try {
-    const plainText = extractTextFromDocument(story.document);
+    // Pass stringified Tiptap JSON document tree directly to prompt
+    const documentContent =
+      typeof story.content === "object"
+        ? JSON.stringify(story.content)
+        : story.content;
 
-    const summary = await generateContent({
-      system: getSummaryPrompt(),
-      prompt: plainText,
+    const rawResponse = await generateContent({
+      system: getStoryEnrichmentPrompt(),
+      prompt: `Title: ${story.title}\n\nDocument Structure:\n${documentContent}`,
+      json: true,
     });
+
+    const { language, correctedContent, summary, embeddingMetadata } =
+      parseJsonFromLLM(rawResponse);
+
+    // Fallback safely to original Tiptap structure if modified structure is invalid
+    const updatedContent =
+      correctedContent && typeof correctedContent === "object"
+        ? correctedContent
+        : story.content;
 
     await Story.findByIdAndUpdate(storyId, {
       $set: {
-        "summary.status": "completed",
-        "summary.content": summary.trim(),
+        status: "enriched",
+        content: updatedContent,
+        language: language || story.language || "English",
+        summary: (summary || "").trim(),
+        embeddingMetadata: (embeddingMetadata || "").trim(),
       },
     });
 
@@ -132,7 +143,8 @@ async function generateSummary(storyId) {
   } catch (error) {
     await Story.findByIdAndUpdate(storyId, {
       $set: {
-        "summary.status": "failed",
+        status: "failed",
+        "processing.error": error.message || "Story enrichment failed",
       },
     });
 
@@ -143,67 +155,60 @@ async function generateSummary(storyId) {
 async function generateStoryEmbedding(storyId) {
   const story = await getStory(storyId);
 
-  const plainText = extractTextFromDocument(story.document);
-  const title = story.title?.trim()
-    || (plainText
-      ? plainText.slice(0, 100).replace(/\s+\S*$/, "") + "..."
-      : "Untitled");
-
-  const summary = story.summary?.content || plainText.slice(0, 500);
-  if (!summary) {
+  // Embed the rich metadata directly
+  const textToEmbed = story.embeddingMetadata || story.summary;
+  if (!textToEmbed) {
     return;
   }
 
-  // Include author details so the embedding + payload capture the necessary context
-  const author = story.author
-    ? await Author.findById(story.author).select("fullName profession").lean()
-    : null;
+  await Story.findByIdAndUpdate(storyId, {
+    $set: {
+      "processing.currentStep": "embedding",
+    },
+  });
 
-  // Embed the story together with its key metadata for richer semantics
-  const embeddingText = [
-    `Title: ${title}`,
-    `Story type: ${story.storyType || ""}`,
-    `Language: ${story.language || ""}`,
-    author?.profession ? `Author profession: ${author.profession}` : "",
-    `Summary: ${summary}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const author = await Author.findById(story.author)
+    .select("fullName")
+    .lean();
 
-  const embedding = await generateEmbedding(embeddingText);
+  const embedding = await generateEmbedding(textToEmbed);
 
+  // Convert Mongo ObjectId to valid Qdrant UUID format
+  const qdrantPointId = toQdrantUuid(story._id);
+
+  // Minimal UI preview payload for vector search cards
   await qdrant.upsert(config.qdrant.collections.story, {
     wait: true,
     points: [
       {
-        id: story.id,
+        id: qdrantPointId,
         vector: embedding,
         payload: {
           storyId: story.id,
           authorId: story.author.toString(),
           authorName: author?.fullName || "",
-          authorProfession: (author?.profession || "").toLowerCase(),
-          title,
-          summary: story.summary.content || "",
+          title: story.title || "",
+          summary: story.summary || "",
           storyType: story.storyType || "",
-          language: story.language || "",
+          language: story.language || "English",
           slug: story.slug || "",
           coverImage: story.coverImage?.url || "",
           publishedAt: story.publishedAt
             ? new Date(story.publishedAt).toISOString()
-            : "",
+            : new Date().toISOString(),
         },
       },
     ],
   });
 
-  // Only transition status if the story isn't already published
+  // Use save() to run schema pre-save hooks (slug & publishedAt triggers)
   if (story.status !== "published") {
-    await Story.findByIdAndUpdate(storyId, {
-      $set: {
-        status: "published",
-        publishedAt: new Date(),
-      },
-    });
+    story.status = "published";
+    story.processing.currentStep = "completed";
+    story.processing.completedAt = new Date();
+    if (!story.publishedAt) {
+      story.publishedAt = new Date();
+    }
+    await story.save();
   }
 }

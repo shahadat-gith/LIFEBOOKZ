@@ -3,45 +3,75 @@ import slugify from "slugify";
 import { nanoid } from "nanoid";
 import { imageSchema } from "../../shared/models/image.schema.js";
 
-
-const issueSchema = new mongoose.Schema(
+const analysisSchema = new mongoose.Schema(
   {
-    description: { type: String, required: true, trim: true },
-    suggestion: { type: String, default: "", trim: true },
+    canProceed: {
+      type: Boolean,
+      default: true,
+    },
+    issues: [
+      {
+        description: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        suggestedChange: {
+          type: String,
+          trim: true,
+          default: "",
+        },
+      },
+    ],
+    analyzedAt: {
+      type: Date,
+      default: null,
+    },
+    model: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   { _id: false }
 );
 
-const verificationSchema = new mongoose.Schema(
+const processingSchema = new mongoose.Schema(
   {
-    status: {
-      type: String,
-      enum: ["pending", "processing", "completed", "failed"],
-      default: "pending",
+    startedAt: {
+      type: Date,
+      default: null,
     },
-    canProceed: { type: Boolean, default: true },
-    issues: { type: [issueSchema], default: [] },
-  },
-  { _id: false }
-);
-
-const summarySchema = new mongoose.Schema(
-  {
-    status: {
-      type: String,
-      enum: ["pending", "processing", "completed", "failed"],
-      default: "pending",
+    completedAt: {
+      type: Date,
+      default: null,
     },
-    content: { type: String, default: "", trim: true },
+    retries: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    currentStep: {
+      type: String,
+      enum: ["idle", "analysis", "enrichment", "embedding", "completed"],
+      default: null,
+    },
+    error: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   { _id: false }
 );
 
 const statsSchema = new mongoose.Schema(
   {
+    views: { type: Number, default: 0, min: 0 },
     likes: { type: Number, default: 0, min: 0 },
     comments: { type: Number, default: 0, min: 0 },
     shares: { type: Number, default: 0, min: 0 },
+    bookmarks: { type: Number, default: 0, min: 0 },
   },
   { _id: false }
 );
@@ -52,7 +82,14 @@ const storySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Author",
       required: true,
-      index: true,
+    },
+
+    // Denormalized for filtering
+    authorProfession: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: null,
     },
 
     title: {
@@ -67,23 +104,17 @@ const storySchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       lowercase: true,
-      index: true,
     },
 
     coverImage: {
       type: imageSchema,
-      default: null, // Default to null instead of an empty object
+      default: null,
     },
 
     storyType: {
       type: String,
-      enum: ["autobiography", "biography", "legend"],
+      enum: ["autobiography", "biography", "memoir", "legend"],
       required: true,
-    },
-
-    language: {
-      type: String,
-      default: "en",
     },
 
     status: {
@@ -91,41 +122,92 @@ const storySchema = new mongoose.Schema(
       enum: [
         "draft",
         "submitted",
-        "processing",
+        "analyzing",
         "verified",
+        "enriching",
+        "enriched",
         "published",
         "rejected",
+        "failed",
       ],
       default: "draft",
-      index: true,
     },
 
-    // Flexible container for raw TipTap editor state (editor.getJSON())
-    document: {
+    visibility: {
+      type: String,
+      enum: ["public", "private", "unlisted"],
+      default: "public",
+    },
+
+    language: {
+      type: String,
+      default: "English",
+    },
+
+    /**
+     * Final Tiptap document format.
+     */
+    content: {
       type: mongoose.Schema.Types.Mixed,
       required: true,
-      default: { type: "doc", content: [] }, // Default empty TipTap document structure
+      default: () => ({
+        type: "doc",
+        content: [],
+      }),
     },
 
     summary: {
-      type: summarySchema,
-      default: () => ({}),
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 500,
     },
 
-    verification: {
-      type: verificationSchema,
-      default: () => ({}),
+    // AI generated for semantic search & embeddings
+    embeddingMetadata: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 5000,
+    },
+
+    analysis: {
+      type: analysisSchema,
+    },
+
+    processing: {
+      type: processingSchema,
     },
 
     stats: {
       type: statsSchema,
-      default: () => ({}),
+      default: {},
     },
 
-    publishedAt: Date,
+    recentLikers: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        fullName: String,
+        avatar: String,
+      },
+    ],
+
+    featured: {
+      type: Boolean,
+      default: false,
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
+
     toJSON: {
       virtuals: true,
       transform(_doc, ret) {
@@ -135,30 +217,37 @@ const storySchema = new mongoose.Schema(
         return ret;
       },
     },
+
     toObject: {
       virtuals: true,
     },
   }
 );
 
-// Indexes
+// Compound Indexes for queries
 storySchema.index({ author: 1, updatedAt: -1 });
-storySchema.index({ status: 1, updatedAt: -1 });
-storySchema.index({ storyType: 1, status: 1 });
-storySchema.index({ publishedAt: -1 });
+storySchema.index({ author: 1, status: 1, updatedAt: -1 });
+storySchema.index({ status: 1, visibility: 1, publishedAt: -1 });
+storySchema.index({ status: 1, visibility: 1, "stats.likes": -1, publishedAt: -1 });
+storySchema.index({ status: 1, storyType: 1, publishedAt: -1 });
+storySchema.index({ status: 1, authorProfession: 1, publishedAt: -1 });
+storySchema.index({ status: 1, language: 1, publishedAt: -1 });
+storySchema.index({ featured: 1, publishedAt: -1 });
 
-// Hooks
-storySchema.pre("save", function (next) {
+// Middleware
+storySchema.pre("save", function () {
+  // Generate slug only once when title exists
   if (this.title && (!this.slug || this.isModified("title"))) {
     const baseSlug = slugify(this.title, {
       lower: true,
       strict: true,
       trim: true,
     });
-    // Append a unique short suffix to avoid collision crashes on duplicate titles
-    this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
+
+    this.slug = `${baseSlug}-${nanoid(8)}`;
   }
 
+  // Set first publish timestamp
   if (
     this.isModified("status") &&
     this.status === "published" &&
@@ -166,8 +255,6 @@ storySchema.pre("save", function (next) {
   ) {
     this.publishedAt = new Date();
   }
-
-  next();
 });
 
 const Story = mongoose.models.Story || mongoose.model("Story", storySchema);
