@@ -163,7 +163,7 @@ const storySchema = new mongoose.Schema(
       maxlength: 500,
     },
 
-    // AI generated for semantic search & embeddings
+    // AI generated for story search & embeddings
     embeddingMetadata: {
       type: String,
       trim: true,

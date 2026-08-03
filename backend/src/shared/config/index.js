@@ -42,7 +42,7 @@ const config = {
   qdrant: {
     url: process.env.QDRANT_ENDPOINT,
     apiKey: process.env.QDRANT_API_KEY,
-    vectorSize: 512,
+    vectorSize: 2560,
     collections: {
       user: "lifebookz_user_embeddings",
       story: "lifebookz_story_embeddings",

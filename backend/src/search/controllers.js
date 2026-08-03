@@ -13,12 +13,7 @@ const qdrant = getQdrantClient();
 const STORY_SELECT =
   "title slug summary content coverImage author storyType language stats publishedAt createdAt";
 
-/**
- * Semantic story search.
- * Embeds the query, runs a vector search against the Qdrant story collection
- * (optionally filtered by author profession / story type), then hydrates the
- * matched stories from MongoDB so the response shape matches the feed.
- */
+
 export async function semanticSearch(req, res, next) {
   try {
     const q = req.query.q?.trim() || "";
@@ -51,15 +46,13 @@ export async function semanticSearch(req, res, next) {
       });
     }
 
-    // 3. Vector search in Qdrant
-    const response = await qdrant.search(config.qdrant.collections.story, {
+    // 3. Vector search in Qdrant — the client returns the hits array directly
+    const hits = await qdrant.search(config.qdrant.collections.story, {
       vector: embedding,
       limit,
       with_payload: true,
       ...(must.length ? { filter: { must } } : {}),
     });
-
-    const hits = response.result || [];
     const storyIds = hits
       .map((hit) => hit.payload?.storyId || String(hit.id))
       .filter(Boolean);
@@ -131,10 +124,7 @@ export async function semanticSearch(req, res, next) {
   }
 }
 
-/**
- * Distinct author professions (approved, active authors) used to populate
- * the feed's "filter by author profession" box.
- */
+
 export async function getProfessions(req, res, next) {
   try {
     const professions = await Author.aggregate([

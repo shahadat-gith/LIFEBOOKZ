@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import AdminLayout, { AuthLayout } from './components/layout/AppLayout';
@@ -16,9 +16,21 @@ const Stories = lazy(() => import('./pages/Stories'));
 
 function LF() { return <LoadingScreen message="Loading..." />; }
 
+// Scroll back to the top whenever the route (URL) changes
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Suspense fallback={<LF />}>
           <Routes>

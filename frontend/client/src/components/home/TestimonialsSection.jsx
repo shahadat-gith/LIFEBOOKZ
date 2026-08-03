@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Avatar } from "../ui/Avatar";
+import { Icons } from "../../icons";
 import api from "../../config/axios";
 
 const FALLBACK_TESTIMONIALS = [
@@ -11,6 +12,7 @@ const FALLBACK_TESTIMONIALS = [
     avatar: "",
     content:
       "Lifebookz gave me the platform to share my Hindi stories with readers across India. The editing tools helped me refine my work beautifully.",
+    rating: 5,
   },
   {
     name: "Arun Kumar",
@@ -19,6 +21,7 @@ const FALLBACK_TESTIMONIALS = [
     avatar: "",
     content:
       "Writing in Tamil and reaching thousands of readers was a dream. Lifebookz made it real. The community is incredibly supportive.",
+    rating: 5,
   },
   {
     name: "Sneha Patel",
@@ -27,6 +30,7 @@ const FALLBACK_TESTIMONIALS = [
     avatar: "",
     content:
       "The platform is so intuitive! I love how I can read stories in my native language and discover regional voices from across India.",
+    rating: 5,
   },
   {
     name: "Rajesh Das",
@@ -35,6 +39,7 @@ const FALLBACK_TESTIMONIALS = [
     avatar: "",
     content:
       "A wonderfully crafted space for modern Indian literature. Exploring distinct regional stories has never been easier.",
+    rating: 5,
   },
 ];
 
@@ -59,10 +64,11 @@ function mapApiToCard(t) {
     title: person.profession || "Community Member",
     avatar: person.avatar?.url || "",
     content: t.message || "",
+    rating: Number(t.rating) || 0,
   };
 }
 
-export function TestimonialsSection() {
+export function TestimonialsSection({ refreshKey = 0 }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,7 +96,7 @@ export function TestimonialsSection() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   // Use hardcoded fallback while loading to avoid visual blankness
   const displayCards = (loading ? [] : cards).length > 0 ? cards : FALLBACK_TESTIMONIALS;
@@ -169,9 +175,25 @@ export function TestimonialsSection() {
                     </div>
 
                     {/* Content */}
-                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-8">
+                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-4">
                       &ldquo;{testimonial.content}&rdquo;
                     </p>
+
+                    {/* Star rating */}
+                    {testimonial.rating > 0 && (
+                      <div className="flex gap-0.5 mb-8">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Icons.starSolid
+                            key={n}
+                            className={`h-3.5 w-3.5 ${
+                              n <= testimonial.rating
+                                ? "text-amber-400"
+                                : "text-muted-foreground/25"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Author Info Footer */}

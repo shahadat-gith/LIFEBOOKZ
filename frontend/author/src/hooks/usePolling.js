@@ -13,7 +13,7 @@ export function usePolling(onSuccess) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await api.get(`/authors/me/stories/${storyId}`);
+        const res = await api.get(`/authors/me/stories/${storyId}/status`);
         const story = res.data.data;
         setStoryStatus(story.status);
         if (story.status === "published") {
@@ -41,7 +41,7 @@ export function usePolling(onSuccess) {
           setPollMessage(
             story.status === "draft"
               ? "Story is being processed..."
-              : "Analyzing your story...",
+              : "Analysing your story — this may take up to 3–4 minutes.",
           );
         }
       } catch {
@@ -55,7 +55,7 @@ export function usePolling(onSuccess) {
   const startPolling = useCallback((id) => {
     setStoryId(id);
     setPollStatus("polling");
-    setPollMessage("Story submitted! Analyzing your story...");
+    setPollMessage("Story submitted! Analysing your story — this may take up to 3–4 minutes.");
     setIssues([]);
     setStoryStatus(null);
   }, []);

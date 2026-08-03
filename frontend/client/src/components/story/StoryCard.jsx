@@ -5,7 +5,7 @@ import Avatar from "../ui/Avatar";
 import FollowButton from "./FollowButton";
 import { extractTextFromDocument } from "./TipTapReader";
 import { Icons } from "../../icons";
-import { getTimeAgo } from "../../utils/helpers";
+import { getTimeAgo, formatLikesCaption } from "../../utils/helpers";
 import api from "../../config/axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
@@ -17,9 +17,10 @@ export default function StoryCard({
   showActions = true,
 }) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [liked, setLiked] = useState(story.likedByUser || false);
   const [likeCount, setLikeCount] = useState(story.stats?.likes || 0);
+  const [recentLikers, setRecentLikers] = useState(story.recentLikers || []);
 
   const author = story.author || {};
   const authorName = author.fullName || "Anonymous Author";
@@ -29,6 +30,7 @@ export default function StoryCard({
 
   const commentCount = story.stats?.comments || 0;
   const shareCount = story.stats?.shares || 0;
+  const likesCaption = formatLikesCaption(recentLikers, likeCount);
 
   const snippetText = useMemo(() => {
     return extractTextFromDocument(story.content, fixedSnippetLength);
@@ -43,8 +45,22 @@ export default function StoryCard({
       return;
     }
     const next = !liked;
+    const currentUserId = user?.id || user?._id;
+
     setLiked(next);
     setLikeCount((c) => (next ? c + 1 : c - 1));
+    // Keep the "Liked by ..." caption in sync optimistically
+    setRecentLikers((prev) => {
+      const list = prev || [];
+      if (next) {
+        const filtered = list.filter(
+          (l) => String(l.user) !== String(currentUserId),
+        );
+        return [{ fullName: user?.fullName || "You" }, ...filtered].slice(0, 3);
+      }
+      return list.filter((l) => String(l.user) !== String(currentUserId));
+    });
+
     try {
       const res = await api.post(`/stories/${story._id}/like`);
       if (res.data?.data?.liked !== undefined && res.data.data.liked !== next) {
@@ -54,6 +70,7 @@ export default function StoryCard({
     } catch {
       setLiked(liked);
       setLikeCount((c) => (liked ? c + 1 : c - 1));
+      setRecentLikers(story.recentLikers || []);
       toast.error("Failed to update like");
     }
   }
@@ -197,6 +214,11 @@ export default function StoryCard({
               <span>{shareCount}</span>
             </button>
           </div>
+
+          {/* Instagram-style like caption */}
+          {likesCaption && (
+            <p className="text-xs text-muted-foreground mt-2.5">{likesCaption}</p>
+          )}
         </div>
       )}
     </motion.article>

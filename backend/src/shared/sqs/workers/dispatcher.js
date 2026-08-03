@@ -12,7 +12,9 @@ export async function dispatch(message) {
   const worker = workers[message.jobType];
 
   if (!worker) {
-    throw new Error(`Unknown job type: ${message.jobType}`);
+    const error = new Error(`Unknown job type: ${message.jobType}`);
+    console.error("[SQS] ❌ dispatch:", error.message, JSON.stringify(message));
+    throw error;
   }
 
   return worker(message);

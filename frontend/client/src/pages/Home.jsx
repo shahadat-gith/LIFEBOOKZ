@@ -4,12 +4,14 @@ import api from "../config/axios";
 import {
   Hero,
   TestimonialsSection,
-  LatestStories
+  TestimonialForm,
+  LatestStories,
 } from "../components/home";
 
 export function HomePage() {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [testimonialsRefresh, setTestimonialsRefresh] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,8 +42,8 @@ export function HomePage() {
     <div className="bg-background text-foreground min-h-screen">
       {/* SECTION 1: HERO */}
       <section className="relative overflow-hidden pt-8 pb-16">
-        <div 
-          className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl -z-10" 
+        <div
+          className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl -z-10"
           aria-hidden="true"
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,10 +64,15 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 3: TESTIMONIALS */}
+      {/* SECTION 3: TESTIMONIALS — share + display */}
       <section className="py-16 md:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <TestimonialsSection />
+          <div className="mt-16">
+            <TestimonialsSection refreshKey={testimonialsRefresh} />
+          </div>
+          <TestimonialForm
+            onSubmitted={() => setTestimonialsRefresh((k) => k + 1)}
+          />
         </div>
       </section>
     </div>

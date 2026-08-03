@@ -379,6 +379,43 @@ export async function getMyStory(req, res, next) {
   }
 }
 
+/**
+ * GET /authors/me/stories/:storyId/status
+ * Lightweight status-only view used by the author editor's polling loop.
+ * Avoids transferring the full story content on every poll tick.
+ */
+export async function getMyStoryStatus(req, res, next) {
+  try {
+    if (!req.user?.id) {
+      throw new Errors.AuthenticationError("Authentication required.");
+    }
+
+    const { storyId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    })
+      .select("status processing analysis")
+      .lean();
+
+    if (!story) {
+      throw new Errors.NotFoundError("Story not found.");
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        status: story.status,
+        processing: story.processing || {},
+        analysis: story.analysis || {},
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 /* ---------- Password Reset (OTP-based) ---------- */
 
 export async function forgotPassword(req, res, next) {

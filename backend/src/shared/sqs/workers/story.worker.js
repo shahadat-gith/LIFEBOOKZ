@@ -37,8 +37,8 @@ export async function processStoryJob({ jobType, storyId }) {
 async function analyzeStory(storyId) {
   const story = await getStory(storyId);
 
-  // Idempotency check
-  if (story.status === "verified" || story.status === "rejected") {
+  // Idempotency check — skip if the pipeline already moved past analysis
+  if (["verified", "rejected", "enriching", "enriched", "published"].includes(story.status)) {
     return;
   }
 
@@ -65,9 +65,10 @@ async function analyzeStory(storyId) {
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: result.canProceed ? "verified" : "rejected",
-        "analysis.canProceed": result.canProceed,
-        "analysis.issues": result.issues ?? [],
+        "analysis.canProceed": !!result.canProceed,
+        "analysis.issues": Array.isArray(result.issues) ? result.issues : [],
         "analysis.analyzedAt": new Date(),
+        "analysis.model": config.openrouter.chatModel || "",
       },
     });
 
@@ -78,6 +79,7 @@ async function analyzeStory(storyId) {
       storyId,
     });
   } catch (error) {
+    console.error(`[SQS] ❌ [analyzeStory] story=${storyId}`, error.message);
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: "failed",
@@ -120,19 +122,33 @@ async function enrichStory(storyId) {
     const { language, correctedContent, summary, embeddingMetadata } =
       parseJsonFromLLM(rawResponse);
 
-    // Fallback safely to original Tiptap structure if modified structure is invalid
-    const updatedContent =
-      correctedContent && typeof correctedContent === "object"
-        ? correctedContent
-        : story.content;
+    // Fallback safely to original Tiptap structure if the returned
+    // structure is missing or is not a valid Tiptap doc node
+    const isTiptapDoc =
+      correctedContent &&
+      typeof correctedContent === "object" &&
+      !Array.isArray(correctedContent) &&
+      correctedContent.type === "doc" &&
+      Array.isArray(correctedContent.content) &&
+      correctedContent.content.length > 0;
+
+    const updatedContent = isTiptapDoc ? correctedContent : story.content;
 
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: "enriched",
         content: updatedContent,
-        language: language || story.language || "English",
-        summary: (summary || "").trim(),
-        embeddingMetadata: (embeddingMetadata || "").trim(),
+        language:
+          typeof language === "string" && language.trim()
+            ? language.trim()
+            : story.language || "English",
+        // Coerce + clamp to schema limits (findByIdAndUpdate skips validators)
+        summary:
+          typeof summary === "string" ? summary.trim().slice(0, 500) : "",
+        embeddingMetadata:
+          typeof embeddingMetadata === "string"
+            ? embeddingMetadata.trim().slice(0, 5000)
+            : "",
       },
     });
 
@@ -141,6 +157,7 @@ async function enrichStory(storyId) {
       storyId,
     });
   } catch (error) {
+    console.error(`[SQS] ❌ [enrichStory] story=${storyId}`, error.message);
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: "failed",
@@ -155,61 +172,85 @@ async function enrichStory(storyId) {
 async function generateStoryEmbedding(storyId) {
   const story = await getStory(storyId);
 
-  // Embed the rich metadata directly
-  const textToEmbed = story.embeddingMetadata || story.summary;
-  if (!textToEmbed) {
+  // Idempotency check
+  if (story.status === "published") {
     return;
   }
 
-  await Story.findByIdAndUpdate(storyId, {
-    $set: {
-      "processing.currentStep": "embedding",
-    },
-  });
+  try {
+    // Embed the rich LLM metadata; fall back to story text so a story is
+    // never left stuck in "enriched" when metadata comes back empty.
+    const textToEmbed =
+      (typeof story.embeddingMetadata === "string" &&
+        story.embeddingMetadata.trim()) ||
+      (typeof story.summary === "string" && story.summary.trim()) ||
+      extractTextFromDocument(story.content);
 
-  const author = await Author.findById(story.author)
-    .select("fullName")
-    .lean();
-
-  const embedding = await generateEmbedding(textToEmbed);
-
-  // Convert Mongo ObjectId to valid Qdrant UUID format
-  const qdrantPointId = toQdrantUuid(story._id);
-
-  // Minimal UI preview payload for vector search cards
-  await qdrant.upsert(config.qdrant.collections.story, {
-    wait: true,
-    points: [
-      {
-        id: qdrantPointId,
-        vector: embedding,
-        payload: {
-          storyId: story.id,
-          authorId: story.author.toString(),
-          authorName: author?.fullName || "",
-          title: story.title || "",
-          summary: story.summary || "",
-          storyType: story.storyType || "",
-          language: story.language || "English",
-          authorProfession: story.authorProfession || "",
-          slug: story.slug || "",
-          coverImage: story.coverImage?.url || "",
-          publishedAt: story.publishedAt
-            ? new Date(story.publishedAt).toISOString()
-            : new Date().toISOString(),
-        },
-      },
-    ],
-  });
-
-  // Use save() to run schema pre-save hooks (slug & publishedAt triggers)
-  if (story.status !== "published") {
-    story.status = "published";
-    story.processing.currentStep = "completed";
-    story.processing.completedAt = new Date();
-    if (!story.publishedAt) {
-      story.publishedAt = new Date();
+    if (!textToEmbed) {
+      throw new Error("Story has no embeddable text");
     }
-    await story.save();
+
+    await Story.findByIdAndUpdate(storyId, {
+      $set: {
+        "processing.currentStep": "embedding",
+      },
+    });
+
+    const author = await Author.findById(story.author)
+      .select("fullName")
+      .lean();
+
+    const embedding = await generateEmbedding(textToEmbed);
+
+    // Convert Mongo ObjectId to valid Qdrant UUID format
+    const qdrantPointId = toQdrantUuid(story._id);
+
+    // Minimal UI preview payload for vector search cards
+    await qdrant.upsert(config.qdrant.collections.story, {
+      wait: true,
+      points: [
+        {
+          id: qdrantPointId,
+          vector: embedding,
+          payload: {
+            storyId: story.id,
+            authorId: story.author.toString(),
+            authorName: author?.fullName || "",
+            title: story.title || "",
+            summary: story.summary || "",
+            storyType: story.storyType || "",
+            language: story.language || "English",
+            authorProfession: story.authorProfession || "",
+            slug: story.slug || "",
+            coverImage: story.coverImage?.url || "",
+            publishedAt: story.publishedAt
+              ? new Date(story.publishedAt).toISOString()
+              : new Date().toISOString(),
+          },
+        },
+      ],
+    });
+
+    // Use save() to run schema pre-save hooks (slug & publishedAt triggers)
+    if (story.status !== "published") {
+      story.status = "published";
+      story.processing = story.processing || {};
+      story.processing.currentStep = "completed";
+      story.processing.completedAt = new Date();
+      if (!story.publishedAt) {
+        story.publishedAt = new Date();
+      }
+      await story.save();
+    }
+  } catch (error) {
+    console.error(`[SQS] ❌ [embedding] story=${storyId}`, error.message);
+    await Story.findByIdAndUpdate(storyId, {
+      $set: {
+        status: "failed",
+        "processing.error": error.message || "Story embedding failed",
+      },
+    });
+
+    throw error;
   }
 }

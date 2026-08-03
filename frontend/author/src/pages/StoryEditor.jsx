@@ -379,7 +379,6 @@ export default function StoryEditorPage() {
       <PollingModal
         pollStatus={pollStatus}
         pollMessage={pollMessage}
-        isEditMode={isEditMode}
         issues={issues}
         onEditStory={handleEditAfterPoll}
         onBackToDashboard={handleBackToDashboard}

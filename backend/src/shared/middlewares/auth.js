@@ -156,3 +156,59 @@ export async function authenticateSoft(req, _res, next) {
     return next(error);
   }
 }
+
+/**
+ * Optional auth — populates req.user/req.role when a valid token is present,
+ * but never blocks anonymous visitors. Use on public routes that want to
+ * personalize responses for logged-in users (e.g. likedByUser, followingAuthor).
+ */
+export async function authenticateOptional(req, _res, next) {
+  try {
+    const token = extractToken(req);
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, config.jwt.secret);
+
+    req.role = decoded.role;
+
+    switch (decoded.role) {
+      case "admin": {
+        if (decoded.key === config.admin.key) req.admin = true;
+        return next();
+      }
+
+      case "user": {
+        const user = await User.findById(decoded.userId).select(
+          "-auth.passwordHash",
+        );
+        if (user) req.user = user;
+        return next();
+      }
+
+      case "author": {
+        const author = await Author.findById(decoded.authorId).select(
+          "-auth.passwordHash",
+        );
+        if (author) req.user = author;
+        return next();
+      }
+
+      default:
+        return next();
+    }
+  } catch (error) {
+    // Invalid/expired/malformed tokens are fine — treat as anonymous.
+    // Real errors (e.g. database failures) should surface like other middlewares.
+    if (
+      error instanceof jwt.JsonWebTokenError ||
+      error instanceof jwt.TokenExpiredError
+    ) {
+      return next();
+    }
+
+    return next(error);
+  }
+}

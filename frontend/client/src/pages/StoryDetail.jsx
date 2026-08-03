@@ -9,19 +9,20 @@ import CommentSection from "../components/story/CommentSection";
 import FollowButton from "../components/story/FollowButton";
 import StoryDetailSkeleton from "../components/skeletons/StoryDetailSkeleton";
 import { Icons } from "../icons";
-import { getTimeAgo } from "../utils/helpers";
+import { getTimeAgo, formatLikesCaption } from "../utils/helpers";
 import toast from "react-hot-toast";
 
 export default function StoryDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [recentLikers, setRecentLikers] = useState([]);
   const [commentTrigger, setCommentTrigger] = useState(0);
   const commentSectionRef = useRef(null);
 
@@ -37,6 +38,7 @@ export default function StoryDetailPage() {
         setStory(data);
         setLiked(data.likedByUser || false);
         setLikeCount(data.stats?.likes || 0);
+        setRecentLikers(data.recentLikers || []);
       })
       .catch((err) => {
         const msg = err.response?.data?.error?.message || "Story not found";
@@ -52,8 +54,22 @@ export default function StoryDetailPage() {
       return;
     }
     const next = !liked;
+    const currentUserId = user?.id || user?._id;
+
     setLiked(next);
     setLikeCount((c) => (next ? c + 1 : c - 1));
+    // Keep the "Liked by ..." caption in sync optimistically
+    setRecentLikers((prev) => {
+      const list = prev || [];
+      if (next) {
+        const filtered = list.filter(
+          (l) => String(l.user) !== String(currentUserId),
+        );
+        return [{ fullName: user?.fullName || "You" }, ...filtered].slice(0, 3);
+      }
+      return list.filter((l) => String(l.user) !== String(currentUserId));
+    });
+
     try {
       const res = await api.post(`/stories/${story._id}/like`);
       if (res.data?.data?.liked !== undefined && res.data.data.liked !== next) {
@@ -63,6 +79,7 @@ export default function StoryDetailPage() {
     } catch {
       setLiked(liked);
       setLikeCount((c) => (liked ? c + 1 : c - 1));
+      setRecentLikers(story.recentLikers || []);
       toast.error("Failed to update like");
     }
   }
@@ -116,6 +133,7 @@ export default function StoryDetailPage() {
   const timeAgo = getTimeAgo(new Date(story.publishedAt || story.createdAt));
   const commentCount = story.stats?.comments || 0;
   const shareCount = story.stats?.shares || 0;
+  const likesCaption = formatLikesCaption(recentLikers, likeCount);
 
   return (
     <motion.div
@@ -258,6 +276,11 @@ export default function StoryDetailPage() {
             <span>{shareCount}</span>
           </button>
         </div>
+
+        {/* Instagram-style like caption */}
+        {likesCaption && (
+          <p className="text-xs text-muted-foreground mt-3">{likesCaption}</p>
+        )}
       </div>
 
       {/* Comments Section */}

@@ -21,6 +21,8 @@ router.patch("/me", authenticateSoft, upload.single("avatar"), author.updateMe);
 
 router.get("/me/stories", authenticateSoft, author.getMyStories);
 
+router.get("/me/stories/:storyId/status", authenticateSoft, author.getMyStoryStatus);
+
 router.get("/me/stories/:storyId", authenticateSoft, author.getMyStory);
 
 /* ---------- Password Reset ---------- */

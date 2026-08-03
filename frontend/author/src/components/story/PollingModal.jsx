@@ -5,11 +5,13 @@ import { Icons } from "../../icons";
 export default function PollingModal({
   pollStatus,
   pollMessage,
-  isEditMode,
   issues,
   onEditStory,
   onBackToDashboard,
 }) {
+  // Nothing to show while idle — only render once a submit is in flight
+  if (pollStatus === "idle") return null;
+
   if (pollStatus === "polling") {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -24,7 +26,7 @@ export default function PollingModal({
             </div>
           </div>
           <h2 className="text-2xl font-bold mb-2">
-            {isEditMode ? "Re-analyzing" : "Analyzing"} Your Story
+            Analysing Your Story
           </h2>
           <p className="text-muted-foreground mb-6">{pollMessage}</p>
           <div className="flex justify-center gap-1.5">
@@ -33,7 +35,7 @@ export default function PollingModal({
             <div className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
           <p className="text-xs text-muted-foreground mt-6">
-            This should only take a few seconds...
+            This may take up to 3–4 minutes.
           </p>
         </motion.div>
       </div>

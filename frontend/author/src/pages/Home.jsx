@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Button from "../components/ui/Button";
+import TestimonialForm from "../components/home/TestimonialForm";
+import TestimonialsSection from "../components/home/TestimonialsSection";
 import { Icons } from "../icons";
 
 const fadeUp = {
@@ -72,6 +75,7 @@ const steps = [
 
 export default function AuthorHomePage() {
   const { isAuthenticated } = useAuth();
+  const [testimonialsRefresh, setTestimonialsRefresh] = useState(0);
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-accent selection:text-accent-foreground">
@@ -263,7 +267,17 @@ export default function AuthorHomePage() {
         </div>
       </section>
 
-     
+      {/* ─── Testimonials: share + display ─── */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <TestimonialForm
+            onSubmitted={() => setTestimonialsRefresh((k) => k + 1)}
+          />
+        </div>
+      </section>
+
+      <TestimonialsSection refreshKey={testimonialsRefresh} />
+
       {/* ─── Editorial Footer ─── */}
       <footer className="border-t border-border py-10 px-6 bg-background text-xs text-muted-foreground">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">

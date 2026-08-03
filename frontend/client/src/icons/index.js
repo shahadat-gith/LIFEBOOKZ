@@ -56,6 +56,8 @@ import {
  FaSpinner,
  FaFacebook,
  FaYoutube,
+ FaStar,
+ FaRegStar,
 } from 'react-icons/fa';
 
 import {
@@ -127,6 +129,8 @@ export const Icons = {
  linkedin: FaLinkedin,
  heartSolid: FaHeart,
  heartRegular: FaRegHeart,
+ starSolid: FaStar,
+ starRegular: FaRegStar,
  userCheck: FaUserCheck,
  spinner: FaSpinner,
 

@@ -1,5 +1,5 @@
-import { Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Suspense, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { FollowingProvider } from './context/FollowingContext';
@@ -22,9 +22,21 @@ import AuthorProfile from './pages/AuthorProfile';
 
 function LazyFallback() { return <LoadingScreen message="Loading page..." />; }
 
+// Scroll back to the top whenever the route (URL) changes
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
+
 export function App() {
  return (
   <BrowserRouter>
+   <ScrollToTop />
    <AuthProvider>
     <FollowingProvider>
     <Suspense fallback={<LazyFallback />}>

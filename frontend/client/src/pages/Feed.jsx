@@ -16,7 +16,7 @@ export default function FeedPage() {
 
   // Search + filters
   const [searchInput, setSearchInput] = useState("");
-  const [query, setQuery] = useState(""); // applied search query (semantic)
+  const [query, setQuery] = useState(""); // applied search query
   const [profession, setProfession] = useState(""); // applied profession filter
   const [professions, setProfessions] = useState([]);
   const [professionsLoading, setProfessionsLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function FeedPage() {
       if (hasQuery) params.q = query.trim();
       if (profession) params.profession = profession;
 
-      // Semantic search endpoint when a query is present, otherwise browse feed
+      // Search endpoint when a query is present, otherwise browse feed
       const endpoint = hasQuery ? "/search" : "/stories";
       const res = await api.get(endpoint, { params });
 
@@ -97,7 +97,11 @@ export default function FeedPage() {
   }, [page, hasMore, loading, loadingMore]);
 
   const handleSearch = () => {
-    setQuery(searchInput.trim());
+    const nextQuery = searchInput.trim();
+    if (nextQuery === query) return;
+    // Clear previous results so the "Searching..." state is visible
+    setStories([]);
+    setQuery(nextQuery);
   };
 
   const handleProfessionChange = (e) => {
@@ -107,7 +111,7 @@ export default function FeedPage() {
   const hasActiveFilters = Boolean(query) || Boolean(profession);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 select-none">
+    <div className="max-w-3xl mx-auto px-4 py-6 select-none">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -140,7 +144,7 @@ export default function FeedPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          {/* Semantic search */}
+          {/* Search */}
           <div className="relative flex-1 sm:max-w-xl">
             <Icons.search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 
@@ -196,7 +200,7 @@ export default function FeedPage() {
 
         {query && (
           <p className="text-xs text-muted-foreground">
-            Semantic results for{" "}
+            Search results for{" "}
             <span className="font-semibold text-foreground">"{query}"</span>
             {profession ? (
               <>
@@ -212,11 +216,17 @@ export default function FeedPage() {
       </motion.div>
 
       {loading && stories.length === 0 ? (
-        <div className="space-y-5">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <StoryCardSkeleton key={n} />
-          ))}
-        </div>
+        query ? (
+          <div className="flex justify-center py-20">
+            <Spinner size="lg" label="Searching..." />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <StoryCardSkeleton key={n} />
+            ))}
+          </div>
+        )
       ) : stories.length === 0 ? (
         <EmptyState
           icon={<Icons.document className="h-16 w-16" />}

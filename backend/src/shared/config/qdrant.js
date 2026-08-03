@@ -1,5 +1,6 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import config from "./index.js";
+import { generateEmbedding } from "../services/embedding.js";
 
 let client = null;
 
@@ -8,46 +9,9 @@ export function getQdrantClient() {
     client = new QdrantClient({
       url: config.qdrant.url,
       apiKey: config.qdrant.apiKey,
-      // The version-compat check fires GET / at client creation and logs a
-      // scary warning when Qdrant is unreachable/restarting. It doesn't gate
-      // any functionality, so skip it to keep startup logs clean.
       checkCompatibility: false,
     });
   }
 
   return client;
-}
-
-export async function createCollections() {
-  try {
-    const client = getQdrantClient();
-
-    const collections = [
-      config.qdrant.collections.user,
-      config.qdrant.collections.story,
-    ];
-
-    const { collections: existing } = await client.getCollections();
-    const existingNames = new Set(existing.map((c) => c.name));
-
-    for (const name of collections) {
-      if (existingNames.has(name)) continue;
-
-      await client.createCollection(name, {
-        vectors: {
-          size: config.qdrant.vectorSize,
-          distance: "Cosine",
-        },
-        hnsw_config: {
-          m: 16,
-          ef_construct: 128,
-        },
-      });
-
-      console.log(`✅ Created Qdrant collection: ${name}`);
-    }
-  } catch (error) {
-    console.error("❌ Failed to initialize Qdrant collections:", error);
-    throw error;
-  }
 }

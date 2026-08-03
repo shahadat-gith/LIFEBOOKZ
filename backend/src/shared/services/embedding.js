@@ -5,17 +5,33 @@ const client = new OpenRouter({
   apiKey: config.openrouter.apiKey,
 });
 
+// The SDK may return either the parsed body or a raw JSON string
+function toResponseBody(response) {
+  if (typeof response !== "string") return response;
+
+  try {
+    return JSON.parse(response);
+  } catch {
+    return { data: [] };
+  }
+}
+
 export async function generateEmbedding(text) {
   if (!text?.trim()) {
     throw new Error("Text cannot be empty.");
   }
 
   const response = await client.embeddings.generate({
-    model: config.openrouter.embeddingModel,
-    input: text.trim(),
+    // @openrouter/sdk expects the request payload wrapped in `requestBody`
+    requestBody: {
+      model: config.openrouter.embeddingModel,
+      input: text.trim(),
+    },
   });
 
-  return response.data[0].embedding;
+  const body = toResponseBody(response);
+
+  return body.data[0].embedding;
 }
 
 export async function generateEmbeddings(texts) {
@@ -24,9 +40,13 @@ export async function generateEmbeddings(texts) {
   }
 
   const response = await client.embeddings.generate({
-    model: config.openrouter.embeddingModel,
-    input: texts.map((text) => text.trim()),
+    requestBody: {
+      model: config.openrouter.embeddingModel,
+      input: texts.map((text) => text.trim()),
+    },
   });
 
-  return response.data.map((item) => item.embedding);
+  const body = toResponseBody(response);
+
+  return body.data.map((item) => item.embedding);
 }

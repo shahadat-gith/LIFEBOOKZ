@@ -40,9 +40,6 @@ Return ONLY a raw, valid JSON object with no markdown formatting or wrappers:
 /**
  * Prompt for Worker 2: Story Enrichment, Proofreading & Metadata Generation
  */
-/**
- * Prompt for Worker 2: Story Enrichment, Proofreading & Metadata Generation
- */
 export function getStoryEnrichmentPrompt() {
   return `You are an expert literary editor, biographer, and linguist for a real-life personal storytelling platform (autobiographies, biographies, memoirs, and non-fiction life stories).
 

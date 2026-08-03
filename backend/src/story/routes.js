@@ -1,7 +1,11 @@
 import { Router } from "express";
 
 import upload from "../shared/middlewares/multer.js";
-import { authenticate, authenticateSoft } from "../shared/middlewares/auth.js";
+import {
+  authenticate,
+  authenticateSoft,
+  authenticateOptional,
+} from "../shared/middlewares/auth.js";
 import * as story from "./controllers.js";
 
 const router = Router();
@@ -12,9 +16,10 @@ router.post("/", authenticate, upload.single("coverImage"), story.create);
 
 router.post("/upload-image", authenticate, upload.single("image"), story.uploadImage);
 
-router.get("/", story.list);
+// Optional auth so logged-in users get personalized like/follow state
+router.get("/", authenticateOptional, story.list);
 
-router.get("/:storyId", story.getStory);
+router.get("/:storyId", authenticateOptional, story.getStory);
 
 router.patch("/:storyId", authenticate, upload.single("coverImage"), story.update);
 
