@@ -106,14 +106,14 @@ export function TestimonialsSection({ refreshKey = 0 }) {
   const carouselItems = [...displayCards, ...displayCards];
 
   return (
-    <section className="py-20 relative overflow-hidden">
+    <section className="pt-8 pb-12 sm:pt-12 sm:pb-20 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/50 to-background" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 blur-3xl rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 sm:mb-12">
         {/* Section Header */}
         <div className="text-center">
           <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">

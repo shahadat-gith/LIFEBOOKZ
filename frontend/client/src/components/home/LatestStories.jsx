@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import StoryCard from "../story/StoryCard";
 import StoryCardSkeleton from "../skeletons/StoryCardSkeleton";
-import { Button } from "../ui";
 import { Icons } from "../../icons";
-import { Link } from "react-router-dom";
 import api from "../../config/axios";
 
 const containerVariants = {
@@ -66,14 +64,14 @@ export function LatestStories() {
   return (
     <section
       ref={sectionRef}
-      className="py-20 relative overflow-hidden bg-background border-t border-border/60 select-none"
+      className="pt-8 pb-12 sm:pt-12 sm:pb-20 relative overflow-hidden bg-background border-t border-border/60 select-none"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12 text-center sm:text-left"
+          className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8 sm:mb-12 text-center sm:text-left"
         >
           <div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-display mb-2">
