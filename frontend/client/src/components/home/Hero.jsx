@@ -128,14 +128,14 @@ export function Hero() {
             initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="hidden md:block relative flex justify-center"
+            className="hidden md:block relative justify-center"
           >
             <div className="absolute -right-10 top-10 h-80 w-80 rounded-[var(--radius-full)] bg-accent/10 blur-[120px]" />
 
             <div className="relative w-full max-w-[480px] rounded-[var(--radius-2xl)] bg-card p-4 shadow-lg transition-transform duration-500">
               <div className="relative overflow-hidden rounded-[var(--radius-lg)]">
                 <img
-                  src="/hero.png"
+                  src="/hero.PNG"
                   alt="Hero image"
                   className="h-[400px] md:h-[560px] w-full object-cover"
                 />
