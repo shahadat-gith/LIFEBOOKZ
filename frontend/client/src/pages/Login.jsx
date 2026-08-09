@@ -38,10 +38,8 @@ export default function LoginPage() {
         <div className="hidden md:flex flex-col justify-between p-10 bg-muted/30 border-r border-border/60 relative overflow-hidden">
           <div className="space-y-6 relative z-10">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="h-10 w-10 object-contain" />
-              <span className="font-bold text-xl tracking-tight text-foreground">
-                Stories
-              </span>
+              <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain" />
+              
             </div>
             
             <div className="pt-12 space-y-3">

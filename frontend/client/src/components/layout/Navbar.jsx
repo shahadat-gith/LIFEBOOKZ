@@ -16,13 +16,13 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-xs">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-22 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0 group">
           <img
             src="/logo.png"
             alt="Lifebookz"
-            className="h-9 w-auto transition-transform duration-300 group-hover:scale-[1.02]"
+            className="h-20 w-auto transition-transform duration-300 group-hover:scale-[1.02]"
           />
         </Link>
 

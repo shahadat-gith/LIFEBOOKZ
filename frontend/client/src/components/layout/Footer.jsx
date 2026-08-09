@@ -20,7 +20,7 @@ export function Footer() {
               <img
                 src="/logo.png"
                 alt="Lifebookz"
-                className="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                className="h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
               />
             </Link>
             
