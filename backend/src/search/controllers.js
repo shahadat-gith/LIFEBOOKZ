@@ -63,7 +63,10 @@ export async function semanticSearch(req, res, next) {
       status: "published",
     })
       .select(STORY_SELECT)
-      .populate("author", "fullName username avatar profession")
+      .populate(
+        "author",
+        "fullName username avatar profession verification.status",
+      )
       .lean();
 
     const storyMap = new Map(stories.map((s) => [s._id.toString(), s]));

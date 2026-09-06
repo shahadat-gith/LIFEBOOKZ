@@ -410,7 +410,7 @@ export async function getStory(req, res, next) {
 
     const story = await Story.findOne(filter)
       .select("-embeddingMetadata")
-      .populate("author", "fullName username avatar profession")
+      .populate("author", "fullName username avatar profession verification.status")
       .lean();
 
     if (!story) {
@@ -510,7 +510,7 @@ export async function list(req, res, next) {
         createdAt
       `,
       )
-      .populate("author", "fullName username avatar profession");
+      .populate("author", "fullName username avatar profession verification.status");
 
     switch (type) {
       case "trending":

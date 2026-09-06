@@ -130,6 +130,7 @@ export default function StoryDetailPage() {
 
   const author = story.author || {};
   const authorName = author.fullName || "Anonymous";
+  const isVerified = author.verification?.status === "approved";
   const timeAgo = getTimeAgo(new Date(story.publishedAt || story.createdAt));
   const commentCount = story.stats?.comments || 0;
   const shareCount = story.stats?.shares || 0;
@@ -196,9 +197,16 @@ export default function StoryDetailPage() {
             <div>
               <Link
                 to={`/authors/${author._id}`}
-                className="text-sm font-semibold text-foreground hover:text-accent transition-colors"
+                className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-accent transition-colors"
               >
-                {authorName}
+                <span className="truncate">{authorName}</span>
+                {isVerified && (
+                  <Icons.verified
+                    aria-label="Verified author"
+                    title="Verified author"
+                    className="h-4 w-4 shrink-0 text-blue-500"
+                  />
+                )}
               </Link>
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <span>{timeAgo}</span>

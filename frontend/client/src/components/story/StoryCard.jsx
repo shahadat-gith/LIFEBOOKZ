@@ -24,9 +24,11 @@ export default function StoryCard({
 
   const author = story.author || {};
   const authorName = author.fullName || "Anonymous Author";
+  const isVerified = author.verification?.status === "approved";
   const timeAgo = getTimeAgo(new Date(story.publishedAt || story.createdAt));
   const storyTitle = story.title || "Untitled Story";
   const storySlug = story.slug || story._id;
+  const authorMeta = [author.profession, timeAgo].filter(Boolean).join(" · ");
 
   const commentCount = story.stats?.comments || 0;
   const shareCount = story.stats?.shares || 0;
@@ -130,17 +132,24 @@ export default function StoryCard({
           <div className="min-w-0 flex-1">
             <Link
               to={`/authors/${author._id}`}
-              className="text-sm font-semibold text-foreground tracking-tight truncate block hover:underline transition-all"
+              className="flex items-center gap-1 text-sm font-semibold text-foreground tracking-tight truncate hover:underline transition-all"
             >
-              {authorName}
+              <span className="truncate">{authorName}</span>
+              {isVerified && (
+                <Icons.verified
+                  aria-label="Verified author"
+                  title="Verified author"
+                  className="h-4 w-4 shrink-0 text-blue-500"
+                />
+              )}
             </Link>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-              <span>{timeAgo}</span>
+              <span className="truncate">{authorMeta}</span>
             </div>
           </div>
         </div>
 
-        <FollowButton authorId={author._id} size="sm" />
+        <FollowButton authorId={author._id} size="sm" iconOnly />
       </div>
 
       {/* Story Title */}

@@ -43,6 +43,9 @@ import {
  HiOutlineTranslate,
  HiOutlineLocationMarker,
  HiOutlineEye,
+ HiOutlineMicrophone,
+ HiOutlineBell,
+ HiOutlinePhotograph,
 } from 'react-icons/hi';
 
 import {
@@ -119,6 +122,9 @@ export const Icons = {
  translate: HiOutlineTranslate,
  location: HiOutlineLocationMarker,
  eye: HiOutlineEye,
+ mic: HiOutlineMicrophone,
+ bell: HiOutlineBell,
+ image: HiOutlinePhotograph,
 
  // Brand Icons (FontAwesome)
  google: FaGoogle,

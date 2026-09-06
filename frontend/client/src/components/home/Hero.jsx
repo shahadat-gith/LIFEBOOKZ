@@ -1,151 +1,214 @@
-import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import Icons from "../../icons";
-import { fadeUp, SOCIAL_LINKS } from "./utils";
 import { Link } from "react-router-dom";
-import { share } from "../../utils/share";
-import { toast } from "react-hot-toast";
+import Icons from "../../icons";
+import { fadeUp } from "./utils";
+
+const HERO_IMAGE = "/hero.png";
 
 export function Hero() {
-  const [socialLinks, setSocialLinks] = useState(SOCIAL_LINKS);
   const shouldReduceMotion = useReducedMotion();
-
-  const authorPortalUrl = import.meta.env.VITE_AUTHOR_PORTAL || "https://author.lifebookz.com";
-
-  const handleShareClick = async () => {
-    const shareData = {
-      title: "Lifebookz - Preserve Your Life's Journey",
-      text: "Capture your memories, life experiences, family history, and achievements in one beautiful place.",
-      url: window.location.href,
-    };
-
-    const shared = await share(shareData);
-    if (!shared) {
-      toast.error("Sharing failed or was cancelled.");
-    }
-  };
-
-  useEffect(() => {
-    async function fetchHeroData() {
-      try {
-        // Replace with API later
-      } catch (error) {
-        console.error(error);
-      }
-    }
-    fetchHeroData();
-  }, []);
-
   const initial = shouldReduceMotion ? "show" : "hidden";
+
+  const authorPortalUrl =
+    import.meta.env.VITE_AUTHOR_PORTAL || "https://author.lifebookz.com";
 
   return (
     <section className="relative overflow-hidden bg-background">
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-12 pt-6 pb-12 lg:min-h-[85vh] lg:items-center lg:py-0 lg:grid-cols-2">
-          {/* LEFT */}
-          <div className="max-w-2xl">
+      {/* Background Decoration */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-40 -top-40 h-[420px] w-[420px] rounded-full bg-accent/8 blur-3xl lg:-right-20 lg:-top-20 lg:h-[620px] lg:w-[620px]"
+      />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-40 top-1/3 h-[300px] w-[300px] rounded-full bg-accent/5 blur-3xl lg:h-[500px] lg:w-[500px]"
+      />
+
+      {/* Hero Container */}
+      <div className="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16 xl:py-20">
+        <div className="grid grid-cols-[1fr_1fr] items-center gap-3 sm:gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-10 xl:gap-16">
+          
+          {/* Left Hero Copy */}
+          <div className="relative z-10 min-w-0">
+            {/* Welcome Badge */}
+            <motion.div
+              custom={0.05}
+              initial={initial}
+              animate="show"
+              variants={fadeUp}
+              className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[7px] font-bold uppercase tracking-[0.12em] text-accent ring-1 ring-accent/20 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[9px] lg:px-4 lg:py-2 lg:text-[11px]"
+            >
+              Welcome to Lifebookz
+              <Icons.sparkles className="h-2 w-2 sm:h-3 sm:w-3 lg:h-3.5 lg:w-3.5" />
+            </motion.div>
+
+            {/* Headline */}
             <motion.h1
               custom={0.15}
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="font-display text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl"
+              className="mt-3 max-w-[520px] font-display text-[25px] font-extrabold leading-[1.02] tracking-[-0.04em] text-primary sm:mt-4 sm:text-4xl md:text-5xl lg:mt-6 lg:text-6xl lg:leading-[1.03] xl:text-7xl"
             >
-              Every life has a
-              <span className="mt-2 block bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                story worth preserving.
+              Every life
+              <br />
+              has a{" "}
+              <span className="relative inline-block">
+                story
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 120 9"
+                  className="absolute -bottom-1 left-0 w-full text-accent/80 sm:-bottom-2"
+                  fill="none"
+                >
+                  <path
+                    d="M3 6.5 C22 2.5, 42 2, 60 5 S98 8.5 117 3.5"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </span>
+              <span className="text-accent">.</span>
             </motion.h1>
 
+            {/* Description */}
             <motion.p
-              custom={0.3}
+              custom={0.28}
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="mt-6 max-w-xl text-md md:text-lg leading-8 text-muted-foreground"
+              className="mt-3 max-w-[470px] text-[10px] leading-[1.55] text-muted-foreground sm:mt-5 sm:text-sm sm:leading-6 lg:mt-6 lg:text-lg lg:leading-8"
             >
-              Capture the stories that shaped your life. Preserve your memories and legacy for the people who matter most.
+              Capture your memories, lessons and moments. Share what matters.
+              Inspire others. Leave a legacy.
             </motion.p>
 
+            {/* CTA Buttons */}
             <motion.div
-              custom={0.45}
+              custom={0.4}
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="mt-8 flex flex-wrap items-center gap-4"
+              className="mt-4 flex flex-col items-start gap-3 sm:mt-6 sm:flex-row sm:items-center sm:gap-6 lg:mt-8"
             >
-              <Link to={authorPortalUrl} className="rounded-[var(--radius-full)] bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5">
-                Write your story
-              </Link>
-              <Link to="/how-it-works" className="rounded-[var(--radius-full)] border border-border bg-transparent px-7 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
-                See how it works
+              <a
+                href={authorPortalUrl}
+                className="group inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-[9px] font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 sm:px-5 sm:py-2.5 sm:text-xs lg:px-7 lg:py-3.5 lg:text-sm"
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 sm:h-5 sm:w-5 lg:h-6 lg:w-6">
+                  <Icons.plus className="h-3 w-3 text-white" />
+                </span>
+                Start Your Lifebook
+              </a>
+
+              <Link
+                to="/feed"
+                className="group inline-flex items-center gap-1 text-[10px] font-bold text-primary underline decoration-primary/30 decoration-2 underline-offset-4 transition-colors hover:decoration-primary sm:text-xs lg:text-[15px]"
+              >
+                Explore Stories
+                <Icons.arrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:h-3.5 sm:w-3.5" />
               </Link>
             </motion.div>
 
+            {/* Feature Row */}
             <motion.div
-              custom={0.6}
+              custom={0.52}
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="mt-10 space-y-6 border-t border-border pt-6"
+              className="mt-6 hidden max-w-[500px] grid-cols-3 divide-x divide-border sm:grid lg:mt-10"
             >
-              {/* Social + share */}
-              <div className="flex flex-wrap items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Follow us
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {socialLinks.map((social) => {
-                      const IconComponent = social.icon;
-                      return (
-                        <a
-                          key={social.name}
-                          href={social.href}
-                          aria-label={social.ariaLabel}
-                          className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-full)] border border-border text-muted-foreground transition-colors hover:border-accent hover:text-accent"
-                        >
-                          <IconComponent className="h-4 w-4" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleShareClick}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Share with your friends
-                  <Icons.share className="h-4 w-4" />
-                </button>
-              </div>
+              <HeroFeature
+                icon={<Icons.book className="h-4 w-4" />}
+                title="Preserve"
+                text="Your memories"
+              />
+              <HeroFeature
+                icon={<Icons.image className="h-4 w-4" />}
+                title="Remember"
+                text="Every moment"
+              />
+              <HeroFeature
+                icon={<Icons.heartRegular className="h-4 w-4" />}
+                title="Inspire"
+                text="Future generations"
+              />
             </motion.div>
           </div>
 
-          {/* RIGHT — mounted photograph */}
+          {/* Right Hero Visual */}
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
+            initial={
+              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 35 }
+            }
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="hidden md:block relative justify-center"
+            transition={{
+              duration: 0.85,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="relative flex min-w-0 items-center justify-center"
           >
-            <div className="absolute -right-10 top-10 h-80 w-80 rounded-[var(--radius-full)] bg-accent/10 blur-[120px]" />
+            <div
+              aria-hidden="true"
+              className="absolute right-[2%] top-[8%] aspect-square w-[85%] rounded-full bg-accent/8 blur-2xl sm:w-[90%] lg:right-[-5%] lg:top-[4%] lg:w-[95%] xl:w-[100%]"
+            />
 
-            <div className="relative w-full max-w-[480px] rounded-[var(--radius-2xl)] bg-card p-4 shadow-lg transition-transform duration-500">
-              <div className="relative overflow-hidden rounded-[var(--radius-lg)]">
-                <img
-                  src="/hero.PNG"
-                  alt="Hero image"
-                  className="h-[400px] md:h-[560px] w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+            <div
+              aria-hidden="true"
+              className="absolute left-[8%] top-[8%] text-accent/50"
+            >
+              <Icons.sparkles className="h-4 w-4 sm:h-5 sm:w-5 lg:h-7 lg:w-7" />
+            </div>
+
+            <div
+              aria-hidden="true"
+              className="absolute right-[8%] top-[18%] text-accent/40"
+            >
+              <Icons.sparkles className="h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6" />
+            </div>
+
+            {/* Main Hero Illustration */}
+            <div className="relative z-10 w-[105%] sm:w-[108%] lg:w-[112%] xl:w-[115%]">
+              <img
+                src={HERO_IMAGE}
+                alt="Lifebookz — preserve your life's story"
+                className="block h-auto w-full object-contain drop-shadow-[0_25px_35px_rgba(15,23,42,0.08)] transition-transform duration-700 hover:scale-[1.015]"
+              />
+            </div>
+
+            {/* Floating Memory Card */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-[7%] left-[1%] z-20 hidden rounded-xl border border-white/70 bg-white/90 px-3 py-2 shadow-lg backdrop-blur-sm lg:block"
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-accent" />
+                <span className="text-[10px] font-semibold text-primary">
+                  Your story matters
+                </span>
               </div>
             </div>
           </motion.div>
+
         </div>
       </div>
     </section>
+  );
+}
+
+function HeroFeature({ icon, title, text }) {
+  return (
+    <div className="flex items-center gap-2 px-3 first:pl-0">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-bold text-primary">{title}</p>
+        <p className="text-[10px] text-muted-foreground">{text}</p>
+      </div>
+    </div>
   );
 }
 

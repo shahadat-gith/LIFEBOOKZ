@@ -1,9 +1,10 @@
 import { useState } from "react";
 import {
   Hero,
+  YourStoryMatters,
+  LatestStories,
   TestimonialsSection,
   TestimonialForm,
-  LatestStories,
 } from "../components/home";
 
 export function HomePage() {
@@ -14,17 +15,14 @@ export function HomePage() {
       {/* SECTION 1: HERO */}
       <Hero />
 
-      {/* SECTION DIVIDER WITH GOLD GLOW */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-[1px] w-full bg-border" />
-        <div className="absolute left-1/2 -translate-x-1/2 -top-[1px] w-32 h-[1px] bg-accent/60 shadow-[0_0_12px_var(--color-accent)]" />
-      </div>
-
-      {/* SECTION 2: LATEST STORIES */}
+      {/* SECTION 2: LATEST STORIES RAIL */}
       <LatestStories />
 
-      {/* SECTION 3: TESTIMONIALS — display + share */}
-      <div>
+      {/* SECTION 3: YOUR STORY MATTERS */}
+      <YourStoryMatters />
+
+      {/* SECTION 4: TESTIMONIALS — display + share */}
+      <div className="border-t border-border/60">
         <TestimonialsSection refreshKey={testimonialsRefresh} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
           <TestimonialForm

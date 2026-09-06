@@ -118,7 +118,7 @@ export function TestimonialsSection({ refreshKey = 0 }) {
         <div className="text-center">
           <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
             Loved by{" "}
-            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Storytellers & Readers
             </span>
           </h2>

@@ -9,6 +9,7 @@ import { Icons } from "../../icons";
 export default function FollowButton({
   authorId,
   size = "sm",
+  iconOnly = false,
 }) {
   const [loading, setLoading] = useState(false);
   const [hovering, setHovering] = useState(false);
@@ -43,6 +44,53 @@ export default function FollowButton({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (iconOnly) {
+    const circleSize = {
+      sm: "h-8 w-8",
+      md: "h-9 w-9",
+      lg: "h-10 w-10",
+    }[size];
+
+    const iconSize = {
+      sm: "h-4 w-4",
+      md: "h-5 w-5",
+      lg: "h-5 w-5",
+    }[size];
+
+    return (
+      <motion.button
+        type="button"
+        onClick={handleClick}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        whileTap={{ scale: 0.92 }}
+        title={following ? "Unfollow" : "Follow"}
+        aria-label={following ? "Unfollow" : "Follow"}
+        aria-pressed={following}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full border transition-all duration-200 ${
+          following
+            ? hovering
+              ? "border-destructive/30 bg-destructive/10 text-destructive"
+              : "border-primary/20 bg-primary/10 text-primary"
+            : "border-primary/20 bg-primary/5 text-primary hover:border-primary/40 hover:bg-primary/10"
+        } ${circleSize} ${loading ? "opacity-60" : ""}`}
+        disabled={loading}
+      >
+        {loading ? (
+          <Icons.spinner className={`${iconSize} animate-spin`} />
+        ) : following ? (
+          hovering ? (
+            <Icons.close className={iconSize} />
+          ) : (
+            <Icons.check className={iconSize} strokeWidth={2.5} />
+          )
+        ) : (
+          <Icons.plus className={iconSize} strokeWidth={2.5} />
+        )}
+      </motion.button>
+    );
   }
 
   const sizeClasses = {

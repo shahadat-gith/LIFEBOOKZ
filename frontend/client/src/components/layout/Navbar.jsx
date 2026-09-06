@@ -1,83 +1,149 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Icons } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
 import { navLinks } from "./utils";
 import Button from "../ui/Button";
 import UserDropdown from "./UserDropdown";
+import SearchModal from "./SearchModal";
+import NotificationsDrawer from "./NotificationsDrawer";
+
+function BrandWordmark() {
+  return (
+    <Link
+      to="/"
+      className="group flex items-center gap-2 shrink-0 select-none"
+      aria-label="Lifebookz - Home"
+    >
+      <span className="font-display text-lg font-extrabold tracking-tight text-primary sm:text-[22px]">
+        LIFEBOOK
+        <span className="relative ml-px inline-block">
+          Z
+          <span
+            aria-hidden="true"
+            className="absolute -top-[3px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-accent transition-transform duration-200 group-hover:scale-125 sm:-top-1 sm:h-2 sm:w-2"
+          />
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export function Navbar() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const authorPortal = import.meta.env.VITE_AUTHOR_PORTAL || "#";
 
   const isActive = (path) => location.pathname === path;
 
+  const iconButtonClass =
+    "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground shadow-xs transition-all duration-200 hover:border-primary/25 hover:text-primary active:scale-95 sm:h-10 sm:w-10";
+
+  function openSearch() {
+    setNotificationsOpen(false);
+    setSearchOpen(true);
+  }
+
+  function openNotifications() {
+    setSearchOpen(false);
+    setNotificationsOpen(true);
+  }
+
   return (
-    <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-xs">
-      <div className="mx-auto flex h-22 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0 group">
-          <img
-            src="/logo.png"
-            alt="Lifebookz"
-            className="h-20 w-auto transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 shadow-sm">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          {/* Brand wordmark */}
+          <BrandWordmark />
 
-        {/* Center Links - Hidden on smaller screens (< 768px) */}
-        <nav className="hidden md:flex items-center gap-1 sm:gap-2">
-          {navLinks.map((item) => {
-            const active = isActive(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium tracking-wide transition-all duration-200 ${
-                  active
-                    ? "text-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                }`}
-              >
-                {item.label}
-                {active && (
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-primary via-primary to-accent rounded-full" />
-                )}
+          {/* Center Links - Hidden on smaller screens (< 768px) */}
+          <nav className="hidden md:flex items-center gap-1 sm:gap-2">
+            {navLinks.map((item) => {
+              const active = isActive(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium tracking-wide transition-all duration-200 ${
+                    active
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  {item.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-primary via-primary to-accent rounded-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Corner Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Search */}
+            <button
+              type="button"
+              onClick={openSearch}
+              aria-label="Search stories"
+              className={iconButtonClass}
+            >
+              <Icons.search className="h-[18px] w-[18px]" />
+            </button>
+
+            {/* Notifications */}
+            <button
+              type="button"
+              onClick={openNotifications}
+              aria-label="Notifications"
+              className={iconButtonClass}
+            >
+              <Icons.bell className="h-[18px] w-[18px]" />
+              <span
+                aria-hidden="true"
+                className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-background sm:right-2.5 sm:top-2.5"
+              />
+            </button>
+
+            {/* Join as Author (hidden on smallest screens) */}
+            <a
+              href={`${authorPortal}/register`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-accent/10 text-accent border border-accent/25 hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-xs active:scale-[0.98]"
+            >
+              <span>Join as Author</span>
+            </a>
+
+            {/* User Account / Login */}
+            {isAuthenticated ? (
+              <UserDropdown />
+            ) : (
+              <Link to="/login" className="ml-0.5">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="font-bold text-xs rounded-full px-4"
+                >
+                  Log In
+                </Button>
               </Link>
-            );
-          })}
-        </nav>
-
-        {/* Right Corner: Always Visible Actions (Author Join + Profile/Login) */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Join as Author Button */}
-          <a
-            href={`${authorPortal}/register`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-accent/15 text-accent border border-accent/30 hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-xs active:scale-[0.98]"
-          >
-            <span>Join as Author</span>
-          </a>
-
-          {/* User Account / Login */}
-          {isAuthenticated ? (
-            <UserDropdown />
-          ) : (
-            <Link to="/login">
-              <Button
-                variant="primary"
-                size="sm"
-                className="font-semibold text-xs rounded-xl px-3.5 sm:px-4"
-              >
-                Log In
-              </Button>
-            </Link>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Overlays */}
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <NotificationsDrawer
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
+    </>
   );
 }
 

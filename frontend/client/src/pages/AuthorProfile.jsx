@@ -134,8 +134,17 @@ export default function AuthorProfilePage() {
           {/* Info */}
           <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground font-display">
-                {author.fullName || "Anonymous Author"}
+              <h1 className="flex items-center gap-1.5 text-2xl sm:text-3xl font-bold text-foreground font-display">
+                <span className="truncate">
+                  {author.fullName || "Anonymous Author"}
+                </span>
+                {author.verification?.status === "approved" && (
+                  <Icons.verified
+                    aria-label="Verified author"
+                    title="Verified author"
+                    className="h-6 w-6 shrink-0 text-blue-500 sm:h-7 sm:w-7"
+                  />
+                )}
               </h1>
               {author.profession && (
                 <p className="text-xs font-semibold text-muted-foreground mt-0.5 uppercase tracking-wider">

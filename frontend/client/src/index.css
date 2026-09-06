@@ -1,61 +1,70 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand - Quiet Luxury / Tech Minimal */
-  --color-primary: #111827;
+  /* LIFEBOOKZ Brand — Deep Navy + Coral */
+  --color-primary: #172554;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #4b5563;
-  --color-secondary-foreground: #f9fafb;
+  --color-secondary: #2e3f66;
+  --color-secondary-foreground: #f8fafc;
 
-  /* Signature Gold Accent (Thoda Golden Accent for premium UI focus points) */
-  --color-accent: #d4af37; 
-  --color-accent-foreground: #1c1917;
+  /* Signature Coral Accent (brand dot over the "Z") */
+  --color-accent: #f43f5e;
+  --color-accent-foreground: #ffffff;
 
-  /* Background - Soft Warm Alabaster White */
-  --color-background: #fbfbfa;
-  --color-foreground: #1c1917;
+  /* Background - Soft Cool White */
+  --color-background: #f8f9fd;
+  --color-foreground: #101b3c;
 
   /* Surfaces - Clean Floating Panels */
   --color-card: #ffffff;
-  --color-card-foreground: #1c1917;
+  --color-card-foreground: #101b3c;
 
   --color-popover: #ffffff;
-  --color-popover-foreground: #1c1917;
+  --color-popover-foreground: #101b3c;
 
-  /* Muted - Soft Studio Grays */
-  --color-muted: #f4f4f3;
-  --color-muted-foreground: #78716c;
+  /* Muted - Cool Studio Grays */
+  --color-muted: #f1f3f9;
+  --color-muted-foreground: #5f6c84;
 
   /* Borders & Focus Rings */
-  --color-border: #e6e5e3;
-  --color-input: #d6d3d1;
-  --color-ring: #111827;
+  --color-border: #e3e8f2;
+  --color-input: #d3dbe8;
+  --color-ring: #172554;
 
   /* Functional Statuses */
-  --color-success: #15803d;
-  --color-warning: #b45309;
-  --color-destructive: #991b1b;
-  --color-info: #0369a1;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-destructive: #e11d48;
+  --color-info: #2563eb;
 
   /* Premium Smooth Radii Scale */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
   /* Deep High-End Editorial Shadows */
-  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.03);
-  --shadow-sm: 0 2px 8px rgba(28, 25, 23, 0.04);
-  --shadow-md: 0 8px 24px rgba(28, 25, 23, 0.06);
-  --shadow-lg: 0 16px 40px rgba(28, 25, 23, 0.08);
+  --shadow-xs: 0 1px 2px rgba(23, 37, 84, 0.04);
+  --shadow-sm: 0 2px 8px rgba(23, 37, 84, 0.05);
+  --shadow-md: 0 8px 24px rgba(23, 37, 84, 0.07);
+  --shadow-lg: 0 16px 40px rgba(23, 37, 84, 0.1);
 
   /* Typography */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {
@@ -66,45 +75,49 @@
   .dark {
     color-scheme: dark;
 
-    /* Dark Mode: Deep Charcoal Midnight Palette */
-    --color-background: #0b0c0e;
-    --color-foreground: #f5f5f4;
+    /* Dark Mode: Deep Navy Midnight Palette */
+    --color-background: #0a1020;
+    --color-foreground: #e8edf8;
 
-    --color-card: #121418;
-    --color-card-foreground: #f5f5f4;
+    --color-card: #111a2e;
+    --color-card-foreground: #e8edf8;
 
-    --color-popover: #121418;
-    --color-popover-foreground: #f5f5f4;
+    --color-popover: #111a2e;
+    --color-popover-foreground: #e8edf8;
 
-    --color-muted: #1a1d24;
-    --color-muted-foreground: #a8a29e;
+    --color-muted: #1a2440;
+    --color-muted-foreground: #8f9dbb;
 
-    --color-border: #22272f;
-    --color-input: #2e3540;
+    --color-border: #253050;
+    --color-input: #33406a;
 
-    --color-primary: #f5f5f4;
-    --color-primary-foreground: #0b0c0e;
+    --color-primary: #3b82f6;
+    --color-primary-foreground: #ffffff;
 
-    --color-secondary: #a8a29e;
-    --color-secondary-foreground: #0b0c0e;
+    --color-secondary: #8f9dbb;
+    --color-secondary-foreground: #0a1020;
 
-    /* Luminous Gold Accent for dark mode */
-    --color-accent: #e5c158;
-    --color-accent-foreground: #0b0c0e;
+    /* Brighter coral for dark surfaces */
+    --color-accent: #fb7185;
+    --color-accent-foreground: #0a1020;
 
-    --color-success: #22c55e;
-    --color-warning: #eab308;
-    --color-destructive: #ef4444;
-    --color-info: #38bdf8;
-    
-    --color-ring: #fafafa;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-destructive: #fb7185;
+    --color-info: #60a5fa;
+
+    --color-ring: #e8edf8;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased tracking-tight;
   }
+
+  ::selection {
+    @apply bg-accent/20 text-foreground;
+  }
 }
 
-button{
+button {
   cursor: pointer;
 }
