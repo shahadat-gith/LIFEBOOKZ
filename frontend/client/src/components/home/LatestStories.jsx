@@ -75,8 +75,14 @@ export function LatestStories() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden border-t border-border/60 bg-background py-12 select-none sm:py-20"
+      className="relative overflow-hidden border-t border-border/60 bg-background py-14 select-none sm:py-24"
     >
+      {/* Soft wash behind the section */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-accent/[0.04] via-accent/[0.01] to-transparent"
+      />
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <motion.div
@@ -96,7 +102,7 @@ export function LatestStories() {
 
           <Link
             to="/feed"
-            className="group inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 transition-colors hover:text-blue-700"
+            className="group inline-flex items-center gap-1.5 text-sm font-bold text-primary transition-colors hover:text-accent"
           >
             View all
             <Icons.arrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -131,12 +137,12 @@ export function LatestStories() {
               {/* "View all" spacer tile at the end of the rail */}
               <Link
                 to="/feed"
-                className="group flex w-[180px] shrink-0 snap-start flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-primary/30 bg-primary/[0.03] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:bg-primary/5 sm:w-[200px]"
+                className="group flex w-[180px] shrink-0 snap-start flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-accent/35 bg-accent/[0.04] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:bg-accent/[0.07] sm:w-[200px]"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent transition-transform group-hover:scale-110">
                   <Icons.arrowRight className="h-5 w-5" />
                 </span>
-                <span className="text-sm font-bold text-primary">
+                <span className="text-sm font-bold text-accent">
                   Explore all stories
                 </span>
               </Link>

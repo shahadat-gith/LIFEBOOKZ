@@ -106,7 +106,7 @@ export function TestimonialsSection({ refreshKey = 0 }) {
   const carouselItems = [...displayCards, ...displayCards];
 
   return (
-    <section className="pt-8 pb-12 sm:pt-12 sm:pb-20 relative overflow-hidden">
+    <section className="relative overflow-hidden py-14 sm:py-24">
       {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/50 to-background" />
@@ -155,12 +155,12 @@ export function TestimonialsSection({ refreshKey = 0 }) {
                 key={`${testimonial.name}-${index}`}
                 className="w-[320px] sm:w-[380px] shrink-0"
               >
-                <div className="h-full flex flex-col justify-between p-6 sm:p-8 rounded-2xl bg-card border border-border/60 hover:border-border transition-all duration-300 hover:shadow-md">
+                <div className="h-full flex flex-col justify-between p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 hover:border-accent/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                   <div>
                     {/* Header: Quote Icon & Role Pill */}
                     <div className="flex items-center justify-between mb-6">
                       <svg
-                        className="w-8 h-8 text-primary/20"
+                        className="w-8 h-8 text-accent/25"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >

@@ -57,7 +57,7 @@ export default function TestimonialForm({ onSubmitted }) {
       {isAuthenticated ? (
         <form
           onSubmit={handleSubmit}
-          className="p-6 sm:p-8 rounded-2xl bg-card border border-border/60 shadow-xs"
+          className="p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 shadow-xs"
         >
           {/* Star rating picker */}
           <div className="flex items-center justify-center gap-1.5 mb-5">
@@ -89,7 +89,7 @@ export default function TestimonialForm({ onSubmitted }) {
             rows={4}
             maxLength={500}
             placeholder="Share how Lifebookz has helped you — as a reader or storyteller..."
-            className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+            className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
           />
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
@@ -114,7 +114,7 @@ export default function TestimonialForm({ onSubmitted }) {
           </div>
         </form>
       ) : (
-        <div className="p-8 rounded-2xl bg-card border border-border/60 text-center shadow-xs">
+        <div className="p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 text-center shadow-xs">
           <Icons.starSolid className="h-8 w-8 text-amber-400 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-5">
             Sign in to share your experience with our community.

@@ -28,21 +28,8 @@ export function Hero() {
       {/* Hero Container */}
       <div className="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16 xl:py-20">
         <div className="grid grid-cols-[1fr_1fr] items-center gap-3 sm:gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-10 xl:gap-16">
-          
           {/* Left Hero Copy */}
           <div className="relative z-10 min-w-0">
-            {/* Welcome Badge */}
-            <motion.div
-              custom={0.05}
-              initial={initial}
-              animate="show"
-              variants={fadeUp}
-              className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[7px] font-bold uppercase tracking-[0.12em] text-accent ring-1 ring-accent/20 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[9px] lg:px-4 lg:py-2 lg:text-[11px]"
-            >
-              Welcome to Lifebookz
-              <Icons.sparkles className="h-2 w-2 sm:h-3 sm:w-3 lg:h-3.5 lg:w-3.5" />
-            </motion.div>
-
             {/* Headline */}
             <motion.h1
               custom={0.15}
@@ -81,8 +68,21 @@ export function Hero() {
               variants={fadeUp}
               className="mt-3 max-w-[470px] text-[10px] leading-[1.55] text-muted-foreground sm:mt-5 sm:text-sm sm:leading-6 lg:mt-6 lg:text-lg lg:leading-8"
             >
-              Capture your memories, lessons and moments. Share what matters.
-              Inspire others. Leave a legacy.
+              Preserve the story of your life—your memories, childhood, school
+              and college experiences, relationships, challenges, and life
+              lessons—and help others learn from your experiences and wisdom.
+            </motion.p>
+
+            <motion.p
+              custom={0.28}
+              initial={initial}
+              animate="show"
+              variants={fadeUp}
+              className="mt-3 max-w-[470px] rounded-2xl bg-accent/5 px-2 py-2 text-[10px] leading-[1.65] text-muted-foreground sm:mt-5 sm:px-6 sm:py-5 sm:text-sm sm:leading-6 lg:mt-6 lg:px-7 lg:py-6 lg:text-lg lg:leading-8"
+            >
+              Imagine your childhood, your relationships, the last time you
+              cried, your happiest memory, and all the moments that shaped who
+              you are...
             </motion.p>
 
             {/* CTA Buttons */}
@@ -91,24 +91,31 @@ export function Hero() {
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="mt-4 flex flex-col items-start gap-3 sm:mt-6 sm:flex-row sm:items-center sm:gap-6 lg:mt-8"
+              className="mt-5 flex flex-col items-start gap-3 sm:mt-7 sm:flex-row sm:items-center sm:gap-4 lg:mt-9 lg:gap-5"
             >
               <a
                 href={authorPortalUrl}
-                className="group inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-[9px] font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 sm:px-5 sm:py-2.5 sm:text-xs lg:px-7 lg:py-3.5 lg:text-sm"
+                className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-primary py-2 pl-2 pr-4.5 text-[10px] font-bold text-primary-foreground shadow-lg shadow-primary/25 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:gap-3 sm:py-2.5 sm:pl-2.5 sm:pr-6 sm:text-xs lg:py-3 lg:pl-3 lg:pr-8 lg:text-sm"
               >
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/15 sm:h-5 sm:w-5 lg:h-6 lg:w-6">
-                  <Icons.plus className="h-3 w-3 text-white" />
+                {/* Sweeping shine on hover */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 -left-3/4 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-all duration-700 ease-out group-hover:left-[120%]"
+                />
+                <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-md shadow-accent/40 transition-transform duration-300 group-hover:rotate-90 sm:h-7 sm:w-7 lg:h-9 lg:w-9">
+                  <Icons.plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 lg:h-[18px] lg:w-[18px]" />
                 </span>
-                Start Your Lifebook
+                <span className="relative">Begin Your Lifebook</span>
               </a>
 
               <Link
                 to="/feed"
-                className="group inline-flex items-center gap-1 text-[10px] font-bold text-primary underline decoration-primary/30 decoration-2 underline-offset-4 transition-colors hover:decoration-primary sm:text-xs lg:text-[15px]"
+                className="group inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-border bg-card/80 py-2 pl-4.5 pr-2 text-[10px] font-bold text-foreground shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:gap-3 sm:py-2.5 sm:pl-6 sm:pr-2.5 sm:text-xs lg:py-3 lg:pl-8 lg:pr-3 lg:text-sm"
               >
                 Explore Stories
-                <Icons.arrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:h-3.5 sm:w-3.5" />
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent transition-all duration-300 group-hover:bg-accent group-hover:text-white sm:h-7 sm:w-7 lg:h-9 lg:w-9">
+                  <Icons.arrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-4 sm:w-4" />
+                </span>
               </Link>
             </motion.div>
 
@@ -191,7 +198,6 @@ export function Hero() {
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>

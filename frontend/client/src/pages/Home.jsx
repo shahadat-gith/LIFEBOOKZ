@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Hero,
+  WhatIsLifebookz,
   YourStoryMatters,
   LatestStories,
   TestimonialsSection,
@@ -15,13 +16,16 @@ export function HomePage() {
       {/* SECTION 1: HERO */}
       <Hero />
 
-      {/* SECTION 2: LATEST STORIES RAIL */}
+      {/* SECTION 2: WHAT IS LIFEBOOKZ? */}
+      <WhatIsLifebookz />
+
+      {/* SECTION 3: LATEST STORIES RAIL */}
       <LatestStories />
 
-      {/* SECTION 3: YOUR STORY MATTERS */}
+      {/* SECTION 4: YOUR STORY MATTERS */}
       <YourStoryMatters />
 
-      {/* SECTION 4: TESTIMONIALS — display + share */}
+      {/* SECTION 5: TESTIMONIALS — display + share */}
       <div className="border-t border-border/60">
         <TestimonialsSection refreshKey={testimonialsRefresh} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">

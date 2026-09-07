@@ -15,7 +15,7 @@ function BookVisual() {
       className="relative mx-auto flex h-72 w-full max-w-[300px] items-center justify-center select-none"
     >
       {/* Ambient glow behind the book */}
-      <div className="absolute h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+      <div className="absolute h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
 
       {/* Page stack (right edge) */}
       <div className="absolute right-[62px] top-[38px] h-[176px] w-3 rounded-r-lg bg-muted shadow-sm" />
@@ -78,9 +78,9 @@ export function YourStoryMatters() {
     import.meta.env.VITE_AUTHOR_PORTAL || "https://author.lifebookz.com";
 
   return (
-    <section className="border-t border-border/60 bg-background py-12 select-none sm:py-20">
+    <section className="border-t border-border/60 bg-background py-14 select-none sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-md shadow-primary/[0.04]">
+        <div className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border/70 bg-card/70 shadow-xs">
           {/* decorative tints */}
           <div
             aria-hidden="true"
@@ -94,7 +94,7 @@ export function YourStoryMatters() {
           <div className="relative grid gap-10 p-6 sm:p-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-6 lg:p-14">
             {/* Copy */}
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+              <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.08] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
                 <Icons.plus className="h-3 w-3" />
                 Why Lifebookz
               </span>
@@ -111,7 +111,7 @@ export function YourStoryMatters() {
               <ul className="mt-7 grid gap-3 sm:grid-cols-2 sm:gap-x-8">
                 {POINTS.map((point) => (
                   <li key={point} className="flex items-center gap-2.5">
-                    <Icons.checkCircle className="h-5 w-5 shrink-0 text-blue-500" />
+                    <Icons.checkCircle className="h-5 w-5 shrink-0 text-accent" />
                     <span className="text-[15px] font-semibold text-foreground/80">
                       {point}
                     </span>
@@ -132,7 +132,7 @@ export function YourStoryMatters() {
 
                 <Link
                   to="/trending"
-                  className="text-[15px] font-bold text-blue-600 underline decoration-blue-300 decoration-2 underline-offset-[6px] transition-colors hover:text-blue-700"
+                  className="text-[15px] font-bold text-accent underline decoration-accent/30 decoration-2 underline-offset-[6px] transition-colors hover:decoration-accent"
                 >
                   Read inspiring lives
                 </Link>

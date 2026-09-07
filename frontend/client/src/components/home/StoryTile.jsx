@@ -20,7 +20,7 @@ export default function StoryTile({ story }) {
   const meta = [author.profession, timeAgo].filter(Boolean).join(" · ");
 
   return (
-    <article className="group relative flex w-[300px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-lg sm:w-[340px]">
+    <article className="group relative flex w-[300px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-2xl)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/25 hover:shadow-lg sm:w-[340px]">
       {/* Cover */}
       <Link
         to={`/feed/story/${storySlug}`}
@@ -35,7 +35,7 @@ export default function StoryTile({ story }) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-accent/5 to-blue-500/10">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10">
             <Icons.book className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
