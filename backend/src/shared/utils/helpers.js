@@ -55,6 +55,19 @@ export function extractTextFromDocument(document) {
   return String(document);
 }
 
+/**
+ * Extract combined plain text from all chapters (or legacy content).
+ */
+export function extractAllContentText(story) {
+  if (story.chapters && story.chapters.length > 0) {
+    return story.chapters
+      .sort((a, b) => a.order - b.order)
+      .map((ch) => extractTextFromDocument(ch.content))
+      .join("\n\n");
+  }
+  return extractTextFromDocument(story.content);
+}
+
 function extractTextFromNode(node) {
   if (!node) return "";
 
@@ -70,6 +83,5 @@ function extractTextFromNode(node) {
 
   return "";
 }
-
 
 

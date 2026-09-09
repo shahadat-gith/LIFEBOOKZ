@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import * as storyApi from "../utils/client";
 import { useAuth } from "../context/AuthContext";
 import { usePolling } from "../hooks/usePolling";
@@ -8,26 +8,17 @@ import { usePolling } from "../hooks/usePolling";
 import Card, { CardContent } from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import LoadingScreen from "../components/common/LoadingScreen";
-import Editor from "../components/editor/Editor";
 
 import StoryHeader from "../components/editor/StoryHeader";
 import VerificationBanner from "../components/editor/VerificationBanner";
-import CategorySelect from "../components/editor/CategorySelect";
-import StoryStats from "../components/editor/StoryStats";
-import StoryTitleInput from "../components/editor/StoryTitleInput";
-import CoverImageUploader from "../components/editor/CoverImageUploader";
-import StoryActions from "../components/editor/StoryActions";
 import PublishingOverlay from "../components/editor/PublishingOverlay";
 import PollingModal from "../components/story/PollingModal";
 
+import StoryDetailsStep from "../components/editor/StoryDetailsStep";
+import ChapterEditorStep from "../components/editor/ChapterEditorStep";
+
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
-
-const TYPE_PLACEHOLDERS = {
-  autobiography: "Document your life journey, personal milestones, key memories, or core lessons learned...",
-  biography: "Share their life journey, heritage, achievements, and lasting legacy...",
-  legend: "Record the life, impactful accomplishments, and extraordinary legacy of this individual...",
-};
 
 // Statuses where the story is locked while the background pipeline runs
 const PROCESSING_STATUSES = [
@@ -42,7 +33,6 @@ const PROCESSING_STATUSES = [
 function extractPlainText(doc) {
   if (!doc) return "";
 
-  // String — treat as HTML, strip tags
   if (typeof doc === "string") {
     return doc
       .replace(/<[^>]*>/g, " ")
@@ -51,7 +41,6 @@ function extractPlainText(doc) {
       .trim();
   }
 
-  // Object — TipTap JSON node tree
   if (typeof doc === "object") {
     return extractTextFromNode(doc).trim();
   }
@@ -81,9 +70,11 @@ export default function StoryEditorPage() {
   const isEditMode = Boolean(storyId);
   const [storyIdState, setStoryIdState] = useState(storyId || null);
 
+  // ─── Wizard Step ───
+  const [editorStep, setEditorStep] = useState(1); // 1 = details, 2 = chapters
+
+  // ─── Story-level fields ───
   const [title, setTitle] = useState("");
-  // content stores the TipTap JSON document (from editor.getJSON())
-  const [content, setContent] = useState(null);
   const [storyType, setStoryType] = useState("autobiography");
   const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
@@ -93,10 +84,17 @@ export default function StoryEditorPage() {
   const [currentStep, setCurrentStep] = useState("writing");
   const coverFileRef = useRef(null);
 
-  const formStateRef = useRef({ title, content, storyType, storyIdState });
+  // ─── Chapters state ───
+  const [chapters, setChapters] = useState([
+    { title: "Chapter 1", content: { type: "doc", content: [] }, bannerImage: null, caption: "" },
+  ]);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const [chapterContent, setChapterContent] = useState({ type: "doc", content: [] });
+
+  const formStateRef = useRef({ title, storyType, storyIdState, chapters, activeChapterIndex });
   useEffect(() => {
-    formStateRef.current = { title, content, storyType, storyIdState };
-  }, [title, content, storyType, storyIdState]);
+    formStateRef.current = { title, storyType, storyIdState, chapters, activeChapterIndex };
+  }, [title, storyType, storyIdState, chapters, activeChapterIndex]);
 
   const [loadingStory, setLoadingStory] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -104,7 +102,7 @@ export default function StoryEditorPage() {
 
   const [verificationIssues, setVerificationIssues] = useState([]);
 
-  // Async pipeline polling (submit → analyzing → … → published / rejected / failed)
+  // Async pipeline polling
   const {
     pollStatus,
     pollMessage,
@@ -125,14 +123,21 @@ export default function StoryEditorPage() {
       handlePollSuccess();
     } else if (pollStatus === "failed") {
       setVerificationIssues(issues || []);
-      // Unlock the editor so the author can fix issues and resubmit
       if (polledStatus) setStoryStatus(polledStatus);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollStatus, polledStatus]);
 
-  // onChange receives TipTap JSON from the editor
-  const handleDocumentChange = useCallback((json) => setContent(json), []);
+  // Editor change handler — updates the active chapter content
+  const handleDocumentChange = useCallback((json) => {
+    setChapterContent(json);
+    setChapters((prev) => {
+      const next = [...prev];
+      const idx = formStateRef.current.activeChapterIndex;
+      next[idx] = { ...next[idx], content: json };
+      return next;
+    });
+  }, []);
 
   const makeSlug = (str) =>
     (str || "")
@@ -173,11 +178,10 @@ export default function StoryEditorPage() {
     };
   }, [coverPreview]);
 
-  // After image upload, auto-save the content JSON
+  // After image upload in editor, auto-save
   const handleImageUploadEnd = useCallback(
     async (jsonDocument) => {
       if (!jsonDocument) return;
-      setContent(jsonDocument);
 
       const plainText = extractPlainText(jsonDocument);
       if (!plainText) return;
@@ -186,10 +190,21 @@ export default function StoryEditorPage() {
         title: currentTitle,
         storyType: currentType,
         storyIdState: currentId,
+        chapters: currentChapters,
+        activeChapterIndex: currentIdx,
       } = formStateRef.current;
 
       try {
-        const payload = { content: jsonDocument, storyType: currentType };
+        const updatedChapters = [...currentChapters];
+        updatedChapters[currentIdx] = {
+          ...updatedChapters[currentIdx],
+          content: jsonDocument,
+        };
+
+        const payload = {
+          chapters: updatedChapters,
+          storyType: currentType,
+        };
         if (currentTitle.trim()) payload.title = currentTitle.trim();
 
         if (currentId) {
@@ -207,13 +222,13 @@ export default function StoryEditorPage() {
     [navigate],
   );
 
+  // Load existing story
   useEffect(() => {
     if (!storyId || !author) return;
     storyApi
       .getMyStory(storyId)
       .then((s) => {
         setTitle(s.title || "");
-        setContent(s.content || null);
         setStoryType(s.storyType || "autobiography");
         setStoryStatus(s.status);
         if (s.coverImage?.url) {
@@ -223,13 +238,28 @@ export default function StoryEditorPage() {
         if (s.language) setStoryLanguage(s.language);
         if (s.stats) setStoryStats(s.stats);
 
+        // Load chapters
+        if (s.chapters && s.chapters.length > 0) {
+          const sorted = [...s.chapters].sort((a, b) => a.order - b.order);
+          setChapters(sorted);
+          setChapterContent(sorted[0].content || { type: "doc", content: [] });
+          setActiveChapterIndex(0);
+        } else if (s.content) {
+          setChapters([{
+            title: s.title || "Chapter 1",
+            content: s.content,
+            bannerImage: null,
+            caption: "",
+          }]);
+          setChapterContent(s.content);
+        }
+
         if (s.status === "rejected" || s.status === "failed") {
           setVerificationIssues(s.analysis?.issues || []);
           setCurrentStep("issues");
         } else if (s.status === "published") {
           setCurrentStep("published");
         } else if (PROCESSING_STATUSES.includes(s.status)) {
-          // Resume watching an in-flight submission
           setCurrentStep("verifying");
           startPolling(storyId);
         }
@@ -239,17 +269,18 @@ export default function StoryEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId, author]);
 
-  /**
-   * Create or update the story draft (handles FormData for the cover image).
-   * Returns { id, story, created }.
-   */
-  async function persistStory() {
-    const payload = { content, storyType };
-    if (title.trim()) payload.title = title.trim();
+  // When switching chapters, load that chapter's content
+  useEffect(() => {
+    if (chapters[activeChapterIndex]) {
+      setChapterContent(chapters[activeChapterIndex].content || { type: "doc", content: [] });
+    }
+  }, [activeChapterIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Persist ───
+  async function persistStory() {
     if (coverImage instanceof File) {
       const fd = new FormData();
-      fd.append("content", JSON.stringify(content));
+      fd.append("chapters", JSON.stringify(chapters));
       fd.append("title", title.trim());
       fd.append("storyType", storyType);
       fd.append("coverImage", coverImage);
@@ -261,6 +292,9 @@ export default function StoryEditorPage() {
       const story = await storyApi.create(fd);
       return { id: story.id || story._id, story, created: true };
     }
+
+    const payload = { chapters, storyType };
+    if (title.trim()) payload.title = title.trim();
 
     if (storyIdState) {
       const story = await storyApi.update(storyIdState, payload);
@@ -277,13 +311,19 @@ export default function StoryEditorPage() {
     setStoryLanguage(story.language || "");
     setStoryStats(story.stats || null);
     if (story.coverImage?.url) setCoverPreview(story.coverImage.url);
+    if (story.chapters && story.chapters.length > 0) {
+      const sorted = [...story.chapters].sort((a, b) => a.order - b.order);
+      setChapters(sorted);
+    }
   }
 
-  async function handleSaveDraft(e) {
-    e.preventDefault();
-    const plainText = extractPlainText(content);
-    if (!plainText) {
-      setError("Story content is required");
+  async function handleSaveDraft() {
+    const hasContent = chapters.some((ch) => {
+      const plain = extractPlainText(ch.content);
+      return plain.length > 0;
+    });
+    if (!hasContent) {
+      setError("At least one chapter must have content");
       return;
     }
     if (!title.trim()) {
@@ -307,9 +347,12 @@ export default function StoryEditorPage() {
   }
 
   async function handleSubmit() {
-    const plainText = extractPlainText(content);
-    if (!plainText) {
-      setError("Write your story before submitting for review.");
+    const hasContent = chapters.some((ch) => {
+      const plain = extractPlainText(ch.content);
+      return plain.length > 0;
+    });
+    if (!hasContent) {
+      setError("At least one chapter must have content before submitting.");
       return;
     }
     if (!title.trim()) {
@@ -323,7 +366,6 @@ export default function StoryEditorPage() {
       const { id, story } = await persistStory();
       applySavedStory(story, id);
 
-      // Submit — enqueues the async analysis pipeline on the backend
       await storyApi.publish(id);
       setStoryStatus("submitted");
       setCurrentStep("verifying");
@@ -349,13 +391,33 @@ export default function StoryEditorPage() {
     navigate("/dashboard");
   }
 
+  // ─── Step navigation ───
+  function goToStep2() {
+    if (!title.trim()) {
+      setError("Story title is required to continue");
+      return;
+    }
+    setError("");
+    setEditorStep(2);
+    // Auto-create story if it doesn't exist yet
+    if (!storyIdState) {
+      persistStory().then(({ id, story }) => {
+        applySavedStory(story, id);
+      }).catch(() => {});
+    }
+  }
+
+  function goToStep1() {
+    setEditorStep(1);
+  }
+
   if (authLoading) return <LoadingScreen message="Loading..." />;
   if (!author) {
     navigate("/login");
     return null;
   }
 
-  if (isEditMode && error && !loadingStory && !content) {
+  if (isEditMode && error && !loadingStory && !chapters.length) {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4">
         <Card padding="lg" className="text-center">
@@ -371,8 +433,7 @@ export default function StoryEditorPage() {
 
   if (loadingStory) return <LoadingScreen message="Loading story..." />;
 
-  const isLocked =
-    storyStatus === "published" || PROCESSING_STATUSES.includes(storyStatus);
+  const isLocked = PROCESSING_STATUSES.includes(storyStatus);
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
@@ -384,7 +445,6 @@ export default function StoryEditorPage() {
         onBackToDashboard={handleBackToDashboard}
       />
 
-      {/* Avoid stacking overlays — PollingModal covers the whole flow while polling */}
       {pollStatus === "idle" && <PublishingOverlay currentStep={currentStep} />}
 
       <StoryHeader
@@ -398,78 +458,50 @@ export default function StoryEditorPage() {
         verificationIssues={verificationIssues}
       />
 
-      <form onSubmit={handleSaveDraft}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <CategorySelect
-                storyType={storyType}
-                setStoryType={setStoryType}
-                storyLanguage={storyLanguage}
-              />
-
-              <StoryStats stats={storyStats} />
-
-              <StoryTitleInput
-                title={title}
-                setTitle={setTitle}
-                storyType={storyType}
-                slugPreview={slugPreview}
-                disabled={isLocked}
-              />
-
-              <CoverImageUploader
-                coverPreview={coverPreview}
-                coverFileRef={coverFileRef}
-                handleCoverChange={handleCoverChange}
-                disabled={isLocked}
-              />
-
-              <Editor
-                key={storyType}
-                content={content}
-                onChange={handleDocumentChange}
-                onImageUploadEnd={handleImageUploadEnd}
-                editable={!isLocked}
-                placeholder={TYPE_PLACEHOLDERS[storyType] || "Start recording the narrative here..."}
-              />
-
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-sm text-destructive flex items-center gap-1.5 p-3 rounded-lg bg-destructive/10"
-                  >
-                    <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
-                    <span className="flex-1">{error}</span>
-                    <button
-                      type="button"
-                      onClick={() => setError("")}
-                      className="flex-shrink-0 p-0.5 rounded hover:bg-destructive/20 transition-colors"
-                    >
-                      <Icons.close className="h-3.5 w-3.5" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </CardContent>
-
-            <StoryActions
+      <div className="mt-6">
+        <AnimatePresence mode="wait">
+          {editorStep === 1 ? (
+            <StoryDetailsStep
+              key="details"
+              title={title}
+              setTitle={setTitle}
+              storyType={storyType}
+              setStoryType={setStoryType}
+              storyLanguage={storyLanguage}
+              coverPreview={coverPreview}
+              coverFileRef={coverFileRef}
+              handleCoverChange={handleCoverChange}
+              slugPreview={slugPreview}
+              storyStats={storyStats}
+              isLocked={isLocked}
+              onContinue={goToStep2}
+              onCancel={() => navigate(-1)}
+            />
+          ) : (
+            <ChapterEditorStep
+              key="chapters"
+              storyType={storyType}
+              chapters={chapters}
+              setChapters={setChapters}
+              activeChapterIndex={activeChapterIndex}
+              setActiveChapterIndex={setActiveChapterIndex}
+              chapterContent={chapterContent}
+              setChapterContent={setChapterContent}
+              handleDocumentChange={handleDocumentChange}
+              handleImageUploadEnd={handleImageUploadEnd}
+              isLocked={isLocked}
               saving={saving}
               currentStep={currentStep}
               storyStatus={storyStatus}
+              error={error}
+              setError={setError}
+              handleSaveDraft={handleSaveDraft}
               handleSubmit={handleSubmit}
-              onCancel={() => navigate(-1)}
+              onBack={goToStep1}
             />
-          </Card>
-        </motion.div>
-      </form>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

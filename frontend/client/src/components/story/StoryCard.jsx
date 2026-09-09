@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar";
 import FollowButton from "./FollowButton";
-import { extractTextFromDocument } from "./TipTapReader";
 import { Icons } from "../../icons";
 import { getTimeAgo, formatLikesCaption } from "../../utils/helpers";
 import api from "../../config/axios";
@@ -13,7 +12,6 @@ import { share } from "../../utils/share";
 
 export default function StoryCard({
   story,
-  fixedSnippetLength = 200,
   showActions = true,
 }) {
   const navigate = useNavigate();
@@ -34,9 +32,8 @@ export default function StoryCard({
   const shareCount = story.stats?.shares || 0;
   const likesCaption = formatLikesCaption(recentLikers, likeCount);
 
-  const snippetText = useMemo(() => {
-    return extractTextFromDocument(story.content, fixedSnippetLength);
-  }, [story.content, fixedSnippetLength]);
+  // Chapter count
+  const chapterCount = story.chapters?.length || 0;
 
   async function handleLike(e) {
     e.preventDefault();
@@ -51,7 +48,6 @@ export default function StoryCard({
 
     setLiked(next);
     setLikeCount((c) => (next ? c + 1 : c - 1));
-    // Keep the "Liked by ..." caption in sync optimistically
     setRecentLikers((prev) => {
       const list = prev || [];
       if (next) {
@@ -159,19 +155,21 @@ export default function StoryCard({
         </h2>
       </Link>
 
-      {/* Story Summary */}
-      {story.summary ? (
+      {/* Story Summary as Preview */}
+      <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
+        <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
+          {story.summary || "No summary available yet..."}
+        </p>
+      </Link>
+
+      {/* Chapter Count Badge */}
+      {chapterCount > 1 && (
         <div className="px-5 pb-2">
-          <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
-            {story.summary}
-          </p>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Icons.book className="h-3 w-3" />
+            {chapterCount} chapters
+          </span>
         </div>
-      ) : (
-        <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
-          <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
-            {snippetText}
-          </p>
-        </Link>
       )}
 
       {/* Read link */}

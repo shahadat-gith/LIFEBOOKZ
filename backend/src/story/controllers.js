@@ -47,11 +47,37 @@ export async function uploadImage(req, res, next) {
 }
 
 /**
+ * Extract combined plain text from all chapters (or legacy content).
+ */
+function extractAllContentText(story) {
+  if (story.chapters && story.chapters.length > 0) {
+    return story.chapters
+      .sort((a, b) => a.order - b.order)
+      .map((ch) => extractTextFromDocument(ch.content))
+      .join("\n\n");
+  }
+  return extractTextFromDocument(story.content);
+}
+
+/**
  * POST /stories
- * Create Draft
+ * Create Draft — creates story with initial chapter if provided
  */
 export async function create(req, res, next) {
   try {
+    // Parse chapter data if provided (JSON string from FormData)
+    let chapters = [];
+    if (req.body.chapters) {
+      try {
+        chapters = typeof req.body.chapters === "string"
+          ? JSON.parse(req.body.chapters)
+          : req.body.chapters;
+      } catch {
+        /* ignore malformed chapters */
+      }
+    }
+
+    // Legacy single-content support
     let content = req.body.content || req.body.blocks;
     if (typeof content === "string") {
       try {
@@ -80,6 +106,27 @@ export async function create(req, res, next) {
       .select("profession")
       .lean();
 
+    // Build chapters array
+    let finalChapters = [];
+    if (chapters.length > 0) {
+      finalChapters = chapters.map((ch, idx) => ({
+        title: ch.title || `Chapter ${idx + 1}`,
+        bannerImage: ch.bannerImage || null,
+        caption: ch.caption || "",
+        content: ch.content || { type: "doc", content: [] },
+        order: idx,
+      }));
+    } else if (content) {
+      // Backward compatibility: wrap legacy content as single chapter
+      finalChapters = [
+        {
+          title: cleanTitle || "Chapter 1",
+          content: content,
+          order: 0,
+        },
+      ];
+    }
+
     const story = await Story.create({
       author: req.user.id,
       authorProfession: authorDoc?.profession
@@ -89,6 +136,7 @@ export async function create(req, res, next) {
       storyType,
       visibility,
       language,
+      chapters: finalChapters,
       content: content || { type: "doc", content: [] },
       coverImage,
       status: "draft",
@@ -108,7 +156,7 @@ export async function create(req, res, next) {
 
 /**
  * PATCH /stories/:storyId
- * Update Draft
+ * Update Draft — supports updating story metadata and chapters
  */
 export async function update(req, res, next) {
   try {
@@ -123,16 +171,30 @@ export async function update(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    // Editable only when status == draft, rejected, or failed
-    if (!["draft", "rejected", "failed"].includes(story.status)) {
+    // Allow editing in draft, rejected, failed, OR published states
+    // (authors can update published stories to add chapters)
+    if (["submitted", "analyzing", "verified", "enriching", "enriched"].includes(story.status)) {
       throw new ValidationError(
-        "Cannot edit story while it is processing or published.",
+        "Cannot edit story while it is in review processing.",
       );
     }
 
     let { title, storyType, visibility, language } = req.body;
-    let content = req.body.content || req.body.blocks;
 
+    // Parse chapters update if provided
+    let chaptersUpdate = undefined;
+    if (req.body.chapters) {
+      try {
+        chaptersUpdate = typeof req.body.chapters === "string"
+          ? JSON.parse(req.body.chapters)
+          : req.body.chapters;
+      } catch {
+        /* ignore malformed chapters */
+      }
+    }
+
+    // Legacy content support
+    let content = req.body.content || req.body.blocks;
     if (content !== undefined && typeof content === "string") {
       try {
         content = JSON.parse(content);
@@ -161,6 +223,18 @@ export async function update(req, res, next) {
       story.language = language;
     }
 
+    // Update chapters if provided
+    if (chaptersUpdate !== undefined) {
+      story.chapters = chaptersUpdate.map((ch, idx) => ({
+        _id: ch._id || new story.model("Story").chapters.create()._id,
+        title: ch.title || `Chapter ${idx + 1}`,
+        bannerImage: ch.bannerImage || null,
+        caption: ch.caption || "",
+        content: ch.content || { type: "doc", content: [] },
+        order: idx,
+      }));
+    }
+
     if (req.file) {
       const uploaded = await uploadStoryImage(req.file.buffer);
       story.coverImage = { url: uploaded.url, publicId: uploaded.publicId };
@@ -187,11 +261,208 @@ export async function update(req, res, next) {
 }
 
 /**
+ * POST /stories/:storyId/chapters
+ * Add a new chapter to a story
+ */
+export async function addChapter(req, res, next) {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    // Allow adding chapters to draft, rejected, failed, OR published stories
+    if (["submitted", "analyzing", "verified", "enriching", "enriched"].includes(story.status)) {
+      throw new ValidationError(
+        "Cannot add chapters while story is in review processing.",
+      );
+    }
+
+    const { title, bannerImage, caption, content } = req.body;
+
+    if (!title?.trim()) {
+      throw new ValidationError("Chapter title is required.");
+    }
+
+    const newOrder = story.chapters.length;
+
+    story.chapters.push({
+      title: title.trim(),
+      bannerImage: bannerImage || null,
+      caption: caption || "",
+      content: content || { type: "doc", content: [] },
+      order: newOrder,
+    });
+
+    await story.save();
+
+    res.status(201).json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /stories/:storyId/chapters/:chapterId
+ * Update a specific chapter
+ */
+export async function updateChapter(req, res, next) {
+  try {
+    const { storyId, chapterId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    if (["submitted", "analyzing", "verified", "enriching", "enriched"].includes(story.status)) {
+      throw new ValidationError(
+        "Cannot edit chapters while story is in review processing.",
+      );
+    }
+
+    const chapter = story.chapters.id(chapterId);
+    if (!chapter) {
+      throw new NotFoundError("Chapter not found.");
+    }
+
+    const { title, bannerImage, caption, content } = req.body;
+
+    if (title !== undefined) chapter.title = title.trim();
+    if (bannerImage !== undefined) chapter.bannerImage = bannerImage;
+    if (caption !== undefined) chapter.caption = caption;
+    if (content !== undefined) chapter.content = content;
+
+    await story.save();
+
+    res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * DELETE /stories/:storyId/chapters/:chapterId
+ * Remove a chapter from a story
+ */
+export async function deleteChapter(req, res, next) {
+  try {
+    const { storyId, chapterId } = req.params;
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    if (["submitted", "analyzing", "verified", "enriching", "enriched"].includes(story.status)) {
+      throw new ValidationError(
+        "Cannot delete chapters while story is in review processing.",
+      );
+    }
+
+    if (story.chapters.length <= 1) {
+      throw new ValidationError("Cannot delete the last chapter. Stories must have at least one chapter.");
+    }
+
+    const chapter = story.chapters.id(chapterId);
+    if (!chapter) {
+      throw new NotFoundError("Chapter not found.");
+    }
+
+    // Remove the chapter and re-index orders
+    story.chapters.pull(chapterId);
+    story.chapters.forEach((ch, idx) => {
+      ch.order = idx;
+    });
+
+    await story.save();
+
+    res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /stories/:storyId/chapters/reorder
+ * Reorder chapters
+ */
+export async function reorderChapters(req, res, next) {
+  try {
+    const { storyId } = req.params;
+    const { chapterIds } = req.body;
+
+    if (!Array.isArray(chapterIds) || chapterIds.length === 0) {
+      throw new ValidationError("chapterIds array is required.");
+    }
+
+    const story = await Story.findOne({
+      _id: storyId,
+      author: req.user.id,
+    });
+
+    if (!story) {
+      throw new NotFoundError("Story not found.");
+    }
+
+    if (["submitted", "analyzing", "verified", "enriching", "enriched"].includes(story.status)) {
+      throw new ValidationError(
+        "Cannot reorder chapters while story is in review processing.",
+      );
+    }
+
+    // Validate all IDs exist in the story
+    const storyChapterIds = story.chapters.map((ch) => ch._id.toString());
+    const allExist = chapterIds.every((id) => storyChapterIds.includes(id));
+    if (!allExist || chapterIds.length !== storyChapterIds.length) {
+      throw new ValidationError("Invalid chapter order — all chapters must be included.");
+    }
+
+    // Reorder
+    const reordered = chapterIds.map((id, idx) => {
+      const ch = story.chapters.id(id);
+      ch.order = idx;
+      return ch;
+    });
+
+    story.chapters = reordered;
+    await story.save();
+
+    res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * POST /stories/:storyId/verify
  * Synchronous pre-flight content moderation check.
- * Runs the same LLM analysis as the background pipeline and stores the
- * result in `story.analysis` WITHOUT changing the story status — the
- * async pipeline remains the single source of truth for status changes.
  */
 export async function verify(req, res, next) {
   try {
@@ -206,7 +477,7 @@ export async function verify(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    const plainText = extractTextFromDocument(story.content);
+    const plainText = extractAllContentText(story);
 
     if (!plainText?.trim()) {
       throw new ValidationError(
@@ -247,6 +518,7 @@ export async function verify(req, res, next) {
 /**
  * POST /stories/:storyId/publish
  * Publish Story (Enqueues Worker Pipeline)
+ * Now also allows re-publishing published stories after adding chapters
  */
 export async function publish(req, res, next) {
   try {
@@ -261,8 +533,9 @@ export async function publish(req, res, next) {
       throw new NotFoundError("Story not found.");
     }
 
-    if (story.status !== "draft") {
-      throw new ValidationError("Only drafts can be submitted for publishing.");
+    // Allow publishing drafts OR re-publishing published stories
+    if (!["draft", "published"].includes(story.status)) {
+      throw new ValidationError("Only drafts or published stories can be submitted for publishing.");
     }
 
     // Field validation checks
@@ -270,13 +543,19 @@ export async function publish(req, res, next) {
       throw new ValidationError("Story title is required before publishing.");
     }
 
-    const hasContent =
-      story.content &&
-      (typeof story.content === "string"
-        ? story.content.trim().length > 0
-        : Array.isArray(story.content?.content)
-          ? story.content.content.length > 0
-          : Object.keys(story.content).length > 0);
+    // Validate chapters exist
+    if (!story.chapters || story.chapters.length === 0) {
+      throw new ValidationError("Story must have at least one chapter.");
+    }
+
+    // Check if at least one chapter has content
+    const hasContent = story.chapters.some((ch) => {
+      const ct = ch.content;
+      if (!ct) return false;
+      if (typeof ct === "string") return ct.trim().length > 0;
+      if (Array.isArray(ct?.content)) return ct.content.length > 0;
+      return Object.keys(ct).length > 0;
+    });
 
     if (!hasContent) {
       throw new ValidationError("Story content cannot be empty.");
@@ -497,7 +776,7 @@ export async function list(req, res, next) {
         title
         slug
         summary
-        content
+        chapters
         coverImage
         author
         authorProfession
@@ -594,6 +873,7 @@ export async function list(req, res, next) {
     next(error);
   }
 }
+
 /**
  * POST /stories/:storyId/like
  * Toggle Like

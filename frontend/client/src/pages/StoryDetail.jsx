@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../config/axios";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/ui/Avatar";
@@ -24,6 +24,7 @@ export default function StoryDetailPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [recentLikers, setRecentLikers] = useState([]);
   const [commentTrigger, setCommentTrigger] = useState(0);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const commentSectionRef = useRef(null);
 
   useEffect(() => {
@@ -58,7 +59,6 @@ export default function StoryDetailPage() {
 
     setLiked(next);
     setLikeCount((c) => (next ? c + 1 : c - 1));
-    // Keep the "Liked by ..." caption in sync optimistically
     setRecentLikers((prev) => {
       const list = prev || [];
       if (next) {
@@ -135,6 +135,14 @@ export default function StoryDetailPage() {
   const commentCount = story.stats?.comments || 0;
   const shareCount = story.stats?.shares || 0;
   const likesCaption = formatLikesCaption(recentLikers, likeCount);
+
+  // Chapters support
+  const chapters = story.chapters || [];
+  const hasChapters = chapters.length > 0;
+  const sortedChapters = hasChapters
+    ? [...chapters].sort((a, b) => a.order - b.order)
+    : [];
+  const activeChapter = sortedChapters[activeChapterIndex];
 
   return (
     <motion.div
@@ -240,7 +248,104 @@ export default function StoryDetailPage() {
           </div>
         )}
 
-        <TipTapReader document={story.content} />
+        {/* Chapter Navigation */}
+        {hasChapters && sortedChapters.length > 1 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                Table of Contents
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {sortedChapters.length} chapters
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sortedChapters.map((ch, idx) => (
+                <button
+                  key={ch._id || idx}
+                  type="button"
+                  onClick={() => {
+                    setActiveChapterIndex(idx);
+                    // Scroll to chapter content
+                    document.getElementById(`chapter-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    idx === activeChapterIndex
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  }`}
+                >
+                  {idx + 1}. {ch.title || `Chapter ${idx + 1}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chapter Content */}
+        {hasChapters ? (
+          <div className="space-y-12">
+            {sortedChapters.map((chapter, idx) => (
+              <motion.div
+                key={chapter._id || idx}
+                id={`chapter-${idx}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * idx }}
+                className="scroll-mt-24"
+              >
+                {/* Chapter Banner */}
+                {chapter.bannerImage?.url && (
+                  <div className="mb-6 -mx-4 sm:-mx-6">
+                    <div className="relative w-full h-48 sm:h-64 overflow-hidden rounded-none sm:rounded-xl">
+                      <img
+                        src={chapter.bannerImage.url}
+                        alt={chapter.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {chapter.caption && (
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                          <p className="text-white text-xs italic">{chapter.caption}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chapter Title */}
+                {sortedChapters.length > 1 && (
+                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground font-display mb-6">
+                    {chapter.title || `Chapter ${idx + 1}`}
+                  </h2>
+                )}
+
+                {/* Chapter Caption (if no banner) */}
+                {chapter.caption && !chapter.bannerImage?.url && (
+                  <p className="text-sm text-muted-foreground italic mb-4">
+                    {chapter.caption}
+                  </p>
+                )}
+
+                {/* Chapter Content */}
+                <TipTapReader document={chapter.content} />
+
+                {/* Chapter Divider */}
+                {idx < sortedChapters.length - 1 && (
+                  <div className="my-12 flex items-center gap-4">
+                    <div className="flex-1 h-px bg-border/40" />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+                      <Icons.chevronDown className="h-3 w-3" />
+                    </div>
+                    <div className="flex-1 h-px bg-border/40" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          /* Legacy single-content fallback */
+          <TipTapReader document={story.content} />
+        )}
       </motion.div>
 
       {/* Interactive Stats Row: Like · Comment · Share — left aligned */}

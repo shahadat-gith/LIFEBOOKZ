@@ -29,6 +29,15 @@ router.post("/:storyId/verify", authenticate, story.verify);
 
 router.post("/:storyId/publish", authenticate, story.publish);
 
+/* ---------- Chapters ---------- */
+
+router.post("/:storyId/chapters", authenticate, story.addChapter);
+
+router.patch("/:storyId/chapters/reorder", authenticate, story.reorderChapters);
+
+router.patch("/:storyId/chapters/:chapterId", authenticate, story.updateChapter);
+
+router.delete("/:storyId/chapters/:chapterId", authenticate, story.deleteChapter);
 
 /* ---------- Likes ---------- */
 

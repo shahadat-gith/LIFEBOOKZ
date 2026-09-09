@@ -31,6 +31,27 @@ export async function remove(storyId) {
   return res.data;
 }
 
+// Chapter API methods
+export async function addChapter(storyId, data) {
+  const res = await api.post(`/stories/${storyId}/chapters`, data);
+  return res.data.data;
+}
+
+export async function updateChapter(storyId, chapterId, data) {
+  const res = await api.patch(`/stories/${storyId}/chapters/${chapterId}`, data);
+  return res.data.data;
+}
+
+export async function deleteChapter(storyId, chapterId) {
+  const res = await api.delete(`/stories/${storyId}/chapters/${chapterId}`);
+  return res.data;
+}
+
+export async function reorderChapters(storyId, chapterIds) {
+  const res = await api.patch(`/stories/${storyId}/chapters/reorder`, { chapterIds });
+  return res.data.data;
+}
+
 // Author-specific API
 export async function getMyStories() {
   const res = await api.get('/authors/me/stories');

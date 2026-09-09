@@ -228,6 +228,7 @@ export default function Dashboard() {
                   variant: "default",
                 };
                 const issues = story.analysis?.issues || [];
+                const chapterCount = story.chapters?.length || 0;
 
                 return (
                   <motion.div
@@ -249,6 +250,11 @@ export default function Dashboard() {
                         <Badge variant={badge.variant}>
                           {badge.label}
                         </Badge>
+                        {chapterCount > 0 && (
+                          <Badge variant="default">
+                            {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}
+                          </Badge>
+                        )}
                         {issues.length > 0 && (
                           <Badge variant="danger">
                             {issues.length} {issues.length > 1 ? "issues" : "issue"}
@@ -287,6 +293,7 @@ export default function Dashboard() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
+                            navigate(`/feed/story/${story.slug}`);
                           }}
                           icon={<Icons.eye className="h-3.5 w-3.5" />}
                         >

@@ -18,6 +18,19 @@ import { parseJsonFromLLM, toQdrantUuid, getStory } from "../../utils/helpers.js
 
 const qdrant = getQdrantClient();
 
+/**
+ * Extract combined plain text from all chapters (or legacy content).
+ */
+function extractAllContentText(story) {
+  if (story.chapters && story.chapters.length > 0) {
+    return story.chapters
+      .sort((a, b) => a.order - b.order)
+      .map((ch) => extractTextFromDocument(ch.content))
+      .join("\n\n");
+  }
+  return extractTextFromDocument(story.content);
+}
+
 export async function processStoryJob({ jobType, storyId }) {
   switch (jobType) {
     case "story_analysis":
@@ -51,7 +64,7 @@ async function analyzeStory(storyId) {
   });
 
   try {
-    const plainText = extractTextFromDocument(story.content);
+    const plainText = extractAllContentText(story);
 
     const systemPrompt = getStoryAnalysisPrompt();
     const rawResponse = await generateContent({
@@ -107,11 +120,24 @@ async function enrichStory(storyId) {
   });
 
   try {
-    // Pass stringified Tiptap JSON document tree directly to prompt
-    const documentContent =
-      typeof story.content === "object"
+    // Build document content from chapters for enrichment
+    let documentContent = "";
+    if (story.chapters && story.chapters.length > 0) {
+      const chapterContents = story.chapters
+        .sort((a, b) => a.order - b.order)
+        .map((ch, idx) => {
+          const title = ch.title || `Chapter ${idx + 1}`;
+          const contentStr = typeof ch.content === "object"
+            ? JSON.stringify(ch.content)
+            : ch.content || "";
+          return `## ${title}\n\n${contentStr}`;
+        });
+      documentContent = chapterContents.join("\n\n---\n\n");
+    } else {
+      documentContent = typeof story.content === "object"
         ? JSON.stringify(story.content)
         : story.content;
+    }
 
     const rawResponse = await generateContent({
       system: getStoryEnrichmentPrompt(),
@@ -119,25 +145,12 @@ async function enrichStory(storyId) {
       json: true,
     });
 
-    const { language, correctedContent, summary, embeddingMetadata } =
+    const { language, summary, embeddingMetadata } =
       parseJsonFromLLM(rawResponse);
-
-    // Fallback safely to original Tiptap structure if the returned
-    // structure is missing or is not a valid Tiptap doc node
-    const isTiptapDoc =
-      correctedContent &&
-      typeof correctedContent === "object" &&
-      !Array.isArray(correctedContent) &&
-      correctedContent.type === "doc" &&
-      Array.isArray(correctedContent.content) &&
-      correctedContent.content.length > 0;
-
-    const updatedContent = isTiptapDoc ? correctedContent : story.content;
 
     await Story.findByIdAndUpdate(storyId, {
       $set: {
         status: "enriched",
-        content: updatedContent,
         language:
           typeof language === "string" && language.trim()
             ? language.trim()
@@ -184,7 +197,7 @@ async function generateStoryEmbedding(storyId) {
       (typeof story.embeddingMetadata === "string" &&
         story.embeddingMetadata.trim()) ||
       (typeof story.summary === "string" && story.summary.trim()) ||
-      extractTextFromDocument(story.content);
+      extractAllContentText(story);
 
     if (!textToEmbed) {
       throw new Error("Story has no embeddable text");

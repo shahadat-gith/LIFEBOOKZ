@@ -76,6 +76,45 @@ const statsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * Chapter Schema — each chapter is a self-contained section of the story
+ */
+const chapterSchema = new mongoose.Schema(
+  {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: () => new mongoose.Types.ObjectId(),
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    bannerImage: {
+      type: imageSchema,
+      default: null,
+    },
+    caption: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 500,
+    },
+    content: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+      default: () => ({ type: "doc", content: [] }),
+    },
+    order: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+  },
+  { timestamps: true }
+);
+
 const storySchema = new mongoose.Schema(
   {
     author: {
@@ -145,15 +184,28 @@ const storySchema = new mongoose.Schema(
     },
 
     /**
-     * Final Tiptap document format.
+     * Chapters — ordered array of story chapters.
+     * Each chapter has its own title, banner image, caption, and TipTap content.
+     */
+    chapters: {
+      type: [chapterSchema],
+      default: [],
+      validate: {
+        validator: function (chapters) {
+          // Ensure order values are sequential starting from 0
+          return chapters.every((ch, idx) => ch.order === idx);
+        },
+        message: "Chapter orders must be sequential starting from 0.",
+      },
+    },
+
+    /**
+     * Legacy content field — kept for backward compatibility.
+     * New stories use chapters[] exclusively.
      */
     content: {
       type: mongoose.Schema.Types.Mixed,
-      required: true,
-      default: () => ({
-        type: "doc",
-        content: [],
-      }),
+      default: () => ({ type: "doc", content: [] }),
     },
 
     summary: {
@@ -226,6 +278,11 @@ const storySchema = new mongoose.Schema(
   }
 );
 
+// Virtual: compute total chapter count
+storySchema.virtual("chapterCount").get(function () {
+  return this.chapters ? this.chapters.length : 0;
+});
+
 // Compound Indexes for queries
 storySchema.index({ author: 1, updatedAt: -1 });
 storySchema.index({ author: 1, status: 1, updatedAt: -1 });
@@ -251,9 +308,7 @@ storySchema.pre("save", function () {
 
   // Set first publish timestamp
   if (
-    this.isModified("status") &&
-    this.status === "published" &&
-    !this.publishedAt
+    this.isModified("status") && this.status === "published" && !this.publishedAt
   ) {
     this.publishedAt = new Date();
   }
