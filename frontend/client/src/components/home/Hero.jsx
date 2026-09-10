@@ -60,7 +60,7 @@ export function Hero() {
               <span className="text-accent">.</span>
             </motion.h1>
 
-            {/* Description */}
+            {/* Paragraph 1 */}
             <motion.p
               custom={0.28}
               initial={initial}
@@ -73,6 +73,47 @@ export function Hero() {
               lessons—and help others learn from your experiences and wisdom.
             </motion.p>
 
+            {/* Mobile Image Insertion (Only visible on mobile screens below lg) */}
+            <motion.div
+              initial={
+                shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
+              }
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.85,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="relative my-6 flex w-full items-center justify-center lg:hidden"
+            >
+              <div
+                aria-hidden="true"
+                className="absolute right-[2%] top-[8%] aspect-square w-[85%] rounded-full bg-accent/8 blur-2xl sm:w-[90%]"
+              />
+
+              <div
+                aria-hidden="true"
+                className="absolute left-[8%] top-[8%] text-accent/50"
+              >
+                <Icons.sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+
+              <div
+                aria-hidden="true"
+                className="absolute right-[8%] top-[18%] text-accent/40"
+              >
+                <Icons.sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+              </div>
+
+              <div className="relative z-10 w-full">
+                <img
+                  src={HERO_IMAGE}
+                  alt="Lifebookz — preserve your life's story"
+                  className="block h-auto w-full object-contain drop-shadow-[0_25px_35px_rgba(15,23,42,0.08)]"
+                />
+              </div>
+            </motion.div>
+
+            {/* Paragraph 2 */}
             <motion.p
               custom={0.28}
               initial={initial}
@@ -85,7 +126,7 @@ export function Hero() {
               you are...
             </motion.p>
 
-            {/* CTA Buttons - Kept on 1 line using flex-row */}
+            {/* CTA Buttons */}
             <motion.div
               custom={0.4}
               initial={initial}
@@ -117,11 +158,9 @@ export function Hero() {
                 </span>
               </Link>
             </motion.div>
-
-           
           </div>
 
-          {/* Right Hero Visual (Appears at bottom on mobile) */}
+          {/* Desktop Right Hero Visual (Hidden on mobile, visible on lg screens and up) */}
           <motion.div
             initial={
               shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
@@ -131,25 +170,25 @@ export function Hero() {
               duration: 0.85,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="relative flex w-full items-center justify-center"
+            className="relative hidden w-full items-center justify-center lg:flex"
           >
             <div
               aria-hidden="true"
-              className="absolute right-[2%] top-[8%] aspect-square w-[85%] rounded-full bg-accent/8 blur-2xl sm:w-[90%] lg:right-[-5%] lg:top-[4%] lg:w-[95%] xl:w-[100%]"
+              className="absolute right-[2%] top-[8%] aspect-square w-[85%] rounded-full bg-accent/8 blur-2xl lg:right-[-5%] lg:top-[4%] lg:w-[95%] xl:w-[100%]"
             />
 
             <div
               aria-hidden="true"
               className="absolute left-[8%] top-[8%] text-accent/50"
             >
-              <Icons.sparkles className="h-4 w-4 sm:h-5 sm:w-5 lg:h-7 lg:w-7" />
+              <Icons.sparkles className="lg:h-7 lg:w-7" />
             </div>
 
             <div
               aria-hidden="true"
               className="absolute right-[8%] top-[18%] text-accent/40"
             >
-              <Icons.sparkles className="h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6" />
+              <Icons.sparkles className="lg:h-6 lg:w-6" />
             </div>
 
             {/* Main Hero Illustration */}
