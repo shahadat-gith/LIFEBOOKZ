@@ -4,7 +4,7 @@ import config from "./index.js";
 import dns from "node:dns";
 
 if (config.env === "dev") {
-  dns.setServers(["1.1.1.1", "1.0.0.1"]);
+  dns.setServers(["8.8.8.8"]);
 }
 
 export async function connectDatabase() {

@@ -44,6 +44,8 @@ import {
  HiOutlineLocationMarker,
  HiOutlineEye,
  HiOutlineMicrophone,
+ HiOutlineVideoCamera,
+ HiOutlinePhone,
  HiOutlineBell,
  HiOutlinePhotograph,
 } from 'react-icons/hi';
@@ -123,6 +125,8 @@ export const Icons = {
  location: HiOutlineLocationMarker,
  eye: HiOutlineEye,
  mic: HiOutlineMicrophone,
+ videoCamera: HiOutlineVideoCamera,
+ phone: HiOutlinePhone,
  bell: HiOutlineBell,
  image: HiOutlinePhotograph,
 

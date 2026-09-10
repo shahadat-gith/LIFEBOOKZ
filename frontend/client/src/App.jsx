@@ -23,6 +23,8 @@ import About from './pages/About';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import ContentPolicy from './pages/ContentPolicy';
+import BookExpert from './pages/BookExpert';
+import Consultation from './pages/Consultation';
 
 function LazyFallback() { return <LoadingScreen message="Loading page..." />; }
 
@@ -54,6 +56,8 @@ export function App() {
        <Route path="/feed/story/:slug" element={<StoryDetail />} />
        <Route path="/trending" element={<Trending />} />
        <Route path="/authors/:id" element={<AuthorProfile />} />
+       <Route path="/consult" element={<Consultation />} />
+       <Route path="/consult/book/:expertId" element={<BookExpert />} />
        <Route path="/about" element={<About />} />
        <Route path="/privacy" element={<PrivacyPolicy />} />
        <Route path="/terms" element={<TermsOfService />} />
