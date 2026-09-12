@@ -24,14 +24,26 @@ function setStoredToken(token) {
 }
 
 export function AuthProvider({ children }) {
+  const [admin, setAdmin] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/dashboard')
-      .then(() => setIsAuthenticated(true))
+    // No token means there is no session to restore — skip the request so a
+    // signed-out visitor never sends an unauthenticated call (and logs a 401).
+    if (!getStoredToken()) {
+      setIsLoading(false);
+      return;
+    }
+
+    api.get('/admin/me')
+      .then((res) => {
+        setAdmin(res.data.data);
+        setIsAuthenticated(true);
+      })
       .catch(() => {
         setStoredToken(null);
+        setAdmin(null);
         setIsAuthenticated(false);
       })
       .finally(() => setIsLoading(false));
@@ -40,6 +52,7 @@ export function AuthProvider({ children }) {
   const loginAdmin = useCallback(async (email, password) => {
     const res = await api.post('/admin/login', { email, password });
     setStoredToken(res.data.data.token);
+    setAdmin(res.data.data.admin || { role: 'admin' });
     setIsAuthenticated(true);
     return res.data;
   }, []);
@@ -47,11 +60,22 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     try { await api.post('/admin/logout'); } catch { }
     setStoredToken(null);
+    setAdmin(null);
     setIsAuthenticated(false);
   }, []);
 
   return (
-    <Ctx.Provider value={{ isAuthenticated, isLoading, loginAdmin, logout }}>
+    <Ctx.Provider
+      value={{
+        admin,
+        // The API sends the account role with every account payload.
+        role: admin?.role || (isAuthenticated ? 'admin' : null),
+        isAuthenticated,
+        isLoading,
+        loginAdmin,
+        logout,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

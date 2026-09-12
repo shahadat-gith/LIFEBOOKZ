@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Icons } from "../../icons";
 
 export function HeroSection() {
@@ -21,13 +22,13 @@ export function HeroSection() {
 
         {/* CTA Button: Hidden on mobile (shown below image on mobile), visible on desktop */}
         <div className="hidden lg:block">
-          <a
-            href="#experts"
+          <Link
+            to="/consult/book"
             className="group inline-flex items-center gap-3 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30"
           >
-            <span>Talk to a Coach</span>
+            <span>Book a Session with an Expert</span>
             <Icons.arrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -77,13 +78,13 @@ export function HeroSection() {
 
         {/* CTA Button: Only shown below image on mobile/tablet */}
         <div className="mt-8 block w-full px-4 lg:hidden">
-          <a
-            href="#experts"
+          <Link
+            to="/consult/book"
             className="group flex w-full items-center justify-center gap-3 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30"
           >
-            <span>Talk to a Coach</span>
+            <span>Book a Session with an Expert</span>
             <Icons.arrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
+          </Link>
         </div>
 
       </div>

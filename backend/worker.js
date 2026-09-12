@@ -1,6 +1,6 @@
-import { connectDatabase } from "./src/shared/config/database.js";
-import { createCollections } from "./src/shared/config/qdrant.js";
-import { startConsumer } from "./src/shared/sqs/consumer.js";
+import { connectDatabase } from "./src/core/config/database.js";
+import { createCollections } from "./src/core/config/qdrant.js";
+import { startConsumer } from "./src/core/queue/consumer.js";
 
 /**
  * Standalone SQS worker process.

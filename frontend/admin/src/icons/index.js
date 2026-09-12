@@ -10,7 +10,7 @@ import {
   HiOutlineBan, HiOutlineClock, HiOutlineStar, HiOutlineTrendingUp,
   HiOutlineCalendar, HiOutlineChartBar, HiOutlineCollection
 } from 'react-icons/hi';
-import { FaUserCheck, FaRegUser, FaSpinner, FaUsers, FaBookOpen, FaRegCalendarCheck, FaUserTie } from 'react-icons/fa';
+import { FaUserCheck, FaRegUser, FaSpinner, FaUsers, FaBookOpen, FaRegCalendarCheck, FaUserTie, FaUserGraduate } from 'react-icons/fa';
 
 export const Icons = {
   login: HiOutlineLogin,
@@ -54,6 +54,7 @@ export const Icons = {
   faBookOpen: FaBookOpen,
   faCalendarCheck: FaRegCalendarCheck,
   faUserTie: FaUserTie,
+  faUserGraduate: FaUserGraduate,
 };
 
 export default Icons;

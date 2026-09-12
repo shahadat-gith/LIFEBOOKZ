@@ -24,7 +24,11 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import ContentPolicy from './pages/ContentPolicy';
 import BookExpert from './pages/BookExpert';
+import ConsultSearch from './pages/ConsultSearch';
 import Consultation from './pages/Consultation';
+import MyBookings from './pages/MyBookings';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 function LazyFallback() { return <LoadingScreen message="Loading page..." />; }
 
@@ -49,15 +53,23 @@ export function App() {
      <Routes>
       <Route element={<AppLayout />}>
        <Route path="/" element={<Home />} />
-       <Route path="/stories" element={<StoryList />} />
+       {/*
+         Story data endpoints require authentication, so the pages that read
+         them are gated. The marketing pages (home, consult, legal) stay public.
+       */}
+       <Route path="/stories" element={<ProtectedRoute><StoryList /></ProtectedRoute>} />
        {/* Feed is the single source of truth - story detail is shown directly in the feed */}
-       <Route path="/search" element={<SearchResults />} />
-       <Route path="/feed" element={<Feed />} />
-       <Route path="/feed/story/:slug" element={<StoryDetail />} />
-       <Route path="/trending" element={<Trending />} />
-       <Route path="/authors/:id" element={<AuthorProfile />} />
+       <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+       <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+       <Route path="/feed/story/:slug" element={<ProtectedRoute><StoryDetail /></ProtectedRoute>} />
+       <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
+       <Route path="/authors/:id" element={<ProtectedRoute><AuthorProfile /></ProtectedRoute>} />
        <Route path="/consult" element={<Consultation />} />
+       <Route path="/consult/book" element={<ConsultSearch />} />
        <Route path="/consult/book/:expertId" element={<BookExpert />} />
+       <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
        <Route path="/about" element={<About />} />
        <Route path="/privacy" element={<PrivacyPolicy />} />
        <Route path="/terms" element={<TermsOfService />} />

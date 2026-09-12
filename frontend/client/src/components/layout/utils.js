@@ -10,7 +10,7 @@ export const tabs = [
   { to: "/", label: "Home", icon: Icons.home },
   { to: "/feed", label: "Feed", icon: Icons.document },
   { to: "/trending", label: "Trending", icon: Icons.sparkles },
-  { to: "/settings", label: "Settings", icon: Icons.settings },
+  { to: "/profile", label: "Profile", icon: Icons.user },
 ];
 
 
@@ -22,9 +22,9 @@ export function getDropdownItems(navigate) {
       onClick: () => navigate("/profile"),
     },
     {
-      label: "Preferences",
-      icon: Icons.sparkles,
-      onClick: () => navigate("/preferences"),
+      label: "My Bookings",
+      icon: Icons.book,
+      onClick: () => navigate("/bookings"),
     },
     {
       label: "Settings",

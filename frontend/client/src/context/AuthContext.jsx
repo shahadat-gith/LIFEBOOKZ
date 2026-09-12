@@ -29,6 +29,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const restore = async () => {
+      // No token means there is no session to restore — skip the request so a
+      // signed-out visitor never sends an unauthenticated call (and logs a 401).
+      if (!getStoredToken()) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const res = await api.get('/users/me');
         setUser(res.data.data);
@@ -37,6 +45,7 @@ export function AuthProvider({ children }) {
         setStoredToken(null);
         setUser(null);
       }
+
       setIsLoading(false);
     };
     restore();
@@ -69,7 +78,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, loginUser, registerUser, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        // The API sends the account role with every account payload; the
+        // fallback keeps older sessions working.
+        role: user?.role || (user ? 'user' : null),
+        isAuthenticated: !!user,
+        isLoading,
+        loginUser,
+        registerUser,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

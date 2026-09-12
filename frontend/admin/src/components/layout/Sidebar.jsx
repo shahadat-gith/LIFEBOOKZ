@@ -7,12 +7,13 @@ import Badge from '../ui/Badge';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: Icons.home },
-  { path: '/dashboard/authors', label: 'Authors', icon: Icons.faUserTie },
+  { path: '/dashboard/authors', label: 'Authors', icon: Icons.faUserTie, badgeKey: 'authors' },
+  { path: '/dashboard/experts', label: 'Experts', icon: Icons.faUserGraduate, badgeKey: 'experts' },
   { path: '/dashboard/stories', label: 'Stories', icon: Icons.faBookOpen },
   { path: '/dashboard/users', label: 'Users', icon: Icons.faUsers },
 ];
 
-export default function Sidebar({ pendingCount = 0, collapsed = false, onToggleCollapse }) {
+export default function Sidebar({ pendingCount = 0, pendingExperts = 0, collapsed = false, onToggleCollapse }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { logout } = useAuth();
   const location = useLocation();
@@ -68,6 +69,7 @@ export default function Sidebar({ pendingCount = 0, collapsed = false, onToggleC
               collapsed={false}
               onToggle={() => {}}
               pendingCount={pendingCount}
+              pendingExperts={pendingExperts}
               onNavClick={handleNavClick}
               logout={logout}
               location={location}
@@ -84,6 +86,7 @@ export default function Sidebar({ pendingCount = 0, collapsed = false, onToggleC
           collapsed={collapsed}
           onToggle={handleToggle}
           pendingCount={pendingCount}
+          pendingExperts={pendingExperts}
           onNavClick={handleNavClick}
           logout={logout}
           location={location}
@@ -93,7 +96,9 @@ export default function Sidebar({ pendingCount = 0, collapsed = false, onToggleC
   );
 }
 
-function SidebarContent({ collapsed, onToggle, pendingCount, onNavClick, logout, location }) {
+function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onNavClick, logout, location }) {
+  const badgeCounts = { authors: pendingCount, experts: pendingExperts };
+
   return (
     <>
       {/* Logo */}
@@ -142,14 +147,14 @@ function SidebarContent({ collapsed, onToggle, pendingCount, onNavClick, logout,
               {!collapsed && (
                 <span className="truncate">{item.label}</span>
               )}
-              {!collapsed && item.label === 'Authors' && pendingCount > 0 && (
+              {!collapsed && item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
                 <Badge variant="warning" className="ml-auto">
-                  {pendingCount}
+                  {badgeCounts[item.badgeKey]}
                 </Badge>
               )}
-              {collapsed && item.label === 'Authors' && pendingCount > 0 && (
+              {collapsed && item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-warning text-[9px] font-bold text-warning-foreground">
-                  {pendingCount > 9 ? '9+' : pendingCount}
+                  {badgeCounts[item.badgeKey] > 9 ? '9+' : badgeCounts[item.badgeKey]}
                 </span>
               )}
               {isActive && (

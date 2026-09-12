@@ -14,6 +14,18 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden bg-background">
+      {/*
+        Split background wash — the left half carries the deep navy brand
+        tint while the right half warms up with the coral accent. Kept on
+        every breakpoint so mobile shows the same two-tone treatment as the
+        desktop layout.
+      */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-primary/[0.07] via-primary/[0.03] to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-accent/[0.1] via-accent/[0.04] to-transparent" />
+        <div className="absolute inset-y-0 left-1/2 hidden w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-border to-transparent lg:block" />
+      </div>
+
       {/* Background Decoration */}
       <div
         aria-hidden="true"
@@ -22,7 +34,7 @@ export function Hero() {
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-40 top-1/3 h-[300px] w-[300px] rounded-full bg-accent/5 blur-3xl lg:h-[500px] lg:w-[500px]"
+        className="pointer-events-none absolute -left-40 top-1/3 h-[300px] w-[300px] rounded-full bg-primary/5 blur-3xl lg:h-[500px] lg:w-[500px]"
       />
 
       {/* Hero Container */}
@@ -113,18 +125,26 @@ export function Hero() {
               </div>
             </motion.div>
 
-            {/* Paragraph 2 */}
-            <motion.p
+            {/* Paragraph 2 — highlighted "Imagine..." callout */}
+            <motion.div
               custom={0.28}
               initial={initial}
               animate="show"
               variants={fadeUp}
-              className="mt-3 w-full rounded-2xl bg-accent/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground sm:mt-5 sm:px-6 sm:py-5 sm:text-sm sm:leading-6 lg:mt-6 lg:max-w-[470px] lg:px-7 lg:py-6 lg:text-lg lg:leading-8"
+              className="mt-3 w-full rounded-2xl border-l-4 border-accent bg-gradient-to-r from-accent/[0.14] via-accent/[0.06] to-transparent px-4 py-3 shadow-xs sm:mt-5 sm:px-6 sm:py-5 lg:mt-6 lg:max-w-[470px] lg:px-7 lg:py-6"
             >
-              Imagine your childhood, your relationships, the last time you
-              cried, your happiest memory, and all the moments that shaped who
-              you are...
-            </motion.p>
+              <p className="flex items-start gap-2.5 text-xs leading-relaxed text-foreground/85 sm:text-sm sm:leading-6 lg:gap-3 lg:text-lg lg:leading-8">
+                <Icons.sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                <span>
+                  <span className="font-display font-extrabold italic text-accent">
+                    Imagine
+                  </span>{" "}
+                  your childhood, your relationships, the last time you cried,
+                  your happiest memory, and all the moments that shaped who you
+                  are...
+                </span>
+              </p>
+            </motion.div>
 
             {/* CTA Buttons */}
             <motion.div

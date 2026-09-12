@@ -16,6 +16,10 @@ export function Navbar() {
 
   const isA = (p) => loc.pathname === p;
 
+  // Only approved authors may create stories (the API enforces the same
+  // rule), so pending and rejected applications never see the Write link.
+  const canWrite = author?.verification?.status === "approved";
+
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
     {
@@ -23,11 +27,15 @@ export function Navbar() {
       label: "Dashboard",
       icon: <Icons.dashboard className="h-4 w-4" />,
     },
-    {
-      to: "/stories/new",
-      label: "Write",
-      icon: <Icons.edit className="h-4 w-4" />,
-    },
+    ...(canWrite
+      ? [
+          {
+            to: "/stories/new",
+            label: "Write",
+            icon: <Icons.edit className="h-4 w-4" />,
+          },
+        ]
+      : []),
   ];
 
   // Close dropdown on outside click

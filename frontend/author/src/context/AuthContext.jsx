@@ -29,6 +29,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const restoreSession = async () => {
+      // No token means there is no session to restore — skip the request so a
+      // signed-out visitor never sends an unauthenticated call (and logs a 401).
+      if (!getStoredToken()) {
+        setAuthor(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const res = await api.get("/authors/me");
         setAuthor(res.data.data);
@@ -68,7 +76,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ author, isAuthenticated: author !== null, isLoading, login, register, logout, updateProfile }),
+    () => ({
+      author,
+      // The API sends the account role with every account payload; the
+      // fallback keeps older sessions working.
+      role: author?.role || (author ? "author" : null),
+      isAuthenticated: author !== null,
+      isLoading,
+      login,
+      register,
+      logout,
+      updateProfile,
+    }),
     [author, isLoading, login, register, logout, updateProfile],
   );
 

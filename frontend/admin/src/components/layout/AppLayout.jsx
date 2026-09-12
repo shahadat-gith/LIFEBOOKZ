@@ -9,6 +9,7 @@ import { adminApi } from '../../utils/client';
 export default function AdminLayout() {
   const { isAuthenticated } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingExperts, setPendingExperts] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +21,7 @@ export default function AdminLayout() {
     adminApi.getDashboard()
       .then((res) => {
         setPendingCount(res.data.data.pendingAuthors || 0);
+        setPendingExperts(res.data.data.pendingExperts || 0);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -29,6 +31,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-background">
       <Sidebar
         pendingCount={pendingCount}
+        pendingExperts={pendingExperts}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />

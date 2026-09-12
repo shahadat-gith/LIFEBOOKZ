@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  /* Developer tooling palette — deep slate with an amber accent */
+  --color-primary: #0f172a;
+  --color-primary-foreground: #f8fafc;
+
+  --color-secondary: #334155;
+  --color-secondary-foreground: #f1f5f9;
+
+  --color-accent: #f59e0b;
+  --color-accent-foreground: #1c1917;
+
+  --color-background: #f7f8fa;
+  --color-foreground: #0f172a;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+
+  --color-muted: #eef1f5;
+  --color-muted-foreground: #5b6779;
+
+  --color-border: #e2e6ec;
+  --color-input: #cfd6e0;
+  --color-ring: #0f172a;
+
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-destructive: #b91c1c;
+  --color-info: #0369a1;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.1);
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased tracking-tight;
+  }
+}
+
+button {
+  cursor: pointer;
+}

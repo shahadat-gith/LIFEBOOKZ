@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { navLinks } from "./utils";
 import Button from "../ui/Button";
 import UserDropdown from "./UserDropdown";
+import PortalMenu from "./PortalMenu";
 import SearchModal from "./SearchModal";
 import NotificationsDrawer from "./NotificationsDrawer";
 
@@ -35,8 +36,6 @@ export function Navbar() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-
-  const authorPortal = import.meta.env.VITE_AUTHOR_PORTAL || "#";
 
   const isActive = (path) => location.pathname === path;
 
@@ -109,15 +108,8 @@ export function Navbar() {
               />
             </button>
 
-            {/* Join as Author (hidden on smallest screens) */}
-            <a
-              href={`${authorPortal}/register`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-1 hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-accent/10 text-accent border border-accent/25 hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-xs active:scale-[0.98]"
-            >
-              <span>Join as Author</span>
-            </a>
+            {/* Portals + account settings */}
+            <PortalMenu />
 
             {/* User Account / Login */}
             {isAuthenticated ? (

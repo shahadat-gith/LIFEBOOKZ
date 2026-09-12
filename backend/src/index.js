@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
-
 import app from "./app.js";
-import config from "./shared/config/index.js";
-import { connectDatabase } from "./shared/config/database.js";
-import { startConsumer } from "./shared/sqs/consumer.js";
+import config from "./core/config/index.js";
+import { connectDatabase } from "./core/config/database.js";
+import { startConsumer } from "./core/queue/consumer.js";
+import { logger } from "./core/services/logger.js";
 
 let server;
 
@@ -12,7 +11,9 @@ async function start() {
     await connectDatabase();
 
     server = app.listen(config.port, () => {
-      console.log(`🚀 LifeBookz API running on port ${config.port}`);
+      logger.info(`LifeBookz API running on port ${config.port}`, {
+        env: config.env,
+      });
     });
 
     // Consume SQS jobs (analysis → enrichment → embedding) in-process during
@@ -20,9 +21,29 @@ async function start() {
     // queue URL is not configured (see startConsumer).
     startConsumer();
   } catch (error) {
-    console.error("Failed to start server:", error);
+    logger.error("Failed to start server", {
+      reason: error.message,
+      stack: error.stack,
+    });
+
     process.exit(1);
   }
 }
+
+/* ---------- Process-level failures ---------- */
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled promise rejection", {
+    reason: reason?.message || String(reason),
+    stack: reason?.stack,
+  });
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception", {
+    reason: error.message,
+    stack: error.stack,
+  });
+});
 
 start();

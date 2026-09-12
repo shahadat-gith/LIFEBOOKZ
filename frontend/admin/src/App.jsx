@@ -11,6 +11,7 @@ import { Navigate } from 'react-router-dom';
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Authors = lazy(() => import('./pages/Authors'));
+const Experts = lazy(() => import('./pages/Experts'));
 const Users = lazy(() => import('./pages/Users'));
 const Stories = lazy(() => import('./pages/Stories'));
 
@@ -48,6 +49,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Authors />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/experts"
+                element={
+                  <ProtectedRoute>
+                    <Experts />
                   </ProtectedRoute>
                 }
               />
