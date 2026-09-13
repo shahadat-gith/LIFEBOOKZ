@@ -32,13 +32,19 @@ export default function Discover() {
     setLoading(true);
     const params = activeProfession ? { profession: activeProfession } : {};
     api
-      .get("/stories", { params: { ...params, limit: 20 } })
-      .then((res) => setStories(res.data.data?.stories || []))
+      .get("/stories", { params: { ...params, limit: 24 } })
+      .then((res) =>
+        setStories(
+          (res.data.data?.stories || []).filter(
+            (s) => String(s.author?._id) !== String(author?.id || author?._id || ""),
+          ),
+        ),
+      )
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [activeProfession]);
+  }, [activeProfession, author]);
 
-  const isApproved = author?.verification?.status === "approved";
+  const canWrite = !!author?.isProfileCompleted;
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 md:py-10 pb-28 md:pb-10">
@@ -49,10 +55,10 @@ export default function Discover() {
         className="mb-6"
       >
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-          Discover Life Stories
+          Stories For You
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Real stories from real people — every chapter matters.
+          Experiences, lessons and journeys from other authors.
         </p>
       </motion.div>
 
@@ -89,7 +95,7 @@ export default function Discover() {
       )}
 
       {/* Write CTA */}
-      {isApproved && (
+      {canWrite && (
         <button
           type="button"
           onClick={() => navigate("/stories/new")}
@@ -117,10 +123,10 @@ export default function Discover() {
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
           <Icons.search className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
           <p className="font-display font-semibold text-foreground">
-            No stories found
+            No stories from other authors yet
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Try a different profession filter.
+            Try a different profession filter — or be the first to write.
           </p>
         </div>
       ) : (

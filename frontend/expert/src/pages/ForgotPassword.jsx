@@ -243,7 +243,7 @@ export default function ForgotPasswordPage() {
                         if (error) setError("");
                         setEmail(e.target.value);
                       }}
-                      placeholder="Enter your registered email"
+                      placeholder="Enter your email"
                       required
                       icon={<Icons.mail className="h-4 w-4" />}
                     />
@@ -378,7 +378,7 @@ export default function ForgotPasswordPage() {
                         if (error) setError("");
                         setPassword(e.target.value);
                       }}
-                      placeholder="Min. 8 characters"
+                      placeholder="Create a new password"
                       required
                       icon={<Icons.lock className="h-4 w-4" />}
                       showPasswordToggle
@@ -391,7 +391,7 @@ export default function ForgotPasswordPage() {
                         if (error) setError("");
                         setConfirmPassword(e.target.value);
                       }}
-                      placeholder="Re-enter new password"
+                      placeholder="Re-enter your new password"
                       required
                       icon={<Icons.lock className="h-4 w-4" />}
                       showPasswordToggle

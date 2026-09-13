@@ -52,8 +52,8 @@ export default function AdminLoginPage() {
      </div>
 
      <motion.form onSubmit={handleSubmit} className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}>
-      <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@lifebookz.com" required icon={<Icons.mail className="h-4 w-4" />} />
-      <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter admin password" required icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />
+      <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your admin email" required icon={<Icons.mail className="h-4 w-4" />} />
+      <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />
       {error && (
        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-destructive flex items-center gap-1.5 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
         <Icons.exclamationCircle className="h-4 w-4" />{error}

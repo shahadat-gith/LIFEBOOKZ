@@ -196,7 +196,7 @@ export default function Profile() {
               label="Area of expertise"
               value={expertise}
               onChange={(e) => setExpertise(e.target.value)}
-              placeholder="e.g. Academic counselling & study skills"
+              placeholder="Enter your area of expertise"
               icon={<Icons.academic className="h-4 w-4" />}
               required
             />
@@ -205,7 +205,7 @@ export default function Profile() {
               label="Qualification"
               value={qualification}
               onChange={(e) => setQualification(e.target.value)}
-              placeholder="e.g. M.A. Psychology, Certified Career Coach"
+              placeholder="Enter your qualification"
               icon={<Icons.shieldCheck className="h-4 w-4" />}
               required
             />
@@ -232,7 +232,7 @@ export default function Profile() {
                 label="Languages"
                 value={languages}
                 onChange={(e) => setLanguages(e.target.value)}
-                placeholder="English, Hindi"
+                placeholder="Enter languages you speak"
                 icon={<Icons.globe className="h-4 w-4" />}
               />
             </div>
@@ -281,7 +281,7 @@ export default function Profile() {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={5}
-              placeholder="Tell people how you help..."
+              placeholder="Describe how you help people"
             />
           </CardContent>
 

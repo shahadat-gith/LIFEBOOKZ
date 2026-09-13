@@ -59,7 +59,7 @@ export default function DeveloperLoginPage() {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="developer@lifebookz.com"
+        placeholder="Enter your developer email"
         required
         icon={<Icons.mail className="h-4 w-4" />}
       />
@@ -68,7 +68,7 @@ export default function DeveloperLoginPage() {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Enter developer password"
+        placeholder="Enter your password"
         required
         icon={<Icons.lock className="h-4 w-4" />}
         showPasswordToggle

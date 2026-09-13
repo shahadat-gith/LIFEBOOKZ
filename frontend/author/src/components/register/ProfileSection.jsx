@@ -92,7 +92,7 @@ export default function ProfileSection({
               rows={6}
               value={form.bio}
               error={errors.bio}
-              placeholder="Describe yourself..."
+              placeholder="Write a short bio about yourself"
               onChange={(e) => onChange("bio", e.target.value)}
             />
           </div>

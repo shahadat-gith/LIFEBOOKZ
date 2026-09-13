@@ -182,6 +182,12 @@ export default function StoryEditorPage() {
   }
 
   async function handlePublish() {
+    // Publishing requires a completed profile (enforced server-side too).
+    if (!author?.isProfileCompleted) {
+      toast.error("Complete your profile to publish your story");
+      navigate("/profile?complete=1");
+      return;
+    }
     setError("");
     setPublishing(true);
     try {
@@ -233,7 +239,7 @@ export default function StoryEditorPage() {
           }
           setPhase(1);
         }}
-        onBack={() => navigate("/dashboard")}
+        onBack={() => navigate("/")}
       />
     );
   }
@@ -267,7 +273,7 @@ export default function StoryEditorPage() {
             setPhase(2);
           }}
           onCreateNew={createNewChapter}
-          onBack={() => (isEditMode ? navigate("/dashboard") : setPhase("overview"))}
+          onBack={() => (isEditMode ? navigate("/") : setPhase("overview"))}
         />
       );
 
@@ -366,8 +372,8 @@ export default function StoryEditorPage() {
             setSelectedChapterIdx(0);
             setPhase(2);
           }}
-          onGoLifebook={() => navigate("/dashboard")}
-          onBack={() => navigate("/dashboard")}
+          onGoLifebook={() => navigate("/")}
+          onBack={() => navigate("/")}
         />
       );
 

@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
                     if (error) setError("");
                     setPassword(e.target.value);
                   }}
-                  placeholder="Min. 8 characters"
+                  placeholder="Create a new password"
                   required
                   icon={<Icons.lock className="h-4 w-4" />}
                   showPasswordToggle
@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
                     if (error) setError("");
                     setConfirmPassword(e.target.value);
                   }}
-                  placeholder="Re-enter new password"
+                  placeholder="Re-enter your new password"
                   required
                   icon={<Icons.lock className="h-4 w-4" />}
                   showPasswordToggle

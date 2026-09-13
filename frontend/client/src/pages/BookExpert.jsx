@@ -430,7 +430,7 @@ export default function BookExpert() {
                 rows={4}
                 value={problem}
                 onChange={(e) => setProblem(e.target.value)}
-                placeholder="Describe your situation so the expert can prepare..."
+                placeholder="Describe your situation so the expert can prepare"
                 className="mt-2 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40"
               />
             </div>
@@ -566,7 +566,7 @@ export default function BookExpert() {
                 rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anything else the expert should know before the session..."
+                placeholder="Add anything else the expert should know"
                 className="mt-2 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40"
               />
             </div>

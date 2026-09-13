@@ -347,7 +347,7 @@ export default function Logs() {
                 type="text"
                 value={draft.search}
                 onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                placeholder="message, route or email"
+                placeholder="Search logs by message, route or email"
                 className={`${filterInputClass} pl-9`}
               />
             </div>

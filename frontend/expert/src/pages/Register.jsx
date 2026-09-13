@@ -185,7 +185,7 @@ export default function Register() {
                       label="Full name"
                       value={form.fullName}
                       onChange={(e) => update("fullName", e.target.value)}
-                      placeholder="Dr. Sarah Mitchell"
+                      placeholder="Enter your full name"
                       icon={<Icons.user className="h-4 w-4" />}
                       error={errors.fullName}
                       required
@@ -195,7 +195,7 @@ export default function Register() {
                       label="Username"
                       value={form.username}
                       onChange={(e) => update("username", e.target.value)}
-                      placeholder="auto-generated from your name"
+                      placeholder="Choose a unique username"
                       helperText="Lowercase letters, numbers, dots, hyphens or underscores."
                       error={errors.username}
                     />
@@ -205,7 +205,7 @@ export default function Register() {
                       type="email"
                       value={form.email}
                       onChange={(e) => update("email", e.target.value)}
-                      placeholder="you@example.com"
+                      placeholder="Enter your email"
                       icon={<Icons.mail className="h-4 w-4" />}
                       error={errors.email}
                       required
@@ -216,7 +216,7 @@ export default function Register() {
                       type="password"
                       value={form.password}
                       onChange={(e) => update("password", e.target.value)}
-                      placeholder="Min. 8 characters"
+                      placeholder="Create a password"
                       icon={<Icons.lock className="h-4 w-4" />}
                       error={errors.password}
                       showPasswordToggle
@@ -228,7 +228,7 @@ export default function Register() {
                       type="tel"
                       value={form.phone}
                       onChange={(e) => update("phone", e.target.value)}
-                      placeholder="+91 98765 43210"
+                      placeholder="Enter your phone number"
                       icon={<Icons.phone className="h-4 w-4" />}
                       error={errors.phone}
                       required
@@ -294,7 +294,7 @@ export default function Register() {
                       label="Area of expertise"
                       value={form.expertise}
                       onChange={(e) => update("expertise", e.target.value)}
-                      placeholder="e.g. Academic counselling & study skills"
+                      placeholder="Enter your area of expertise"
                       icon={<Icons.academic className="h-4 w-4" />}
                       error={errors.expertise}
                       required
@@ -304,7 +304,7 @@ export default function Register() {
                       label="Qualification"
                       value={form.qualification}
                       onChange={(e) => update("qualification", e.target.value)}
-                      placeholder="e.g. M.A. Psychology, Certified Career Coach"
+                      placeholder="Enter your qualification"
                       icon={<Icons.shieldCheck className="h-4 w-4" />}
                       error={errors.qualification}
                       required
@@ -318,7 +318,7 @@ export default function Register() {
                         max="60"
                         value={form.experience}
                         onChange={(e) => update("experience", e.target.value)}
-                        placeholder="10"
+                        placeholder="Enter years of experience"
                         icon={<Icons.clock className="h-4 w-4" />}
                       />
                       <Input
@@ -327,7 +327,7 @@ export default function Register() {
                         min="0"
                         value={form.price}
                         onChange={(e) => update("price", e.target.value)}
-                        placeholder="50"
+                        placeholder="Enter session price"
                         icon={<Icons.money className="h-4 w-4" />}
                       />
                     </div>
@@ -336,7 +336,7 @@ export default function Register() {
                       label="Languages"
                       value={form.languages}
                       onChange={(e) => update("languages", e.target.value)}
-                      placeholder="English, Hindi"
+                      placeholder="Enter languages you speak"
                       icon={<Icons.globe className="h-4 w-4" />}
                       helperText="Separate multiple languages with commas."
                     />
@@ -392,7 +392,7 @@ export default function Register() {
                     value={form.bio}
                     onChange={(e) => update("bio", e.target.value)}
                     rows={5}
-                    placeholder="What do you help people with, and how do you work?"
+                    placeholder="Describe what you help people with, and how you work"
                     error={errors.bio}
                   />
                 </Card>

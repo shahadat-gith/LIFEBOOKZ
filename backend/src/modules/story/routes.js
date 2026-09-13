@@ -3,16 +3,20 @@ import { Router } from "express";
 import upload from "../../core/middlewares/multer.js";
 import {
   authenticate,
+  optionalAuth,
   authorize,
   requireApproved,
+  requireProfileComplete,
 } from "../../core/middlewares/auth.js";
 import * as story from "./controller.js";
 
 const router = Router();
 
-// Reading the feed is open to the community roles; only approved authors may
-// create or change content; likes and comments belong to readers.
-const canRead = [authenticate, authorize("user", "author")];
+// Reading is public — anyone can browse the feed and read published stories.
+// A valid token is still honored so responses can include personalized
+// like/follow state; guests simply get the public view.
+const canRead = [optionalAuth];
+// Writing requires an authenticated author account.
 const authorOnly = [authenticate, authorize("author"), requireApproved];
 const userOnly = [authenticate, authorize("user")];
 
@@ -33,13 +37,12 @@ router.post(
   story.uploadMedia,
 );
 
-// Auth required so responses can include personalized like/follow state
+// Auth optional so guests can read; personalized state attached when signed in
 router.get("/", canRead, story.list);
 
 router.get("/drafts", authorOnly, story.getDrafts);
 
 router.get("/:storyId", canRead, story.getStory);
-
 router.patch(
   "/:storyId",
   authorOnly,
@@ -52,7 +55,13 @@ router.delete("/:storyId", authorOnly, story.remove);
 
 /* ---------- Publishing (synchronous, no review pipeline) ---------- */
 
-router.post("/:storyId/publish", authorOnly, story.publish);
+// Publishing additionally requires the author's profile to be complete.
+router.post(
+  "/:storyId/publish",
+  authorOnly,
+  requireProfileComplete,
+  story.publish,
+);
 
 router.post("/:storyId/unpublish", authorOnly, story.unpublish);
 
@@ -92,6 +101,7 @@ router.post("/:storyId/like", userOnly, story.toggleLike);
 
 /* ---------- Comments ---------- */
 
+// Comments are publicly readable
 router.get("/:storyId/comments", story.getComments);
 
 router.post("/:storyId/comments", userOnly, story.createComment);

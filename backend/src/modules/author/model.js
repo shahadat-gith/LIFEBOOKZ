@@ -144,40 +144,43 @@ const authorSchema = new mongoose.Schema(
       default: () => ({}),
     },
 
+    // Profile details are optional at signup — the lightweight registration
+    // only needs name, email, password and username. Completing these unlocks
+    // publishing (tracked by `isProfileCompleted`).
     phone: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
     },
 
     dob: {
       type: Date,
-      required: true,
+      default: null,
     },
 
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
-      required: true,
+      enum: ["Male", "Female", "Other", null],
+      default: null,
     },
 
     profession: {
       type: String,
       trim: true,
       maxlength: 100,
-      required: true,
+      default: "",
     },
 
     bio: {
       type: String,
       trim: true,
       maxlength: 2000,
-      required: true,
+      default: "",
     },
 
     avatar: {
       type: imageSchema,
-      required: true,
+      default: () => ({}),
     },
 
     coverImage: {
@@ -187,7 +190,7 @@ const authorSchema = new mongoose.Schema(
 
     address: {
       type: addressSchema,
-      required: true,
+      default: () => ({}),
     },
 
     socialLinks: {
@@ -198,6 +201,17 @@ const authorSchema = new mongoose.Schema(
     stats: {
       type: statsSchema,
       default: () => ({}),
+    },
+
+    /**
+     * False right after the lightweight signup (name/email/password/username).
+     * Becomes true once the author fills in the full profile (profession,
+     * bio, phone, DOB, gender, address). Publishing is gated on this.
+     */
+    isProfileCompleted: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
 
     verification: {

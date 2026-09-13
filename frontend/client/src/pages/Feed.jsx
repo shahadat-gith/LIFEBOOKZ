@@ -157,7 +157,7 @@ export default function FeedPage() {
                   handleSearch();
                 }
               }}
-              placeholder="Search stories by meaning... (e.g. 'a mother's sacrifice')"
+              placeholder="Search stories by meaning or title"
               className="w-full rounded-xl border border-border/60 bg-card pl-11 pr-12 py-3 text-sm outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
 

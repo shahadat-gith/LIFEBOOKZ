@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
-import Button from "../ui/Button";
 import NotificationsDrawer from "./NotificationsDrawer";
 
 export function Navbar() {
@@ -14,15 +13,12 @@ export function Navbar() {
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const dropdownRef = useRef(null);
 
   const isA = (p) => loc.pathname === p;
 
-  // Only approved authors may create stories (the API enforces the same
-  // rule), so pending and rejected applications never see the Write link.
-  const canWrite = author?.verification?.status === "approved";
+  // Writing requires a completed profile (the API enforces the same rule).
+  const canWrite = !!author?.isProfileCompleted;
 
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
@@ -50,20 +46,12 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function submitSearch(e) {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    setSearchOpen(false);
-    navigate(`/discover?q=${encodeURIComponent(q)}`);
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between md:h-[4.5rem]">
           {/* Brand Logo + tagline */}
-          <Link to={isAuthenticated ? "/home" : "/"} className="group flex flex-col">
+          <Link to={isAuthenticated ? "/" : "/login"} className="group flex flex-col">
             <span className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground leading-none">
               LIFEBOOK<span className="text-accent">Z</span>
             </span>
@@ -92,31 +80,8 @@ export function Navbar() {
             </nav>
           )}
 
-          {/* Right cluster: search + notifications + profile */}
+          {/* Right cluster: notifications + profile */}
           <div className="flex items-center gap-2">
-            {/* Search (desktop inline, mobile icon) */}
-            <form
-              onSubmit={submitSearch}
-              className="hidden lg:flex items-center rounded-xl border border-border/60 bg-card px-3 py-1.5 focus-within:border-primary/40 transition-colors"
-            >
-              <Icons.search className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search stories..."
-                className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none px-2 w-40 xl:w-52"
-              />
-            </form>
-
-            <button
-              type="button"
-              onClick={() => (window.innerWidth < 1024 ? setSearchOpen((o) => !o) : document.querySelector("form input")?.focus())}
-              aria-label="Search"
-              className="w-9 h-9 rounded-full flex items-center justify-center text-foreground hover:bg-muted transition-colors lg:hidden"
-            >
-              <Icons.search className="h-5 w-5" />
-            </button>
-
             {isAuthenticated && (
               <button
                 type="button"
@@ -204,52 +169,14 @@ export function Navbar() {
                         <Icons.logout className="h-4 w-4" /> Sign Out
                       </button>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                  )}                  </AnimatePresence>
               </div>
-            ) : (
-              <div className="hidden md:flex items-center gap-2">
-                <Link to="/login">
-                  <Button size="sm">Sign In</Button>
-                </Link>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
 
         {/* Dummy notifications drawer (mock data for now) */}
         <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
-
-        {/* Mobile search bar (toggled) */}
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.form
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              onSubmit={submitSearch}
-              className="overflow-hidden md:hidden"
-            >
-              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5 mb-3">
-                <Icons.search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search stories..."
-                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(false)}
-                  className="text-muted-foreground"
-                >
-                  <Icons.close className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
       </div>
     </header>
   );

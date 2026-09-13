@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/ui/Avatar";
@@ -41,6 +41,7 @@ const CHAPTER_NUM_COLORS = [
 export default function AuthorProfilePage() {
   const { author, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [stories, setStories] = useState([]);
   const [stats, setStats] = useState(null);
@@ -87,6 +88,12 @@ export default function AuthorProfilePage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // ?complete=1 → open the edit form so the author can finish their profile
+  // (required before a story can be published).
+  useEffect(() => {
+    if (searchParams.get("complete")) setEditOpen(true);
+  }, [searchParams]);
 
   // Close share menu on outside click
   useEffect(() => {
@@ -150,7 +157,9 @@ export default function AuthorProfilePage() {
       fd.append("address", JSON.stringify({ city, country }));
       if (avatarFile) fd.append("avatar", avatarFile);
       await updateProfile(fd);
-      toast.success("Profile updated");
+      toast.success(
+        author?.isProfileCompleted ? "Profile updated" : "Profile completed — you can now publish stories",
+      );
       setEditOpen(false);
       setAvatarFile(null);
     } catch {
@@ -394,7 +403,7 @@ function LifebookTab({ chapterRows, onAddChapter }) {
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-bold text-foreground">My Lifebook</h2>
         <Link
-          to="/dashboard"
+          to="/"
           className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-primary hover:bg-muted/60 transition-colors"
         >
           View Full Lifebook
@@ -691,7 +700,7 @@ function EditProfileModal({
             <input
               value={profession}
               onChange={(e) => setProfession(e.target.value)}
-              placeholder="Writer, Teacher…"
+              placeholder="Enter your profession"
               className={inputCls}
             />
           </Field>
@@ -701,7 +710,7 @@ function EditProfileModal({
               onChange={(e) => setBio(e.target.value)}
               rows={3}
               maxLength={2000}
-              placeholder="Dreamer. Traveler. Lifelong learner."
+              placeholder="Write a short bio about yourself"
               className={`${inputCls} resize-y`}
             />
           </Field>
@@ -710,7 +719,7 @@ function EditProfileModal({
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Bangalore"
+                placeholder="Enter your city"
                 className={inputCls}
               />
             </Field>
@@ -718,7 +727,7 @@ function EditProfileModal({
               <input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="India"
+                placeholder="Enter your country"
                 className={inputCls}
               />
             </Field>

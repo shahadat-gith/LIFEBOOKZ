@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Icons } from "../../icons";
 
@@ -76,7 +77,9 @@ export default function NotificationsDrawer({ open, onClose }) {
     );
   }
 
-  return (
+  // Rendered via portal so the drawer always stacks above the sticky navbar
+  // and page content (a blurred header creates its own stacking context).
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -87,7 +90,7 @@ export default function NotificationsDrawer({ open, onClose }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] bg-primary/40 backdrop-blur-sm"
           />
 
           {/* Drawer */}
@@ -96,7 +99,7 @@ export default function NotificationsDrawer({ open, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            className="fixed inset-y-0 right-0 z-[80] flex w-full max-w-md flex-col bg-card shadow-2xl"
+            className="fixed inset-y-0 right-0 z-[9999] flex w-full max-w-md flex-col bg-card shadow-2xl"
             aria-label="Notifications"
           >
             {/* Header */}
@@ -183,6 +186,7 @@ export default function NotificationsDrawer({ open, onClose }) {
           </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

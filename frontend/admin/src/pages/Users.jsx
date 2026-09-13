@@ -94,7 +94,7 @@ export default function UsersPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search users by name or email..."
+          placeholder="Search users by name or email"
           className="w-full max-w-md rounded-xl border border-input bg-card pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
         />
       </div>

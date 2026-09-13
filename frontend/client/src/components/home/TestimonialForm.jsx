@@ -88,7 +88,7 @@ export default function TestimonialForm({ onSubmitted }) {
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             maxLength={500}
-            placeholder="Share how Lifebookz has helped you — as a reader or storyteller..."
+            placeholder="Share how Lifebookz has helped you"
             className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
           />
 

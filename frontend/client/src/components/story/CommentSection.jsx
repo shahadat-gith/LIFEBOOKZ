@@ -130,8 +130,8 @@ export default function CommentSection({ storyId, commentTrigger }) {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={
                     isAuthenticated
-                      ? "Add a thought..."
-                      : "Sign in to participate..."
+                      ? "Write a comment"
+                      : "Sign in to join the conversation"
                   }
                   className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
                 />

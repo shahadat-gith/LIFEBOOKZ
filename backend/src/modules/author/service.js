@@ -68,6 +68,7 @@ export async function registerAuthor({ body, file }) {
     password,
     fullName,
     username,
+    // Optional at signup — completing the profile later unlocks publishing.
     profession,
     bio,
     phone,
@@ -84,22 +85,11 @@ export async function registerAuthor({ body, file }) {
   email = email?.trim().toLowerCase();
   fullName = fullName?.trim();
   username = sanitizeUsername(username || fullName || "");
-  profession = profession?.trim();
-  bio = bio?.trim();
-  phone = phone?.trim();
 
-  if (
-    !email ||
-    !password ||
-    !fullName ||
-    !profession ||
-    !bio ||
-    !phone ||
-    !dob ||
-    !gender
-  ) {
+  // Lightweight signup: only name, email, password and username are required.
+  if (!email || !password || !fullName) {
     throw new Errors.ValidationError(
-      "Please fill all required fields (name, email, password, profession, bio, phone, DOB, gender).",
+      "Please fill all required fields (name, email, password).",
     );
   }
 
@@ -124,17 +114,25 @@ export async function registerAuthor({ body, file }) {
     avatar = { url: uploaded.url, publicId: uploaded.publicId };
   }
 
+  const isProfileCompleted = Boolean(
+    profession?.trim() &&
+      bio?.trim() &&
+      phone?.trim() &&
+      dob &&
+      gender,
+  );
+
   const author = await Author.create({
     email,
     username,
     auth: { passwordHash: password },
     fullName,
-    profession,
-    phone,
-    dob: new Date(dob),
-    gender,
+    profession: profession?.trim() || "",
+    phone: phone?.trim() || "",
+    ...(dob ? { dob: new Date(dob) } : {}),
+    ...(gender ? { gender } : {}),
     avatar,
-    bio,
+    bio: bio?.trim() || "",
     address: {
       country: address.country || "",
       state: address.state || "",
@@ -149,6 +147,7 @@ export async function registerAuthor({ body, file }) {
       linkedin: socialLinks.linkedin || "",
       youtube: socialLinks.youtube || "",
     },
+    isProfileCompleted,
   });
 
   return { author, token: authorToken(author) };
@@ -239,6 +238,19 @@ export async function updateAuthor({ userId, body, file }) {
     }
 
     author.avatar = { url: uploaded.url, publicId: uploaded.publicId };
+  }
+
+  // Profile is considered complete once the publishing-critical fields are
+  // all filled in. Keeps existing true values sticky (admins/bans aside).
+  const profileDone = Boolean(
+    (author.profession || "").trim() &&
+      (author.bio || "").trim() &&
+      (author.phone || "").trim() &&
+      author.dob &&
+      author.gender,
+  );
+  if (profileDone || author.isProfileCompleted) {
+    author.isProfileCompleted = profileDone;
   }
 
   await author.save();

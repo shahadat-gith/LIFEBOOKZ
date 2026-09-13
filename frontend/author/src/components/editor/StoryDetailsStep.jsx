@@ -30,7 +30,7 @@ export default function StoryDetailsStep({
             type="text"
             value={story.title || ""}
             onChange={(e) => onChange({ ...story, title: e.target.value })}
-            placeholder="e.g., The Day Everything Changed"
+            placeholder="Give your story a title"
             maxLength={200}
             autoFocus
             className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
@@ -47,7 +47,7 @@ export default function StoryDetailsStep({
               type="text"
               value={story.dateLabel || ""}
               onChange={(e) => onChange({ ...story, dateLabel: e.target.value })}
-              placeholder="12 June 2022"
+              placeholder="When did this happen?"
               maxLength={100}
               className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
             />
@@ -61,7 +61,7 @@ export default function StoryDetailsStep({
               type="text"
               value={story.location || ""}
               onChange={(e) => onChange({ ...story, location: e.target.value })}
-              placeholder="Bangalore, India"
+              placeholder="Where did this happen?"
               maxLength={150}
               className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
             />

@@ -430,7 +430,7 @@ export default function ExpertsPage() {
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Explain why this application is being rejected..."
+                placeholder="Explain why this application is being rejected"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all min-h-[120px] resize-y mb-4"
                 autoFocus
               />

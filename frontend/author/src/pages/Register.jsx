@@ -1,74 +1,35 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../context/AuthContext";
 import { sanitizeUsername } from "../utils/helpers";
 
-import AccountSection from "../components/register/AccountSection";
-import AddressSection from "../components/register/AddressSection";
-import ProfileSection from "../components/register/ProfileSection";
-import SocialSection from "../components/register/SocialSection";
-
+import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import AuthShell from "../components/auth/AuthShell";
 import { Icons } from "../icons";
 
-const STORAGE_KEY = "lifebookz-author-register";
-
+/**
+ * Lightweight signup: only name, email, password, and username.
+ * The full profile (profession, bio, phone, DOB, gender, address) is
+ * completed later — it's required before publishing a story.
+ */
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
   const [loading, setLoading] = useState(false);
-  const [avatar, setAvatar] = useState(null);
-
-  const [form, setForm] = useState(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-    return {
-      email: "",
-      password: "",
-      fullName: "",
-      username: "",
-      profession: "",
-      bio: "",
-      phone: "",
-      dob: "",
-      gender: "",
-      address: {
-        country: "",
-        state: "",
-        city: "",
-        zipCode: "",
-      },
-      socialLinks: {
-        website: "",
-        x: "",
-        instagram: "",
-        linkedin: "",
-        facebook: "",
-        youtube: "",
-      },
-    };
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    username: "",
   });
-
-  useEffect(() => {
-    const rest = { ...form };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
-  }, [form]);
-
   const [errors, setErrors] = useState({});
 
   const update = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => {
       const next = { ...prev };
       delete next[field];
@@ -84,25 +45,9 @@ export default function Register() {
     if (!/\S+@\S+\.\S+/.test(form.email)) next.email = "Invalid email address.";
     if ((form.password || "").length < 8)
       next.password = "Password must be at least 8 characters.";
-    if (!form.profession?.trim()) next.profession = "Profession is required.";
-    if (!form.bio?.trim()) next.bio = "Bio is required.";
-    if (!form.phone?.trim()) next.phone = "Phone number is required.";
-    if (!form.dob) next.dob = "Date of birth is required.";
-    if (!form.gender) next.gender = "Gender is required.";
-    if (!form.address?.country?.trim())
-      next["address.country"] = "Country is required.";
-    if (!form.address?.state?.trim())
-      next["address.state"] = "State is required.";
-    if (!form.address?.city?.trim()) next["address.city"] = "City is required.";
 
-    // Validate username format
-    const rawUsername = form.username || form.fullName || "";
-    const clean = sanitizeUsername(rawUsername);
-    const usernameVal = form.username?.trim() || "";
-
-    if (usernameVal && clean !== usernameVal) {
-      next.username = `Invalid characters removed. Suggested: "${clean || "username"}"`;
-    } else if (clean.length < 3) {
+    const clean = sanitizeUsername(form.username || form.fullName || "");
+    if (clean.length < 3) {
       next.username = "Username must be at least 3 characters.";
     } else if (!/^[a-z0-9_.-]+$/.test(clean)) {
       next.username = "Use only letters, numbers, dots, hyphens, underscores.";
@@ -112,71 +57,29 @@ export default function Register() {
     return next;
   };
 
-  const scrollToElement = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      if (
-        errs.fullName ||
-        errs.email ||
-        errs.password ||
-        errs.username ||
-        errs.phone ||
-        errs.dob ||
-        errs.gender
-      ) {
-        scrollToElement("section-personal");
-      } else if (
-        errs["address.country"] ||
-        errs["address.state"] ||
-        errs["address.city"]
-      ) {
-        scrollToElement("section-address");
-      } else if (errs.profession || errs.bio) {
-        scrollToElement("section-profile");
-      }
-      return;
-    }
+    if (Object.keys(errs).length > 0) return;
 
     try {
       setLoading(true);
 
       const fd = new FormData();
-      fd.append("email", form.email);
+      fd.append("fullName", form.fullName.trim());
+      fd.append("email", form.email.trim().toLowerCase());
       fd.append("password", form.password);
-      fd.append("fullName", form.fullName);
-      fd.append(
-        "username",
-        form.username ||
-          sanitizeUsername(form.fullName)
-      );
-      fd.append("profession", form.profession);
-      fd.append("bio", form.bio);
-      fd.append("phone", form.phone);
-      fd.append("dob", form.dob);
-      fd.append("gender", form.gender);
-      fd.append("address", JSON.stringify(form.address));
-      fd.append("socialLinks", JSON.stringify(form.socialLinks));
-      if (avatar) fd.append("avatar", avatar);
+      fd.append("username", sanitizeUsername(form.username || form.fullName));
 
       await register(fd);
 
-      toast.success(
-        "Application submitted successfully! We'll notify you once your account is approved."
-      );
-      navigate("/dashboard");
+      toast.success("Welcome to Lifebookz! Let's set up your lifebook.");
+      navigate("/");
     } catch (error) {
       toast.error(
         error.response?.data?.error?.message ||
-          "Registration failed. Please try again."
+          "Registration failed. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -184,90 +87,93 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="mx-auto max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Grid container for sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              {/* Left Column */}
-              <div className="space-y-8">
-                {/* Section 1: Personal Information */}
-                <div id="section-personal" className="scroll-mt-24">
-                  <AccountSection form={form} errors={errors} onChange={update} />
-                </div>
-
-                {/* Section 2: Address */}
-                <div id="section-address" className="scroll-mt-24">
-                  <AddressSection form={form} errors={errors} onChange={update} />
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-8">
-                {/* Section 3: Profile */}
-                <div id="section-profile" className="scroll-mt-24">
-                  <ProfileSection
-                    form={form}
-                    avatar={avatar}
-                    errors={errors}
-                    onAvatarChange={(file) => setAvatar(file)}
-                    onChange={update}
-                  />
-                </div>
-
-                {/* Section 4: Social Links */}
-                <div id="section-social" className="scroll-mt-24">
-                  <SocialSection form={form} onChange={update} />
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="rounded-2xl border border-border/60 bg-card shadow-sm p-6">
-              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-sm text-muted-foreground">
-                  Already have an author account?{" "}
-                  <Link
-                    to="/login"
-                    className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
-                  >
-                    Sign in
-                  </Link>
-                </p>
-                <Button
-                  type="submit"
-                  size="lg"
-                  loading={loading}
-                >
-                  Submit Application
-                </Button>
-              </div>
-              <p className="mt-4 text-xs text-center text-muted-foreground sm:text-left">
-                By submitting, you agree to our{" "}
-                <Link
-                  to="/terms"
-                  className="underline hover:text-foreground transition-colors"
-                >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                  to="/privacy"
-                  className="underline hover:text-foreground transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-            </div>
-          </form>
-        </motion.div>
+    <AuthShell>
+      <div className="text-center mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          Create your account
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Start writing in under a minute — complete your profile later.
+        </p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Full Name *"
+          value={form.fullName}
+          onChange={(e) => update("fullName", e.target.value)}
+          placeholder="Enter your full name"
+          required
+          icon={<Icons.user className="h-4 w-4" />}
+          error={errors.fullName}
+        />
+
+        <Input
+          label="Email *"
+          type="email"
+          value={form.email}
+          onChange={(e) => update("email", e.target.value)}
+          placeholder="Enter your email"
+          required
+          icon={<Icons.mail className="h-4 w-4" />}
+          error={errors.email}
+        />
+
+        <Input
+          label="Password *"
+          type="password"
+          value={form.password}
+          onChange={(e) => update("password", e.target.value)}
+          placeholder="Create a password"
+          required
+          icon={<Icons.lock className="h-4 w-4" />}
+          showPasswordToggle
+          error={errors.password}
+        />
+
+        <Input
+          label="Username *"
+          value={form.username}
+          onChange={(e) => update("username", sanitizeUsername(e.target.value))}
+          placeholder="Choose a unique username"
+          required
+          icon={<Icons.atSymbol className="h-4 w-4" />}
+          helperText={
+            form.username
+              ? `lifebookz.com/authors/${form.username}`
+              : "Your public handle — letters, numbers, dots, hyphens."
+          }
+          error={errors.username}
+        />
+
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          loading={loading}
+          className="mt-2 !rounded-xl"
+          icon={<Icons.userAdd className="h-4 w-4" />}
+        >
+          Create Account
+        </Button>
+      </form>
+
+      <p className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground/70">
+        By creating an account you agree to our Terms of Service and Privacy
+        Policy.
+      </p>
+
+      <div className="mt-5 pt-6 border-t border-border/40 text-center">
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-primary font-semibold hover:underline transition-colors"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </AuthShell>
   );
 }

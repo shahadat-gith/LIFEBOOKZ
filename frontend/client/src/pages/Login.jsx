@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import AuthShell from "../components/auth/AuthShell";
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
@@ -32,115 +33,82 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 rounded-3xl border border-border/80 bg-card shadow-xl overflow-hidden">
-        {/* Left Side: Brand Panel */}
-        <div className="hidden md:flex flex-col justify-between p-10 bg-muted/30 border-r border-border/60 relative overflow-hidden">
-          <div className="space-y-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain" />
-              
-            </div>
-            
-            <div className="pt-12 space-y-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-foreground leading-tight">
-                Welcome back to your workspace.
-              </h1>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Log in to access your published stories, track performance analytics, and connect with your audience.
-              </p>
-            </div>
-          </div>
+    <AuthShell>
+      <div className="text-center mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          Welcome back
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Sign in to continue reading and sharing stories.
+        </p>
+      </div>
 
-          <div className="pt-8 border-t border-border/40 text-xs text-muted-foreground relative z-10">
-            &copy; {new Date().getFullYear()} Stories Inc. All rights reserved.
-          </div>
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          icon={<Icons.mail className="h-4 w-4" />}
+        />
 
-        {/* Right Side: Form */}
-        <div className="p-8 sm:p-12 flex flex-col justify-center">
-          {/* Mobile Logo View */}
-          <div className="flex md:hidden items-center gap-2 mb-8">
-            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-lg text-foreground">Stories</span>
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Sign in
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1.5">
-              Enter your credentials to access your account
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your email"
-              required
-              icon={<Icons.mail className="h-4 w-4" />}
-            />
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-foreground">
-                  Password
-                </span>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs text-primary font-medium hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                required
-                icon={<Icons.lock className="h-4 w-4" />}
-                showPasswordToggle
-              />
-            </div>
-
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-sm text-destructive flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20"
-              >
-                <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              loading={loading}
-              className="mt-2 font-semibold"
-            >
-              Sign In
-            </Button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm font-medium text-foreground">
+              Password
+            </span>
             <Link
-              to="/register"
-              className="text-primary font-semibold hover:underline underline-offset-4"
+              to="/forgot-password"
+              className="text-xs text-primary font-medium hover:underline"
             >
-              Create an account
+              Forgot password?
             </Link>
           </div>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            required
+            icon={<Icons.lock className="h-4 w-4" />}
+            showPasswordToggle
+          />
         </div>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-sm text-destructive flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20"
+          >
+            <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
+          </motion.div>
+        )}
+
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          loading={loading}
+          icon={<Icons.login className="h-4 w-4" />}
+          className="mt-2 font-semibold !rounded-xl"
+        >
+          Sign In
+        </Button>
+      </form>
+
+      <div className="mt-7 pt-6 border-t border-border/40 text-center text-sm text-muted-foreground">
+        New to Lifebookz?{" "}
+        <Link
+          to="/register"
+          className="text-primary font-semibold hover:underline underline-offset-4"
+        >
+          Create an account
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 }

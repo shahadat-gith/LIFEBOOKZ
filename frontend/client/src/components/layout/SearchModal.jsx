@@ -76,7 +76,7 @@ export default function SearchModal({ open, onClose }) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search stories by meaning or title..."
+                placeholder="Search stories by title or meaning"
                 className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-foreground outline-none placeholder:text-muted-foreground/60"
               />
 

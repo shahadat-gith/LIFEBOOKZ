@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Avatar from "../components/ui/Avatar";
+import AuthShell from "../components/auth/AuthShell";
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
@@ -57,145 +57,114 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 rounded-3xl border border-border/80 bg-card shadow-xl overflow-hidden my-6">
-        
-        {/* Left Side: Brand & Hero */}
-        <div className="hidden md:flex md:col-span-5 flex-col justify-between p-10 bg-muted/30 border-r border-border/60 relative overflow-hidden">
-          <div className="space-y-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain" />
-            </div>
-
-            <div className="pt-10 space-y-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-foreground leading-tight">
-                Start sharing your journey today.
-              </h1>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Create your account, personalize your profile, and publish original stories to a global community.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-border/40 text-xs text-muted-foreground relative z-10">
-            &copy; {new Date().getFullYear()} Stories Inc. All rights reserved.
-          </div>
-        </div>
-
-        {/* Right Side: Form */}
-        <div className="md:col-span-7 p-8 sm:p-12 flex flex-col justify-center">
-          <div className="flex md:hidden items-center gap-2 mb-8">
-            <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain" />
-            
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Create an account
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1.5">
-              Fill in your details below to get started
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Avatar Section */}
-            <div className="flex items-center gap-5 p-4 rounded-2xl bg-muted/20 border border-border/50">
-              <div className="relative group shrink-0">
-                <Avatar
-                  src={avatarPreview || ""}
-                  name={fullName || "User"}
-                  size="xl"
-                  className="ring-2 ring-border/80"
-                />
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">Profile Picture</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Upload an image or use your initials as avatar.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="mt-2 text-xs text-primary font-medium hover:underline"
-                >
-                  {avatarFile ? "Change photo" : "Upload photo"}
-                </button>
-              </div>
-            </div>
-
-            {/* Inputs */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
-                required
-                icon={Icons?.user ? <Icons.user className="h-4 w-4" /> : null}
-              />
-              <Input
-                label="Email address"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email address"
-                required
-                icon={Icons?.mail ? <Icons.mail className="h-4 w-4" /> : null}
-              />
-            </div>
-
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-              required
-              icon={Icons?.lock ? <Icons.lock className="h-4 w-4" /> : null}
-              showPasswordToggle
-            />
-
-            {/* Error Display */}
-            {error && (
-              <div className="text-sm text-destructive flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
-                {Icons?.exclamationCircle ? (
-                  <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
-                ) : null}
-                <span>{error}</span>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              loading={loading}
-              className="font-semibold"
-            >
-              Create Account
-            </Button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-primary font-semibold hover:underline underline-offset-4"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
+    <AuthShell>
+      <div className="text-center mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          Create your account
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Join the community of readers and storytellers.
+        </p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Avatar Section */}
+        <div className="flex items-center gap-5 p-4 rounded-2xl bg-muted/20 border border-border/50">
+          <div className="relative group shrink-0">
+            <Avatar
+              src={avatarPreview || ""}
+              name={fullName || "User"}
+              size="xl"
+              className="ring-2 ring-border/80"
+            />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">
+              Profile Picture
+            </h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Optional — or use your initials as avatar.
+            </p>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="mt-2 text-xs text-primary font-medium hover:underline"
+            >
+              {avatarFile ? "Change photo" : "Upload photo"}
+            </button>
+          </div>
+        </div>
+
+        <Input
+          label="Full Name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Enter your full name"
+          required
+          icon={<Icons.user className="h-4 w-4" />}
+        />
+
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          icon={<Icons.mail className="h-4 w-4" />}
+        />
+
+        <Input
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Create a password"
+          required
+          icon={<Icons.lock className="h-4 w-4" />}
+          showPasswordToggle
+        />
+        <p className="text-xs text-muted-foreground -mt-2">
+          Use at least 8 characters.
+        </p>
+
+        {/* Error Display */}
+        {error && (
+          <div className="text-sm text-destructive flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          loading={loading}
+          className="font-semibold !rounded-xl"
+          icon={<Icons.userAdd className="h-4 w-4" />}
+        >
+          Create Account
+        </Button>
+      </form>
+
+      <div className="mt-7 pt-6 border-t border-border/40 text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="text-primary font-semibold hover:underline underline-offset-4"
+        >
+          Sign in
+        </Link>
+      </div>
+    </AuthShell>
   );
 }

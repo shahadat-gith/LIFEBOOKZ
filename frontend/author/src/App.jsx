@@ -2,11 +2,10 @@ import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
-import AppLayout, { AuthLayout, HomeLayout } from './components/layout/AppLayout';
+import AppLayout, { AuthLayout } from './components/layout/AppLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoadingScreen from './components/common/LoadingScreen';
 
-const Landing = lazy(() => import('./pages/Landing'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const Discover = lazy(() => import('./pages/Discover'));
 const Login = lazy(() => import('./pages/Login'));
@@ -35,13 +34,11 @@ export default function App() {
    <AuthProvider>
     <Suspense fallback={<LazyFallback />}>
      <Routes>
-      <Route element={<HomeLayout />}>
-       <Route path="/" element={<Landing />} />
-      </Route>
       <Route element={<AppLayout />}>
-       <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+       <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+       <Route path="/home" element={<Navigate to="/" replace />} />
        {/* legacy alias */}
-       <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+       <Route path="/dashboard" element={<Navigate to="/" replace />} />
        <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
        <Route path="/my-lifebook" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
        <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />

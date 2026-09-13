@@ -152,16 +152,16 @@ export default function HomePage() {
       onClick: () => navigate("/stories/new"),
     },
     {
-      label: "Connect & Inspire",
-      icon: Icons.user,
+      label: "Read Stories",
+      icon: Icons.search,
       tint: "bg-emerald-50 text-success",
       onClick: () => navigate("/discover"),
     },
     {
-      label: "Talk to Coach",
-      icon: Icons.shieldCheck,
+      label: "My Profile",
+      icon: Icons.user,
       tint: "bg-pink-50 text-accent",
-      onClick: () => navigate("/discover"),
+      onClick: () => navigate("/profile"),
     },
   ];
 
@@ -290,11 +290,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ═══════════ Stories from real lives ═══════════ */}
+      {/* ═══════════ Stories For You (other authors only) ═══════════ */}
       <div className="mb-10">
         <div className="flex items-end justify-between mb-1.5">
           <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">
-            Stories from real lives
+            Stories For You
           </h2>
           <Link
             to="/discover"
@@ -304,14 +304,14 @@ export default function HomePage() {
           </Link>
         </div>
         <p className="text-sm text-muted-foreground mb-5">
-          Discover experiences, lessons and journeys.
+          Experiences, lessons and journeys from other authors.
         </p>
 
         {feed.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
             <Icons.book className="h-9 w-9 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              No community stories yet — be the first to share one.
+              No stories from other authors yet — check back soon.
             </p>
           </div>
         ) : (
@@ -430,48 +430,43 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Life Coach for You (dummy data until consult integration) */}
+        {/* Writing Tips & Inspiration — author-focused guidance */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 to-pink-50/60 border border-rose-100 p-6">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-lg font-bold text-foreground">
-              Life Coach for You
+              Writing Tips &amp; Inspiration
             </h3>
             <Link
-              to="/discover"
+              to="/stories/new"
               className="text-sm font-semibold text-accent hover:underline"
             >
-              View all
+              Start now
             </Link>
           </div>
 
-          <div className="mt-4 flex items-start gap-4">
-            <div className="relative flex-shrink-0">
-              <Avatar name="Dr. Meera Kapoor" size="xl" className="w-20 h-20 ring-4 ring-card" />
-              <Icons.verified className="absolute bottom-0 right-0 h-5 w-5 text-info bg-card rounded-full" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-display text-base font-bold text-foreground">
-                Dr. Meera Kapoor
-              </p>
-              <p className="text-xs text-muted-foreground">Life &amp; Mindset Coach</p>
-              <p className="mt-1 flex items-center gap-1 text-xs text-foreground">
-                4.9
-                <Icons.starSolid className="h-3.5 w-3.5 text-warning" />
-                <span className="text-muted-foreground">(126 reviews)</span>
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-4 text-sm italic text-muted-foreground">
-            “Sometimes, a conversation can change everything.”
-          </p>
+          <ul className="mt-4 space-y-3">
+            {[
+              "Start with the moment you remember most vividly.",
+              "Write like you're telling it to a friend — not an audience.",
+              "Small, ordinary details make memories feel real.",
+              "Don't edit while writing. First remember, then refine.",
+            ].map((tip) => (
+              <li key={tip} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-accent/15 flex items-center justify-center">
+                  <Icons.check className="h-3 w-3 text-accent" />
+                </span>
+                {tip}
+              </li>
+            ))}
+          </ul>
 
           <button
             type="button"
-            onClick={() => navigate("/discover")}
+            onClick={() => navigate("/stories/new")}
             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-5 py-2.5 text-sm font-bold shadow-sm hover:brightness-110 transition-all"
           >
-            Book a Session
+            <Icons.edit className="h-4 w-4" />
+            Write with a Prompt
           </button>
 
           {/* Decorative accent */}

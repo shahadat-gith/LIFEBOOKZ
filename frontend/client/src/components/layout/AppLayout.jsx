@@ -21,14 +21,11 @@ export function AppLayout() {
   );
 }
 
+// Auth pages render their own full-screen AuthShell layout (no navbar).
 export function AuthLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <Outlet />
-      </main>
+    <div className="min-h-screen bg-background">
+      <Outlet />
     </div>
   );
 }

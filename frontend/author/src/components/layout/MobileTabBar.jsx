@@ -26,7 +26,7 @@ export default function MobileTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="relative flex items-end justify-around max-w-md mx-auto px-2">
-        <NavLink to="/dashboard" className={tabClass} aria-label="Home">
+        <NavLink to="/" end className={tabClass} aria-label="Home">
           <Icons.home className="h-5 w-5" />
           Home
         </NavLink>

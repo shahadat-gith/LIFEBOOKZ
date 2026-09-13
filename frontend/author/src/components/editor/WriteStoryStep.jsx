@@ -114,7 +114,7 @@ export default function WriteStoryStep({
           ref={textareaRef}
           value={story.content || ""}
           onChange={handleChange}
-          placeholder="It was one of those days that stays with you forever…"
+          placeholder="Write your story here…"
           rows={12}
           maxLength={50000}
           className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none resize-y min-h-[260px]"

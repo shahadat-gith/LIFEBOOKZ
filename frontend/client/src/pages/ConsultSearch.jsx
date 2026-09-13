@@ -202,7 +202,7 @@ export default function ConsultSearch() {
                 setProblem(e.target.value);
                 if (error) setError("");
               }}
-              placeholder="e.g. I feel stuck in my career and can't decide whether to switch fields or study further..."
+              placeholder="Describe what you're going through"
               className="mt-2 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40"
             />
             <p className="mt-1.5 text-[11px] text-muted-foreground">
@@ -283,7 +283,7 @@ export default function ConsultSearch() {
               rows={3}
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="How long has this been going on? What have you already tried?"
+              placeholder="Add more context about your situation"
               className="mt-2 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40"
             />
           </div>

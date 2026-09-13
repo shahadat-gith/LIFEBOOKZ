@@ -368,7 +368,7 @@ export default function Profile() {
                     if (fieldError) setFieldError("");
                   }}
                   autoComplete="name"
-                  placeholder="Your full name"
+                  placeholder="Enter your full name"
                   error={fieldError}
                   helperText="This is the name other members see."
                 />

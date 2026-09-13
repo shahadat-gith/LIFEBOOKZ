@@ -30,7 +30,7 @@ export default function MoreDetailsStep({
             onChange={(e) => onChangeChapter({ ...chapter, description: e.target.value })}
             rows={2}
             maxLength={2000}
-            placeholder="Add a short note about this chapter of your life…"
+            placeholder="Write a short note about this chapter"
             className="w-full rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all resize-y"
           />
         </div>
@@ -45,7 +45,7 @@ export default function MoreDetailsStep({
             onChange={(e) => onChangeStory({ ...story, summary: e.target.value })}
             rows={3}
             maxLength={500}
-            placeholder="A short description shown on your story cards…"
+            placeholder="Write a short description of your lifebook"
             className="w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all resize-y"
           />
           <p className="text-[11px] text-muted-foreground mt-1 text-right">

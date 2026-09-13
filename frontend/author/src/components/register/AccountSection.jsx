@@ -79,7 +79,7 @@ export default function AccountSection({ form, errors, onChange }) {
             label="Phone Number *"
             type="tel"
             value={form.phone}
-            placeholder="Enter phone number with country code"
+            placeholder="Enter your phone number"
             error={errors.phone}
             icon={<Icons.phone className="h-4 w-4" />}
             onChange={(e) => onChange("phone", e.target.value)}
@@ -87,7 +87,7 @@ export default function AccountSection({ form, errors, onChange }) {
           <Input
             label="Profession *"
             value={form.profession}
-            placeholder="Enter primary profession"
+            placeholder="Enter your profession"
             error={errors.profession}
             icon={<Icons.edit className="h-4 w-4" />}
             onChange={(e) => onChange("profession", e.target.value)}

@@ -54,16 +54,17 @@ export function App() {
       <Route element={<AppLayout />}>
        <Route path="/" element={<Home />} />
        {/*
-         Story data endpoints require authentication, so the pages that read
-         them are gated. The marketing pages (home, consult, legal) stay public.
+         Reading is public — guests can browse the feed and read published
+         stories. Interactive actions (like, comment, follow) prompt sign-in.
+         Personal pages (profile, settings, bookings) stay gated.
        */}
-       <Route path="/stories" element={<ProtectedRoute><StoryList /></ProtectedRoute>} />
+       <Route path="/stories" element={<StoryList />} />
        {/* Feed is the single source of truth - story detail is shown directly in the feed */}
-       <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
-       <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-       <Route path="/feed/story/:slug" element={<ProtectedRoute><StoryDetail /></ProtectedRoute>} />
-       <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
-       <Route path="/authors/:id" element={<ProtectedRoute><AuthorProfile /></ProtectedRoute>} />
+       <Route path="/search" element={<SearchResults />} />
+       <Route path="/feed" element={<Feed />} />
+       <Route path="/feed/story/:slug" element={<StoryDetail />} />
+       <Route path="/trending" element={<Trending />} />
+       <Route path="/authors/:id" element={<AuthorProfile />} />
        <Route path="/consult" element={<Consultation />} />
        <Route path="/consult/book" element={<ConsultSearch />} />
        <Route path="/consult/book/:expertId" element={<BookExpert />} />
