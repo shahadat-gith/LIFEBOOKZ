@@ -159,13 +159,6 @@ export default function StoryCard({
         </h2>
       </Link>
 
-      {/* Story Summary as Preview */}
-      <Link to={`/feed/story/${storySlug}`} className="block px-5 pb-2">
-        <p className="text-sm text-muted-foreground leading-relaxed font-sans line-clamp-3">
-          {story.summary || "No summary available yet..."}
-        </p>
-      </Link>
-
       {/* Chapter Count Badge */}
       {chapterCount > 1 && (
         <div className="px-5 pb-2">

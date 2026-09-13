@@ -239,13 +239,6 @@ const storyBookSchema = new mongoose.Schema(
       },
     },
 
-    summary: {
-      type: String,
-      trim: true,
-      default: "",
-      maxlength: 500,
-    },
-
     status: {
       type: String,
       enum: ["draft", "published"],

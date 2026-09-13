@@ -22,7 +22,7 @@ export function Navbar() {
 
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
-    { to: "/discover", label: "Discover", icon: <Icons.search className="h-4 w-4" /> },
+    { to: "/feed", label: "Feed", icon: <Icons.document className="h-4 w-4" /> },
     { to: "/my-lifebook", label: "My Lifebook", icon: <Icons.book className="h-4 w-4" /> },
     ...(canWrite
       ? [

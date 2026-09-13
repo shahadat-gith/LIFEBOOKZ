@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const followSchema = new mongoose.Schema(
   {
+    // Readers (User) and authors (Author) can both follow authors.
     who: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

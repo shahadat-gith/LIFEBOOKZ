@@ -4,15 +4,15 @@ import * as following from "./controller.js";
 
 const router = Router();
 
-// Only readers follow authors, so these carry the user role.
-const userOnly = [authenticate, authorize("user")];
+// Readers and authors both follow authors, so allow both roles.
+const followerOnly = [authenticate, authorize("user", "author")];
 
 // Follow / Unfollow
-router.post("/:authorId/follow", userOnly, following.followAuthor);
-router.delete("/:authorId/follow", userOnly, following.unfollowAuthor);
+router.post("/:authorId/follow", followerOnly, following.followAuthor);
+router.delete("/:authorId/follow", followerOnly, following.unfollowAuthor);
 
 // Check follow status
-router.get("/:authorId/check", userOnly, following.checkFollow);
+router.get("/:authorId/check", followerOnly, following.checkFollow);
 
 // Get followers of an author
 router.get("/:authorId/followers", following.getFollowers);

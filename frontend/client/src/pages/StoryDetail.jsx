@@ -228,16 +228,6 @@ export default function StoryDetailPage() {
         transition={{ delay: 0.2 }}
         className="mt-8"
       >
-        {/* Story Summary — at the top */}
-        {story.summary && (
-          <div className="mb-8 p-6 rounded-2xl bg-muted/30 border border-border/40">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {story.summary}
-            </p>
-          </div>
-        )}
-
         {/* Chapter Navigation */}
         {hasChapters && sortedChapters.length > 1 && (
           <div className="mb-8">

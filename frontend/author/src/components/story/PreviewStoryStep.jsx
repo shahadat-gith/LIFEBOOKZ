@@ -34,7 +34,7 @@ export default function PreviewStoryStep({
     chapter?.media?.find((m) => m.type === "image")?.url;
 
   return (
-    <WizardShell step={8} totalSteps={10} title="Preview Story" onBack={onBack}>
+    <WizardShell step={7} totalSteps={9} title="Preview Story" onBack={onBack}>
       <div className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
         {/* Chapter badge */}
         <div className="px-4 pt-4">

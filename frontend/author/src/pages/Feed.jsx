@@ -1,10 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import api from "../config/axios";
-import { useAuth } from "../context/AuthContext";
+import api from "../config/api";
 import StoryCard from "../components/story/StoryCard";
-import StoryCardSkeleton from "../components/skeletons/StoryCardSkeleton";
-import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/common/EmptyState";
 import { Icons } from "../icons";
 
@@ -15,9 +12,12 @@ const GENDER_OPTIONS = [
   { value: "Other", label: "Other" },
 ];
 
-export default function FeedPage() {
-  const { isAuthenticated } = useAuth();
-
+/**
+ * Feed — published stories from other authors, with the same filter
+ * bar as the client portal: author name, profession, author gender,
+ * and a "Following" toggle.
+ */
+export default function Feed() {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -54,17 +54,18 @@ export default function FeedPage() {
       if (profession) params.profession = profession;
       if (appliedAuthorName) params.authorName = appliedAuthorName;
       if (gender) params.gender = gender;
-      if (followingOnly && isAuthenticated) params.following = "true";
+      if (followingOnly) params.following = "true";
 
       const res = await api.get("/stories", { params });
       const data = res.data.data;
-      const newStories = data.stories || [];
-
+      const newStories = (data.stories || []).filter(
+        (s) => String(s.author?._id) !== String(data.viewerId || ""),
+      );
       setStories((prev) => (append ? [...prev, ...newStories] : newStories));
       setHasMore(newStories.length === 10);
       setPage(p);
-    } catch (err) {
-      console.error("Failed to load feed:", err);
+    } catch {
+      // silently fail — the empty state covers it
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -82,16 +83,11 @@ export default function FeedPage() {
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          hasMore &&
-          !loading &&
-          !loadingMore
-        ) {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
           loadStories(page + 1, true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observerRef.current.observe(sentinelRef.current);
@@ -115,7 +111,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 select-none">
+    <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 md:py-10 pb-28 md:pb-10">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -123,11 +119,11 @@ export default function FeedPage() {
       >
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground font-display">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
               Feed
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Discover the latest stories shared by our community.
+            <p className="mt-1 text-sm text-muted-foreground">
+              Stories from authors across the community.
             </p>
           </div>
 
@@ -217,22 +213,20 @@ export default function FeedPage() {
               <Icons.chevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
 
-            {/* Following toggle (signed-in readers only) */}
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => setFollowingOnly((f) => !f)}
-                aria-pressed={followingOnly}
-                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
-                  followingOnly
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border/60 bg-background text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icons.heartRegular className="h-4 w-4" />
-                Following
-              </button>
-            )}
+            {/* Following toggle */}
+            <button
+              type="button"
+              onClick={() => setFollowingOnly((f) => !f)}
+              aria-pressed={followingOnly}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                followingOnly
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border/60 bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icons.heartRegular className="h-4 w-4" />
+              Following
+            </button>
           </div>
         </div>
       </motion.div>
@@ -240,17 +234,27 @@ export default function FeedPage() {
       {loading && stories.length === 0 ? (
         <div className="space-y-5">
           {[1, 2, 3, 4, 5, 6].map((n) => (
-            <StoryCardSkeleton key={n} />
+            <div
+              key={n}
+              className="rounded-xl border border-border/60 bg-card overflow-hidden animate-pulse"
+            >
+              <div className="h-48 bg-muted" />
+              <div className="p-5 space-y-3">
+                <div className="h-4 w-1/3 bg-muted rounded" />
+                <div className="h-5 w-2/3 bg-muted rounded" />
+                <div className="h-3 w-1/4 bg-muted rounded" />
+              </div>
+            </div>
           ))}
         </div>
       ) : stories.length === 0 ? (
         <EmptyState
-          icon={<Icons.document className="h-16 w-16" />}
+          icon={<Icons.book className="h-16 w-16" />}
           title={hasActiveFilters ? "No matching stories" : "No stories yet"}
           description={
             hasActiveFilters
               ? "Try adjusting or clearing your filters."
-              : "Be the first to explore stories from the community."
+              : "Stories from other authors will appear here."
           }
         />
       ) : (
@@ -270,7 +274,7 @@ export default function FeedPage() {
 
           {loadingMore && (
             <div className="flex justify-center py-4">
-              <Spinner size="md" label="Loading more..." />
+              <p className="text-xs text-muted-foreground">Loading more...</p>
             </div>
           )}
 

@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 /**
  * Mobile-only bottom tab bar:
- *  Home · Discover · (+) · My Lifebook · Profile
+ *  Home · Feed · (+) · My Lifebook · Profile
  * The center + button is a floating primary action that starts the
  * story-writing wizard.
  */
@@ -31,9 +31,9 @@ export default function MobileTabBar() {
           Home
         </NavLink>
 
-        <NavLink to="/discover" className={tabClass} aria-label="Discover">
-          <Icons.search className="h-5 w-5" />
-          Discover
+        <NavLink to="/feed" className={tabClass} aria-label="Feed">
+          <Icons.document className="h-5 w-5" />
+          Feed
         </NavLink>
 
         {/* Floating center action */}

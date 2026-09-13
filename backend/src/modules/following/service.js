@@ -7,11 +7,15 @@ import { NotFoundError, ValidationError } from "../../core/utils/errors.js";
 const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
 
 /**
- * A user follows an author and both counters are bumped together.
+ * A reader (User) or another author (Author) follows an author; both
+ * counters are bumped together on the follower's own model.
  */
 export async function followAuthor({ userId, role, authorId }) {
-  if (role !== "user") {
-    throw new ValidationError("Only users can follow authors.");
+  if (!role || !["user", "author"].includes(role)) {
+    throw new ValidationError("Only signed-in users and authors can follow authors.");
+  }
+  if (role === "author" && String(userId) === String(authorId)) {
+    throw new ValidationError("You cannot follow yourself.");
   }
 
   const author = await Author.findById(authorId);
@@ -24,14 +28,19 @@ export async function followAuthor({ userId, role, authorId }) {
     throw new ValidationError("Already following this author.");
   }
 
+  const followerModel = role === "author" ? Author : User;
+
   await Promise.all([
     Follow.create({ who: userId, whom: authorId }),
-    User.findByIdAndUpdate(userId, { $inc: { "stats.following": 1 } }),
+    followerModel.findByIdAndUpdate(userId, { $inc: { "stats.following": 1 } }),
     Author.findByIdAndUpdate(authorId, { $inc: { "stats.followers": 1 } }),
   ]);
 
   // Notify the author (best-effort)
-  const follower = await User.findById(userId).select("fullName avatar").lean();
+  const follower = await followerModel
+    .findById(userId)
+    .select("fullName avatar")
+    .lean();
   createNotification({
     recipient: authorId,
     type: "follow",
@@ -43,11 +52,12 @@ export async function followAuthor({ userId, role, authorId }) {
 }
 
 /**
- * A user unfollows an author and both counters are decremented together.
+ * A reader (User) or another author (Author) unfollows an author; both
+ * counters are decremented together on the follower's own model.
  */
 export async function unfollowAuthor({ userId, role, authorId }) {
-  if (role !== "user") {
-    throw new ValidationError("Only users can unfollow authors.");
+  if (!role || !["user", "author"].includes(role)) {
+    throw new ValidationError("Only signed-in users and authors can unfollow authors.");
   }
 
   const follow = await Follow.findOneAndDelete({ who: userId, whom: authorId });
@@ -56,8 +66,10 @@ export async function unfollowAuthor({ userId, role, authorId }) {
     throw new NotFoundError("You are not following this author.");
   }
 
+  const followerModel = role === "author" ? Author : User;
+
   await Promise.all([
-    User.findByIdAndUpdate(userId, { $inc: { "stats.following": -1 } }),
+    followerModel.findByIdAndUpdate(userId, { $inc: { "stats.following": -1 } }),
     Author.findByIdAndUpdate(authorId, { $inc: { "stats.followers": -1 } }),
   ]);
 }

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 function ShareIcon() {
   return <Icons.share className="h-4 w-4" />;
@@ -28,7 +28,7 @@ export default function PublishedStep({
   ];
 
   return (
-    <WizardShell step={10} totalSteps={10} title="Story Published" onBack={onBack}>
+    <WizardShell step={9} totalSteps={9} title="Story Published" onBack={onBack}>
       {/* Success burst */}
       <div className="flex flex-col items-center py-6">
         <motion.div

@@ -5,15 +5,14 @@ import Follow from "../following/model.js";
 
 // Fields needed by the client feed/search cards
 const STORY_SELECT =
-  "title slug summary chapters coverImage author storyType language stats publishedAt createdAt";
+  "title slug chapters coverImage author storyType language stats publishedAt createdAt";
 
 const AUTHOR_POPULATE =
   "fullName username avatar profession verification.status";
 
 /**
- * Simple text search over published public lifebooks — title, summary,
- * chapter titles/descriptions and story content. Replaces the old
- * Qdrant vector search.
+ * Simple text search over published public lifebooks — title,
+ * chapter titles/descriptions and story content.
  *
  * @param {object} params
  * @param {string} params.q          free-text query
@@ -43,14 +42,13 @@ export async function semanticSearch({
       }
     : {};
 
-  // 1. Text search across title, summary, and nested chapter/story text
+  // 1. Text search across title and nested chapter/story text
   const stories = await Story.find({
     status: "published",
     visibility: "public",
     ...professionFilter,
     $or: [
       { title: { $regex: escapeRegex(query), $options: "i" } },
-      { summary: { $regex: escapeRegex(query), $options: "i" } },
       { "chapters.title": { $regex: escapeRegex(query), $options: "i" } },
       { "chapters.description": { $regex: escapeRegex(query), $options: "i" } },
       { "chapters.stories.title": { $regex: escapeRegex(query), $options: "i" } },

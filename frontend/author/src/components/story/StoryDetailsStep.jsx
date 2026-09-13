@@ -1,6 +1,6 @@
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 export default function StoryDetailsStep({
   story,
@@ -11,7 +11,7 @@ export default function StoryDetailsStep({
   const canContinue = story.title?.trim().length > 0;
 
   return (
-    <WizardShell step={3} totalSteps={10} title="Story Details" onBack={onBack}>
+    <WizardShell step={3} totalSteps={9} title="Story Details" onBack={onBack}>
       <div className="text-center mb-6">
         <h2 className="font-display text-2xl font-bold text-foreground">
           Name your story

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 const TOOLBAR = [
   { key: "bold", label: "B", title: "Bold", className: "font-bold" },
@@ -88,7 +88,7 @@ export default function WriteStoryStep({
   }
 
   return (
-    <WizardShell step={4} totalSteps={10} title="Write Your Story" onBack={onBack}>
+    <WizardShell step={4} totalSteps={9} title="Write Your Story" onBack={onBack}>
       <p className="text-center text-sm text-muted-foreground mb-5">
         Take your time. Write from your heart.
       </p>

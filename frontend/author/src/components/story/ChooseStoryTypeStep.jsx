@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 export const STORY_TYPES = [
   { value: "experience", label: "Experience", hint: "Something I lived through", color: "text-info" },
@@ -28,7 +28,7 @@ export default function ChooseStoryTypeStep({
   onBack,
 }) {
   return (
-    <WizardShell step={2} totalSteps={10} title="Choose Story Type" onBack={onBack}>
+    <WizardShell step={2} totalSteps={9} title="Choose Story Type" onBack={onBack}>
       <div className="text-center mb-6">
         <h2 className="font-display text-2xl font-bold text-foreground leading-snug">
           What type of story

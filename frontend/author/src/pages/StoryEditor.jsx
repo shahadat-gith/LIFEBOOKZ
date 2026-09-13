@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import * as storyApi from "../utils/client";
 import LoadingScreen from "../components/common/LoadingScreen";
-import { FlowOverview, PrimaryButton } from "../components/editor/wizardShared";
-import { WizardShell } from "../components/editor/WizardShell";
+import { WizardShell, PrimaryButton } from "../components/story/WizardShell";
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
-import SelectChapterStep from "../components/editor/SelectChapterStep";
-import ChooseStoryTypeStep from "../components/editor/ChooseStoryTypeStep";
-import StoryDetailsStep from "../components/editor/StoryDetailsStep";
-import WriteStoryStep from "../components/editor/WriteStoryStep";
-import AddMediaStep from "../components/editor/AddMediaStep";
-import MoreDetailsStep from "../components/editor/MoreDetailsStep";
-import VisibilityStep from "../components/editor/VisibilityStep";
-import PreviewStoryStep from "../components/editor/PreviewStoryStep";
-import PublishedStep from "../components/editor/PublishedStep";
+import SelectChapterStep from "../components/story/SelectChapterStep";
+import ChooseStoryTypeStep from "../components/story/ChooseStoryTypeStep";
+import StoryDetailsStep from "../components/story/StoryDetailsStep";
+import WriteStoryStep from "../components/story/WriteStoryStep";
+import AddMediaStep from "../components/story/AddMediaStep";
+import VisibilityStep from "../components/story/VisibilityStep";
+import PreviewStoryStep from "../components/story/PreviewStoryStep";
+import PublishedStep from "../components/story/PublishedStep";
 
 function emptyStory() {
   return {
@@ -44,19 +42,21 @@ function emptyChapter(idx = 0) {
 
 export default function StoryEditorPage() {
   const { storyId } = useParams();
+  const [searchParams] = useSearchParams();
+  // ?story=<id> → jump straight into editing that specific story entry
+  const editStoryEntryId = searchParams.get("story");
   const { author, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const isEditMode = Boolean(storyId);
 
-  // "overview" → flow cover screen; then numeric wizard steps 1..10
-  const [phase, setPhase] = useState(isEditMode ? 1 : "overview");
+  // Wizard steps 1..9 (the "how to write" guide lives on the Home page)
+  const [phase, setPhase] = useState(1);
 
   // Lifebook-level state
   const [lifebookId, setLifebookId] = useState(storyId || null);
   const [lifebookTitle, setLifebookTitle] = useState("");
   const [lifebookVisibility, setLifebookVisibility] = useState("public");
-  const [lifebookSummary, setLifebookSummary] = useState("");
   const [coverImage, setCoverImage] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [loaded, setLoaded] = useState(!isEditMode);
@@ -76,20 +76,34 @@ export default function StoryEditorPage() {
       .then((s) => {
         setLifebookTitle(s.title || "");
         setLifebookVisibility(s.visibility || "public");
-        setLifebookSummary(s.summary || "");
         setCoverImage(s.coverImage || null);
         setSavedSlug(s.slug || "");
         const sorted = [...(s.chapters || [])].sort((a, b) => a.order - b.order);
-        setChapters(
-          sorted.map((ch) => ({
-            ...ch,
-            id: ch._id || ch.id,
-            stories: (ch.stories || []).map((st) => ({
-              ...st,
-              id: st._id || st.id,
-            })),
+        const mapped = sorted.map((ch) => ({
+          ...ch,
+          id: ch._id || ch.id,
+          stories: (ch.stories || []).map((st) => ({
+            ...st,
+            id: st._id || st.id,
           })),
-        );
+        }));
+        setChapters(mapped);
+
+        // Deep-link: ?story=<id> → load that story entry and jump into
+        // its details step (editing an existing story, not writing new).
+        if (editStoryEntryId) {
+          for (let ci = 0; ci < mapped.length; ci++) {
+            const entry = (mapped[ci].stories || []).find(
+              (st) => String(st.id) === String(editStoryEntryId),
+            );
+            if (entry) {
+              setSelectedChapterIdx(ci);
+              setDraft({ ...emptyStory(), ...entry });
+              setPhase(3);
+              break;
+            }
+          }
+        }
       })
       .catch(() => setError("Story not found"))
       .finally(() => setLoaded(true));
@@ -169,7 +183,6 @@ export default function StoryEditorPage() {
         "title",
         lifebookTitle?.trim() || draft.title?.trim() || "My Lifebook",
       );
-      fd.append("summary", lifebookSummary || "");
       fd.append("visibility", lifebookVisibility || "public");
       if (coverImage instanceof File) fd.append("coverImage", coverImage);
 
@@ -197,12 +210,12 @@ export default function StoryEditorPage() {
       });
       setSavedSlug(saved.slug || "");
       setDraft((d) => ({ ...d, status: "published" }));
-      setPhase(10);
+      setPhase(9);
     } catch (err) {
       const msg = err?.response?.data?.error?.message || "Failed to publish story";
       setError(msg);
       toast.error(msg);
-      setPhase(8);
+      setPhase(7);
     } finally {
       setPublishing(false);
     }
@@ -226,28 +239,10 @@ export default function StoryEditorPage() {
     return null;
   }
 
-  /* ---------- Flow overview (step 0 cover screen) ---------- */
-  if (phase === "overview") {
+  /* ---------- Step 8 — publishing spinner ---------- */
+  if (phase === 8) {
     return (
-      <FlowOverview
-        onStart={() => {
-          if (chapters.length === 0) {
-            const ch = emptyChapter();
-            ch.title = "Childhood";
-            setChapters([ch]);
-            setSelectedChapterIdx(0);
-          }
-          setPhase(1);
-        }}
-        onBack={() => navigate("/")}
-      />
-    );
-  }
-
-  /* ---------- Step 9 — publishing spinner ---------- */
-  if (phase === 9) {
-    return (
-      <WizardShell step={9} totalSteps={10} title="Publish Story" onBack={null}>
+      <WizardShell step={8} totalSteps={9} title="Publish Story" onBack={null}>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Icons.spinner className="h-10 w-10 animate-spin text-primary" />
           <p className="mt-5 font-display text-lg font-semibold text-foreground">
@@ -273,7 +268,7 @@ export default function StoryEditorPage() {
             setPhase(2);
           }}
           onCreateNew={createNewChapter}
-          onBack={() => (isEditMode ? navigate("/") : setPhase("overview"))}
+          onBack={() => navigate("/")}
         />
       );
 
@@ -319,22 +314,6 @@ export default function StoryEditorPage() {
 
     case 6:
       return (
-        <MoreDetailsStep
-          story={{ summary: lifebookSummary }}
-          chapter={activeChapter}
-          onChangeStory={(s) => setLifebookSummary(s.summary || "")}
-          onChangeChapter={(ch) =>
-            setChapters((prev) =>
-              prev.map((c, i) => (i === selectedChapterIdx ? { ...c, ...ch } : c)),
-            )
-          }
-          onContinue={() => setPhase(7)}
-          onBack={() => setPhase(5)}
-        />
-      );
-
-    case 7:
-      return (
         <VisibilityStep
           visibility={lifebookVisibility}
           onChange={(v) => {
@@ -343,27 +322,27 @@ export default function StoryEditorPage() {
           }}
           onContinue={() => {
             handleSaveDraft();
-            setPhase(8);
+            setPhase(7);
           }}
-          onBack={() => setPhase(6)}
+          onBack={() => setPhase(5)}
         />
       );
 
-    case 8:
+    case 7:
       return (
         <PreviewStoryStep
           story={draft}
           chapter={activeChapter}
           chapterIndex={selectedChapterIdx}
           onPublish={() => {
-            setPhase(9);
+            setPhase(8);
             handlePublish();
           }}
           onBack={() => setPhase(4)}
         />
       );
 
-    case 10:
+    case 9:
       return (
         <PublishedStep
           storyUrl={savedSlug ? `/feed/story/${savedSlug}` : ""}

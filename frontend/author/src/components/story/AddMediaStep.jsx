@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton, LinkButton } from "./wizardShared";
+import { PrimaryButton, LinkButton } from "./WizardShell";
 import * as storyApi from "../../utils/client";
 import toast from "react-hot-toast";
 
@@ -63,7 +63,7 @@ export default function AddMediaStep({
   const shown = byType(tab);
 
   return (
-    <WizardShell step={5} totalSteps={10} title="Add Media" onBack={onBack}>
+    <WizardShell step={5} totalSteps={9} title="Add Media" onBack={onBack}>
       <p className="text-center text-sm text-muted-foreground mb-5">
         Add photos, videos or audio
         <br />

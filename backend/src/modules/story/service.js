@@ -36,12 +36,11 @@ function parseMaybeJson(value) {
 }
 
 /**
- * Simple text search across title, summary, and story content.
+ * Simple text search across title and story content.
  */
 function textMatches(story, query) {
   const q = query.toLowerCase();
   if (story.title?.toLowerCase().includes(q)) return true;
-  if (story.summary?.toLowerCase().includes(q)) return true;
   if (story.chapters?.some((ch) =>
     ch.title?.toLowerCase().includes(q) ||
     ch.description?.toLowerCase().includes(q) ||
@@ -114,7 +113,6 @@ export async function createStory({ authorId, body, file }) {
     title = "",
     visibility = "public",
     language = "English",
-    summary = "",
   } = body;
   const cleanTitle = title?.trim() || "";
 
@@ -159,7 +157,6 @@ export async function createStory({ authorId, body, file }) {
     title: cleanTitle,
     visibility,
     language,
-    summary: summary?.trim?.() || "",
     chapters: finalChapters,
     coverImage,
     status: "draft",
@@ -173,7 +170,7 @@ export async function createStory({ authorId, body, file }) {
 export async function updateStory({ authorId, storyId, body, file }) {
   const story = await findOwnedStory({ authorId, storyId });
 
-  let { title, visibility, language, summary, status } = body;
+  let { title, visibility, language, status } = body;
 
   if (body.chapters !== undefined) {
     const chaptersUpdate = parseMaybeJson(body.chapters) ?? [];
@@ -208,7 +205,6 @@ export async function updateStory({ authorId, storyId, body, file }) {
   if (title !== undefined) story.title = title.trim();
   if (visibility !== undefined) story.visibility = visibility;
   if (language !== undefined) story.language = language;
-  if (summary !== undefined) story.summary = summary?.trim?.() || "";
   if (status !== undefined && ["draft", "published"].includes(status)) {
     story.status = status;
   }
@@ -334,10 +330,12 @@ export async function getStoryDetail({ storyId, viewer }) {
 }
 
 /**
- * Published, public feed, optionally filtered by author / profession.
+ * Published, public feed with filters: author profession, author name,
+ * author gender, and "only authors I follow". `q` text search is no
+ * longer part of this endpoint (search was removed).
  */
 export async function listStories({ query: queryParams, viewer }) {
-  const { type, author, profession, q } = queryParams;
+  const { type, author, profession, authorName, gender, following } = queryParams;
 
   const page = Math.max(Number(queryParams.page) || 1, 1);
   const limit =
@@ -356,12 +354,45 @@ export async function listStories({ query: queryParams, viewer }) {
     );
   }
 
+  // Author name filter — case-insensitive partial match on fullName/username
+  if (authorName?.trim()) {
+    const nameRx = new RegExp(escapeRegex(authorName.trim()), "i");
+    const matchingAuthors = await Author.find({
+      $or: [{ fullName: nameRx }, { username: nameRx }],
+    })
+      .select("_id")
+      .lean();
+    filter.author = { ...(filter.author || {}), $in: matchingAuthors.map((a) => a._id) };
+  }
+
+  // Author gender filter
+  if (gender && ["Male", "Female", "Other"].includes(gender)) {
+    const genderAuthors = await Author.find({ gender })
+      .select("_id")
+      .lean();
+    filter.author = { ...(filter.author || {}), $in: genderAuthors.map((a) => a._id) };
+  }
+
+  // Only show lifebooks from authors the viewer follows
+  if (following === "true" && viewer?.id) {
+    const follows = await Follow.find({ who: viewer.id }).select("whom").lean();
+    const followedIds = follows.map((f) => f.whom);
+    const authorFilter = filter.author || {};
+    if (authorFilter.$in) {
+      // Intersect with other author filters (name/gender)
+      const allowed = new Set(followedIds.map(String));
+      authorFilter.$in = authorFilter.$in.filter((id) => allowed.has(String(id)));
+    } else {
+      authorFilter.$in = followedIds;
+    }
+    filter.author = authorFilter;
+  }
+
   let query = Story.find(filter)
     .select(
       `
         title
         slug
-        summary
         chapters.title
         chapters.order
         chapters.visibility
@@ -403,17 +434,12 @@ export async function listStories({ query: queryParams, viewer }) {
     Story.countDocuments(filter),
   ]);
 
-  // Simple in-memory text filter over title/summary/content
-  const filtered = q?.trim()
-    ? stories.filter((story) => textMatches(story, q.trim()))
-    : stories;
-
   const followingMap = {};
   const likedMap = {};
 
-  if (viewer?.id && viewer.role === "user" && filtered.length) {
-    const storyIds = filtered.map((story) => story._id);
-    const authorIds = filtered
+  if (viewer?.id && viewer.role === "user" && stories.length) {
+    const storyIds = stories.map((story) => story._id);
+    const authorIds = stories
       .map((story) => story.author?._id)
       .filter(Boolean);
 
@@ -436,7 +462,7 @@ export async function listStories({ query: queryParams, viewer }) {
     });
   }
 
-  const enrichedStories = filtered.map((story) => ({
+  const enrichedStories = stories.map((story) => ({
     ...story,
     followingAuthor: followingMap[story.author?._id?.toString()] ?? false,
     likedByUser: likedMap[story._id.toString()] ?? false,
@@ -942,9 +968,8 @@ export async function listComments({ storyId, page, limit }) {
 /* ---------- Search helpers (used by the search module) ---------- */
 
 /**
- * Simple text search over published public lifebooks: title, summary,
- * chapter titles/descriptions and story content. Replaces the old
- * Qdrant semantic search.
+ * Simple text search over published public lifebooks: title,
+ * chapter titles/descriptions and story content.
  */
 export async function searchStories({ q, limit = 20 }) {
   const query = q?.trim() || "";
@@ -959,7 +984,6 @@ export async function searchStories({ q, limit = 20 }) {
     visibility: "public",
     $or: [
       { title: rx },
-      { summary: rx },
       { "chapters.title": rx },
       { "chapters.description": rx },
       { "chapters.stories.title": rx },
@@ -970,7 +994,6 @@ export async function searchStories({ q, limit = 20 }) {
       `
         title
         slug
-        summary
         chapters.title
         chapters.order
         chapters.visibility

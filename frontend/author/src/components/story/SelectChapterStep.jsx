@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 const CHAPTER_TITLES = [
   "Childhood",
@@ -20,7 +20,7 @@ export default function SelectChapterStep({
   onBack,
 }) {
   return (
-    <WizardShell step={1} totalSteps={10} title="My Lifebook" onBack={onBack}>
+    <WizardShell step={1} totalSteps={9} title="My Lifebook" onBack={onBack}>
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
         Select Chapter
       </p>

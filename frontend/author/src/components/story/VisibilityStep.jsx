@@ -1,6 +1,6 @@
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton } from "./wizardShared";
+import { PrimaryButton } from "./WizardShell";
 
 const OPTIONS = [
   {
@@ -30,7 +30,7 @@ export default function VisibilityStep({
   onBack,
 }) {
   return (
-    <WizardShell step={7} totalSteps={10} title="Choose Visibility" onBack={onBack}>
+    <WizardShell step={6} totalSteps={9} title="Choose Visibility" onBack={onBack}>
       <div className="text-center mb-6">
         <h2 className="font-display text-2xl font-bold text-foreground">
           Who can see this story?
