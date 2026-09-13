@@ -34,6 +34,9 @@ export const uploadDocument = (buffer) =>
 export const uploadStoryImage = (buffer) =>
   uploadBuffer(buffer, "stories", "image");
 
+export const uploadStoryMedia = (buffer, resourceType = "image") =>
+  uploadBuffer(buffer, "stories/media", resourceType);
+
 export async function deleteFile(publicId) {
   if (!publicId) return;
 

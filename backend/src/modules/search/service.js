@@ -3,32 +3,29 @@ import Like from "../story/models/Like.js";
 import Author from "../author/model.js";
 import Follow from "../following/model.js";
 
-import { generateEmbedding } from "../../core/services/embedding.js";
-import { getQdrantClient } from "../../core/config/qdrant.js";
-import config from "../../core/config/index.js";
-
-const qdrant = getQdrantClient();
-
 // Fields needed by the client feed/search cards
 const STORY_SELECT =
-  "title slug summary chapters content coverImage author storyType language stats publishedAt createdAt";
+  "title slug summary chapters coverImage author storyType language stats publishedAt createdAt";
+
+const AUTHOR_POPULATE =
+  "fullName username avatar profession verification.status";
 
 /**
- * Vector search over the story collection, hydrated from Mongo and enriched
- * with the viewer's like/follow state.
+ * Simple text search over published public lifebooks — title, summary,
+ * chapter titles/descriptions and story content. Replaces the old
+ * Qdrant vector search.
  *
  * @param {object} params
  * @param {string} params.q          free-text query
  * @param {number} [params.limit]    max results (capped at 50)
  * @param {string} [params.profession] author profession filter
- * @param {string} [params.storyType]  story type filter
+ * @param {string} [params.storyType]  story type filter (kept for API compat)
  * @param {{id: string, role: string}} [params.viewer]
  */
 export async function semanticSearch({
   q,
   limit,
   profession,
-  storyType,
   viewer,
 }) {
   const query = q?.trim() || "";
@@ -36,84 +33,68 @@ export async function semanticSearch({
 
   const safeLimit = Math.min(Number(limit) || 20, 50);
 
-  // 1. Embed the user query
-  const embedding = await generateEmbedding(query);
+  // Anchored case-insensitive match for profession (stored lowercased)
+  const professionFilter = profession?.trim()
+    ? {
+        authorProfession: new RegExp(
+          `^${profession.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+          "i",
+        ),
+      }
+    : {};
 
-  // 2. Optional payload filters (authorProfession is stored lowercased)
-  const must = [];
-  if (profession?.trim()) {
-    must.push({
-      key: "authorProfession",
-      match: { value: profession.trim().toLowerCase() },
-    });
-  }
-  if (storyType?.trim()) {
-    must.push({ key: "storyType", match: { value: storyType.trim() } });
-  }
-
-  // 3. Vector search in Qdrant — the client returns the hits array directly
-  const hits = await qdrant.search(config.qdrant.collections.story, {
-    vector: embedding,
-    limit: safeLimit,
-    with_payload: true,
-    ...(must.length ? { filter: { must } } : {}),
-  });
-
-  const storyIds = hits
-    .map((hit) => hit.payload?.storyId || String(hit.id))
-    .filter(Boolean);
-
-  // 4. Hydrate from Mongo (only published stories)
+  // 1. Text search across title, summary, and nested chapter/story text
   const stories = await Story.find({
-    _id: { $in: storyIds },
     status: "published",
+    visibility: "public",
+    ...professionFilter,
+    $or: [
+      { title: { $regex: escapeRegex(query), $options: "i" } },
+      { summary: { $regex: escapeRegex(query), $options: "i" } },
+      { "chapters.title": { $regex: escapeRegex(query), $options: "i" } },
+      { "chapters.description": { $regex: escapeRegex(query), $options: "i" } },
+      { "chapters.stories.title": { $regex: escapeRegex(query), $options: "i" } },
+      { "chapters.stories.content": { $regex: escapeRegex(query), $options: "i" } },
+    ],
   })
     .select(STORY_SELECT)
-    .populate("author", "fullName username avatar profession verification.status")
+    .populate("author", AUTHOR_POPULATE)
+    .sort({ publishedAt: -1 })
+    .limit(safeLimit)
     .lean();
-
-  const storyMap = new Map(stories.map((s) => [s._id.toString(), s]));
-
-  // Preserve vector-search relevance order and attach the score
-  const results = hits
-    .map((hit) => {
-      const story = storyMap.get(String(hit.payload?.storyId || hit.id));
-      return story ? { ...story, score: hit.score } : null;
-    })
-    .filter(Boolean);
 
   // Enrich like/follow state for authenticated users (matches feed UX)
   const likedMap = {};
   const followingMap = {};
 
-  if (viewer?.id && viewer.role === "user") {
-    const resultStoryIds = results.map((s) => s._id.toString());
-    const authorIds = results
+  if (viewer?.id && viewer.role === "user" && stories.length > 0) {
+    const storyIds = stories.map((s) => s._id.toString());
+    const authorIds = stories
       .map((s) => s.author?._id?.toString())
       .filter(Boolean);
 
-    if (resultStoryIds.length > 0) {
-      const likes = await Like.find({
-        story: { $in: resultStoryIds },
+    const [likes, follows] = await Promise.all([
+      Like.find({
+        story: { $in: storyIds },
         user: viewer.id,
-      }).lean();
-      likes.forEach((like) => {
-        likedMap[like.story.toString()] = true;
-      });
-    }
+      }).lean(),
 
-    if (authorIds.length > 0) {
-      const follows = await Follow.find({
+      Follow.find({
         who: viewer.id,
         whom: { $in: authorIds },
-      }).lean();
-      follows.forEach((follow) => {
-        followingMap[follow.whom.toString()] = true;
-      });
-    }
+      }).lean(),
+    ]);
+
+    likes.forEach((like) => {
+      likedMap[like.story.toString()] = true;
+    });
+
+    follows.forEach((follow) => {
+      followingMap[follow.whom.toString()] = true;
+    });
   }
 
-  return results.map((story) => ({
+  return stories.map((story) => ({
     ...story,
     likedByUser: likedMap[story._id.toString()] || false,
     followingAuthor: followingMap[story.author?._id?.toString()] || false,
@@ -148,4 +129,8 @@ export async function listProfessions() {
     label: p.label,
     count: p.count,
   }));
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

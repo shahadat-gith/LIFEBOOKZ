@@ -34,6 +34,10 @@ export default function StoryCard({
 
   // Chapter count
   const chapterCount = story.chapters?.length || 0;
+  const storyCount = (story.chapters || []).reduce(
+    (sum, ch) => sum + (ch.stories?.length || 0),
+    0,
+  );
 
   async function handleLike(e) {
     e.preventDefault();
@@ -168,6 +172,7 @@ export default function StoryCard({
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Icons.book className="h-3 w-3" />
             {chapterCount} chapters
+            {storyCount > 0 && ` · ${storyCount} stories`}
           </span>
         </div>
       )}

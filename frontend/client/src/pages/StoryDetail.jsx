@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../config/axios";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/ui/Avatar";
-import TipTapReader from "../components/story/TipTapReader";
 import CommentSection from "../components/story/CommentSection";
 import FollowButton from "../components/story/FollowButton";
 import StoryDetailSkeleton from "../components/skeletons/StoryDetailSkeleton";
@@ -24,7 +23,6 @@ export default function StoryDetailPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [recentLikers, setRecentLikers] = useState([]);
   const [commentTrigger, setCommentTrigger] = useState(0);
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const commentSectionRef = useRef(null);
 
   useEffect(() => {
@@ -136,13 +134,12 @@ export default function StoryDetailPage() {
   const shareCount = story.stats?.shares || 0;
   const likesCaption = formatLikesCaption(recentLikers, likeCount);
 
-  // Chapters support
+  // Chapters support — each chapter contains stories and media
   const chapters = story.chapters || [];
   const hasChapters = chapters.length > 0;
   const sortedChapters = hasChapters
     ? [...chapters].sort((a, b) => a.order - b.order)
     : [];
-  const activeChapter = sortedChapters[activeChapterIndex];
 
   return (
     <motion.div
@@ -166,13 +163,6 @@ export default function StoryDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        {/* Story Type Badge */}
-        {story.storyType && (
-          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-accent bg-accent/10 px-3 py-1 rounded-full mb-4">
-            {story.storyType}
-          </span>
-        )}
-
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground font-display leading-tight">
           {story.title || "Untitled Story"}
         </h1>
@@ -261,22 +251,13 @@ export default function StoryDetailPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {sortedChapters.map((ch, idx) => (
-                <button
+                <a
                   key={ch._id || idx}
-                  type="button"
-                  onClick={() => {
-                    setActiveChapterIndex(idx);
-                    // Scroll to chapter content
-                    document.getElementById(`chapter-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    idx === activeChapterIndex
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                  }`}
+                  href={`#chapter-${idx}`}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all"
                 >
                   {idx + 1}. {ch.title || `Chapter ${idx + 1}`}
-                </button>
+                </a>
               ))}
             </div>
           </div>
@@ -294,18 +275,18 @@ export default function StoryDetailPage() {
                 transition={{ delay: 0.1 * idx }}
                 className="scroll-mt-24"
               >
-                {/* Chapter Banner */}
-                {chapter.bannerImage?.url && (
+                {/* Chapter Cover */}
+                {chapter.coverImage?.url && (
                   <div className="mb-6 -mx-4 sm:-mx-6">
                     <div className="relative w-full h-48 sm:h-64 overflow-hidden rounded-none sm:rounded-xl">
                       <img
-                        src={chapter.bannerImage.url}
+                        src={chapter.coverImage.url}
                         alt={chapter.title}
                         className="w-full h-full object-cover"
                       />
-                      {chapter.caption && (
+                      {chapter.description && (
                         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                          <p className="text-white text-xs italic">{chapter.caption}</p>
+                          <p className="text-white text-xs italic">{chapter.description}</p>
                         </div>
                       )}
                     </div>
@@ -314,20 +295,66 @@ export default function StoryDetailPage() {
 
                 {/* Chapter Title */}
                 {sortedChapters.length > 1 && (
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground font-display mb-6">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground font-display mb-2">
                     {chapter.title || `Chapter ${idx + 1}`}
                   </h2>
                 )}
 
-                {/* Chapter Caption (if no banner) */}
-                {chapter.caption && !chapter.bannerImage?.url && (
+                {/* Chapter Description (if no cover) */}
+                {chapter.description && !chapter.coverImage?.url && (
                   <p className="text-sm text-muted-foreground italic mb-4">
-                    {chapter.caption}
+                    {chapter.description}
                   </p>
                 )}
 
-                {/* Chapter Content */}
-                <TipTapReader document={chapter.content} />
+                {/* Chapter Media Gallery */}
+                {chapter.media?.length > 0 && (
+                  <ChapterMedia media={chapter.media} />
+                )}
+
+                {/* Stories in this chapter */}
+                <div className="space-y-8 mt-6">
+                  {(chapter.stories || []).map((entry, sIdx) => (
+                    <article
+                      key={entry._id || sIdx}
+                      className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6"
+                    >
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        {entry.storyType && (
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">
+                            {entry.storyType}
+                          </span>
+                        )}
+                        {entry.dateLabel && (
+                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                            <Icons.clock className="h-3 w-3" />
+                            {entry.dateLabel}
+                          </span>
+                        )}
+                        {entry.location && (
+                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                            <Icons.globe className="h-3 w-3" />
+                            {entry.location}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-xl sm:text-2xl font-semibold text-foreground font-display mb-3">
+                        {entry.title}
+                      </h3>
+
+                      <p className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-line">
+                        {entry.content}
+                      </p>
+
+                      {entry.media?.length > 0 && (
+                        <div className="mt-4">
+                          <ChapterMedia media={entry.media} small />
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
 
                 {/* Chapter Divider */}
                 {idx < sortedChapters.length - 1 && (
@@ -343,8 +370,9 @@ export default function StoryDetailPage() {
             ))}
           </div>
         ) : (
-          /* Legacy single-content fallback */
-          <TipTapReader document={story.content} />
+          <p className="text-muted-foreground italic">
+            This story has no chapters yet.
+          </p>
         )}
       </motion.div>
 
@@ -404,5 +432,43 @@ export default function StoryDetailPage() {
         <CommentSection storyId={story._id} commentTrigger={commentTrigger} />
       </div>
     </motion.div>
+  );
+}
+
+/** Simple media gallery renderer for chapter / story media. */
+function ChapterMedia({ media, small = false }) {
+  return (
+    <div
+      className={`grid gap-2 ${
+        small
+          ? "grid-cols-3 sm:grid-cols-4"
+          : "grid-cols-2 sm:grid-cols-3"
+      }`}
+    >
+      {media.map((m, idx) =>
+        m.type === "video" ? (
+          <video
+            key={idx}
+            src={m.url}
+            controls
+            className={`w-full rounded-xl object-cover bg-black ${small ? "h-24" : "h-40"}`}
+          />
+        ) : m.type === "audio" ? (
+          <audio
+            key={idx}
+            src={m.url}
+            controls
+            className="w-full col-span-2 sm:col-span-3"
+          />
+        ) : (
+          <img
+            key={idx}
+            src={m.url}
+            alt={m.caption || "Story media"}
+            className={`w-full rounded-xl object-cover ${small ? "h-24" : "h-40"}`}
+          />
+        ),
+      )}
+    </div>
   );
 }

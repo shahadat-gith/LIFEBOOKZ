@@ -3,68 +3,6 @@ import slugify from "slugify";
 import { nanoid } from "nanoid";
 import { imageSchema } from "../../../core/models/image.schema.js";
 
-const analysisSchema = new mongoose.Schema(
-  {
-    canProceed: {
-      type: Boolean,
-      default: true,
-    },
-    issues: [
-      {
-        description: {
-          type: String,
-          required: true,
-          trim: true,
-        },
-        suggestedChange: {
-          type: String,
-          trim: true,
-          default: "",
-        },
-      },
-    ],
-    analyzedAt: {
-      type: Date,
-      default: null,
-    },
-    model: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-  },
-  { _id: false }
-);
-
-const processingSchema = new mongoose.Schema(
-  {
-    startedAt: {
-      type: Date,
-      default: null,
-    },
-    completedAt: {
-      type: Date,
-      default: null,
-    },
-    retries: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    currentStep: {
-      type: String,
-      enum: ["idle", "analysis", "enrichment", "embedding", "completed"],
-      default: null,
-    },
-    error: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-  },
-  { _id: false }
-);
-
 const statsSchema = new mongoose.Schema(
   {
     views: { type: Number, default: 0, min: 0 },
@@ -76,8 +14,113 @@ const statsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/** Photo / video / audio attached to a chapter or a story. */
+const mediaSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    publicId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    type: {
+      type: String,
+      enum: ["image", "video", "audio"],
+      default: "image",
+    },
+    caption: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 300,
+    },
+  },
+  { _id: false }
+);
+
 /**
- * Chapter Schema — each chapter is a self-contained section of the story
+ * Story Schema (nested inside a chapter) — a single memory, lesson,
+ * achievement, experience, etc. Content is plain text (Facebook-style),
+ * not rich JSON.
+ */
+const storySchema = new mongoose.Schema(
+  {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: () => new mongoose.Types.ObjectId(),
+    },
+
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+
+    // What kind of story this is (mockup "Choose Story Type")
+    storyType: {
+      type: String,
+      enum: ["experience", "achievement", "challenge", "memory", "lesson", "other"],
+      default: "experience",
+    },
+
+    // Plain text content — simple input, no rich editor
+    content: {
+      type: String,
+      default: "",
+      maxlength: 50000,
+    },
+
+    dateLabel: {
+      // Free-form when it happened, e.g. "12 June 2022" or "Summer of 1995"
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 100,
+    },
+
+    location: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 150,
+    },
+
+    media: {
+      type: [mediaSchema],
+      default: [],
+    },
+
+    // Chapter-level override: a single story can be more private than
+    // its chapter ("public" | "followers" | "private")
+    visibility: {
+      type: String,
+      enum: ["public", "followers", "private"],
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: ["draft", "published"],
+      default: "draft",
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+
+/**
+ * Chapter Schema — a phase of life (Childhood, School Life, College Life…).
+ * Each chapter holds multiple stories and its own media gallery, and has
+ * its own visibility setting.
  */
 const chapterSchema = new mongoose.Schema(
   {
@@ -85,27 +128,44 @@ const chapterSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       default: () => new mongoose.Types.ObjectId(),
     },
+
     title: {
       type: String,
       required: true,
       trim: true,
       maxlength: 200,
     },
-    bannerImage: {
-      type: imageSchema,
-      default: null,
-    },
-    caption: {
+
+    description: {
       type: String,
       trim: true,
       default: "",
-      maxlength: 500,
+      maxlength: 2000,
     },
-    content: {
-      type: mongoose.Schema.Types.Mixed,
-      required: true,
-      default: () => ({ type: "doc", content: [] }),
+
+    coverImage: {
+      type: imageSchema,
+      default: null,
     },
+
+    // Chapter-level media gallery (multiple photos / videos / audio)
+    media: {
+      type: [mediaSchema],
+      default: [],
+    },
+
+    // Who can see this chapter: "public" | "followers" | "private"
+    visibility: {
+      type: String,
+      enum: ["public", "followers", "private"],
+      default: "private",
+    },
+
+    stories: {
+      type: [storySchema],
+      default: [],
+    },
+
     order: {
       type: Number,
       required: true,
@@ -115,7 +175,7 @@ const chapterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const storySchema = new mongoose.Schema(
+const storyBookSchema = new mongoose.Schema(
   {
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -131,6 +191,7 @@ const storySchema = new mongoose.Schema(
       default: null,
     },
 
+    // Title of the whole life story / lifebook
     title: {
       type: String,
       required: true,
@@ -150,31 +211,10 @@ const storySchema = new mongoose.Schema(
       default: null,
     },
 
-    storyType: {
-      type: String,
-      enum: ["autobiography", "biography", "memoir", "legend"],
-      required: true,
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "draft",
-        "submitted",
-        "analyzing",
-        "verified",
-        "enriching",
-        "enriched",
-        "published",
-        "rejected",
-        "failed",
-      ],
-      default: "draft",
-    },
-
+    // Lifebook-level visibility: "public" | "followers" | "private"
     visibility: {
       type: String,
-      enum: ["public", "private", "unlisted"],
+      enum: ["public", "followers", "private"],
       default: "public",
     },
 
@@ -184,8 +224,8 @@ const storySchema = new mongoose.Schema(
     },
 
     /**
-     * Chapters — ordered array of story chapters.
-     * Each chapter has its own title, banner image, caption, and TipTap content.
+     * Chapters — ordered phases of life. Each chapter contains multiple
+     * stories, its own media gallery, and its own visibility.
      */
     chapters: {
       type: [chapterSchema],
@@ -199,15 +239,6 @@ const storySchema = new mongoose.Schema(
       },
     },
 
-    /**
-     * Legacy content field — kept for backward compatibility.
-     * New stories use chapters[] exclusively.
-     */
-    content: {
-      type: mongoose.Schema.Types.Mixed,
-      default: () => ({ type: "doc", content: [] }),
-    },
-
     summary: {
       type: String,
       trim: true,
@@ -215,22 +246,10 @@ const storySchema = new mongoose.Schema(
       maxlength: 500,
     },
 
-    // AI generated for story search & embeddings
-    embeddingMetadata: {
+    status: {
       type: String,
-      trim: true,
-      default: "",
-      maxlength: 5000,
-    },
-
-    analysis: {
-      type: analysisSchema,
-      default: () => ({}),
-    },
-
-    processing: {
-      type: processingSchema,
-      default: () => ({ currentStep: "idle" }),
+      enum: ["draft", "published"],
+      default: "draft",
     },
 
     stats: {
@@ -278,23 +297,28 @@ const storySchema = new mongoose.Schema(
   }
 );
 
-// Virtual: compute total chapter count
-storySchema.virtual("chapterCount").get(function () {
+// Virtual: total number of chapters
+storyBookSchema.virtual("chapterCount").get(function () {
   return this.chapters ? this.chapters.length : 0;
 });
 
+// Virtual: total number of stories across all chapters
+storyBookSchema.virtual("storyCount").get(function () {
+  if (!this.chapters) return 0;
+  return this.chapters.reduce((sum, ch) => sum + (ch.stories?.length || 0), 0);
+});
+
 // Compound Indexes for queries
-storySchema.index({ author: 1, updatedAt: -1 });
-storySchema.index({ author: 1, status: 1, updatedAt: -1 });
-storySchema.index({ status: 1, visibility: 1, publishedAt: -1 });
-storySchema.index({ status: 1, visibility: 1, "stats.likes": -1, publishedAt: -1 });
-storySchema.index({ status: 1, storyType: 1, publishedAt: -1 });
-storySchema.index({ status: 1, authorProfession: 1, publishedAt: -1 });
-storySchema.index({ status: 1, language: 1, publishedAt: -1 });
-storySchema.index({ featured: 1, publishedAt: -1 });
+storyBookSchema.index({ author: 1, updatedAt: -1 });
+storyBookSchema.index({ author: 1, status: 1, updatedAt: -1 });
+storyBookSchema.index({ status: 1, visibility: 1, publishedAt: -1 });
+storyBookSchema.index({ status: 1, "stats.likes": -1, publishedAt: -1 });
+storyBookSchema.index({ status: 1, authorProfession: 1, publishedAt: -1 });
+storyBookSchema.index({ status: 1, language: 1, publishedAt: -1 });
+storyBookSchema.index({ featured: 1, publishedAt: -1 });
 
 // Middleware
-storySchema.pre("save", function () {
+storyBookSchema.pre("save", function () {
   // Generate slug only once when title exists
   if (this.title && (!this.slug || this.isModified("title"))) {
     const baseSlug = slugify(this.title, {
@@ -314,6 +338,7 @@ storySchema.pre("save", function () {
   }
 });
 
-const Story = mongoose.models.Story || mongoose.model("Story", storySchema);
+const Story =
+  mongoose.models.Story || mongoose.model("Story", storyBookSchema);
 
 export default Story;

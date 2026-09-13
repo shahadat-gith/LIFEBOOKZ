@@ -2,7 +2,7 @@ import * as searchService from "./service.js";
 
 /**
  * GET /search?q=
- * Semantic story search with optional profession / storyType filters.
+ * Text search across story titles, summaries, chapters, and story content.
  */
 export async function semanticSearch(req, res, next) {
   try {
@@ -10,7 +10,6 @@ export async function semanticSearch(req, res, next) {
       q: req.query.q,
       limit: req.query.limit,
       profession: req.query.profession,
-      storyType: req.query.storyType,
       viewer: req.user ? { id: req.user.id, role: req.role } : null,
     });
 

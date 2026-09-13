@@ -1,6 +1,6 @@
 import api from '../config/api';
 
-// Story API methods
+// Story (lifebook) API methods
 export async function create(data) {
   // data can be a plain object (JSON) or FormData
   const res = await api.post('/stories', data, {
@@ -16,13 +16,13 @@ export async function update(storyId, data) {
   return res.data.data;
 }
 
-export async function verify(storyId, data = {}) {
-  const res = await api.post(`/stories/${storyId}/verify`, data);
+export async function publish(storyId, data = {}) {
+  const res = await api.post(`/stories/${storyId}/publish`, data);
   return res.data.data;
 }
 
-export async function publish(storyId) {
-  const res = await api.post(`/stories/${storyId}/publish`);
+export async function unpublish(storyId) {
+  const res = await api.post(`/stories/${storyId}/unpublish`);
   return res.data.data;
 }
 
@@ -44,11 +44,32 @@ export async function updateChapter(storyId, chapterId, data) {
 
 export async function deleteChapter(storyId, chapterId) {
   const res = await api.delete(`/stories/${storyId}/chapters/${chapterId}`);
-  return res.data;
+  return res.data.data;
 }
 
 export async function reorderChapters(storyId, chapterIds) {
   const res = await api.patch(`/stories/${storyId}/chapters/reorder`, { chapterIds });
+  return res.data.data;
+}
+
+// Stories inside chapters
+export async function addChapterStory(storyId, chapterId, data) {
+  const res = await api.post(`/stories/${storyId}/chapters/${chapterId}/stories`, data);
+  return res.data.data;
+}
+
+export async function updateChapterStory(storyId, chapterId, storyEntryId, data) {
+  const res = await api.patch(
+    `/stories/${storyId}/chapters/${chapterId}/stories/${storyEntryId}`,
+    data,
+  );
+  return res.data.data;
+}
+
+export async function deleteChapterStory(storyId, chapterId, storyEntryId) {
+  const res = await api.delete(
+    `/stories/${storyId}/chapters/${chapterId}/stories/${storyEntryId}`,
+  );
   return res.data.data;
 }
 
@@ -58,16 +79,21 @@ export async function getMyStories() {
   return res.data.data;
 }
 
+export async function getMyStats() {
+  const res = await api.get('/authors/me/stats');
+  return res.data.data;
+}
+
 export async function getMyStory(storyId) {
   const res = await api.get(`/authors/me/stories/${storyId}`);
   return res.data.data;
 }
 
-// Image Upload
-export async function uploadImage(file) {
+// Media Upload (photos / videos / audio)
+export async function uploadMedia(file) {
   const fd = new FormData();
-  fd.append('image', file);
-  const res = await api.post('/stories/upload-image', fd);
+  fd.append('media', file);
+  const res = await api.post('/stories/upload-media', fd);
   return res.data.data;
 }
 

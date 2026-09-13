@@ -25,15 +25,18 @@ router.post(
   story.create,
 );
 
+// Media upload (photos / videos / audio) for chapters and stories
 router.post(
-  "/upload-image",
+  "/upload-media",
   authorOnly,
-  upload.single("image"),
-  story.uploadImage,
+  upload.single("media"),
+  story.uploadMedia,
 );
 
 // Auth required so responses can include personalized like/follow state
 router.get("/", canRead, story.list);
+
+router.get("/drafts", authorOnly, story.getDrafts);
 
 router.get("/:storyId", canRead, story.getStory);
 
@@ -44,11 +47,14 @@ router.patch(
   story.update,
 );
 
+// Full author control — delete any time, even after publish
 router.delete("/:storyId", authorOnly, story.remove);
 
-router.post("/:storyId/verify", authorOnly, story.verify);
+/* ---------- Publishing (synchronous, no review pipeline) ---------- */
 
 router.post("/:storyId/publish", authorOnly, story.publish);
+
+router.post("/:storyId/unpublish", authorOnly, story.unpublish);
 
 /* ---------- Chapters ---------- */
 
@@ -59,6 +65,26 @@ router.patch("/:storyId/chapters/reorder", authorOnly, story.reorderChapters);
 router.patch("/:storyId/chapters/:chapterId", authorOnly, story.updateChapter);
 
 router.delete("/:storyId/chapters/:chapterId", authorOnly, story.deleteChapter);
+
+/* ---------- Stories inside chapters ---------- */
+
+router.post(
+  "/:storyId/chapters/:chapterId/stories",
+  authorOnly,
+  story.addChapterStory,
+);
+
+router.patch(
+  "/:storyId/chapters/:chapterId/stories/:storyEntryId",
+  authorOnly,
+  story.updateChapterStory,
+);
+
+router.delete(
+  "/:storyId/chapters/:chapterId/stories/:storyEntryId",
+  authorOnly,
+  story.deleteChapterStory,
+);
 
 /* ---------- Likes ---------- */
 

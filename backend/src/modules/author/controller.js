@@ -73,6 +73,21 @@ export async function getMyStories(req, res, next) {
   }
 }
 
+/**
+ * GET /authors/me/stats
+ */
+export async function getMyStats(req, res, next) {
+  try {
+    const data = await authorService.getMyAuthorStats({
+      authorId: req.user?.id,
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getMyStory(req, res, next) {
   try {
     const story = await authorService.getMyStory({
@@ -81,22 +96,6 @@ export async function getMyStory(req, res, next) {
     });
 
     return res.json({ success: true, data: story });
-  } catch (error) {
-    next(error);
-  }
-}
-
-/**
- * GET /authors/me/stories/:storyId/status
- */
-export async function getMyStoryStatus(req, res, next) {
-  try {
-    const data = await authorService.getMyStoryStatus({
-      authorId: req.user?.id,
-      storyId: req.params.storyId,
-    });
-
-    return res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

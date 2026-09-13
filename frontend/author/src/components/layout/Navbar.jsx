@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
+import NotificationsDrawer from "./NotificationsDrawer";
 
 export function Navbar() {
   const { author, isAuthenticated, logout } = useAuth();
   const loc = useLocation();
-  const [mobile, setMobile] = useState(false);
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const dropdownRef = useRef(null);
 
   const isA = (p) => loc.pathname === p;
@@ -22,11 +26,8 @@ export function Navbar() {
 
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
-    {
-      to: "/dashboard",
-      label: "Dashboard",
-      icon: <Icons.dashboard className="h-4 w-4" />,
-    },
+    { to: "/discover", label: "Discover", icon: <Icons.search className="h-4 w-4" /> },
+    { to: "/my-lifebook", label: "My Lifebook", icon: <Icons.book className="h-4 w-4" /> },
     ...(canWrite
       ? [
           {
@@ -49,48 +50,88 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  function submitSearch(e) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setSearchOpen(false);
+    navigate(`/discover?q=${encodeURIComponent(q)}`);
+  }
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between md:h-20">
-          {/* Brand Logo */}
-          <Link to="/" className="group flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card p-1.5 border border-border/80 shadow-2xs transition-all duration-300 group-hover:border-border">
-              <img
-                src="/logo.png"
-                alt="LifeBookz logo"
-                className="h-full w-full object-contain"
-              />
-            </div>
-            <div className="hidden sm:block">
-              <span className="font-display text-base font-semibold tracking-tight text-foreground">
-                {author?.fullName || "LifeBookz"}
-              </span>
-            </div>
+        <div className="flex h-16 items-center justify-between md:h-[4.5rem]">
+          {/* Brand Logo + tagline */}
+          <Link to={isAuthenticated ? "/home" : "/"} className="group flex flex-col">
+            <span className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground leading-none">
+              LIFEBOOK<span className="text-accent">Z</span>
+            </span>
+            <span className="hidden sm:block text-[11px] text-muted-foreground mt-0.5">
+              The Story of My Life.
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-1 rounded-xl bg-muted/60 p-1 md:flex border border-border/40">
-            {links.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
-                  isA(l.to)
-                    ? "bg-background text-foreground shadow-2xs border border-border/50"
-                    : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
-                }`}
-              >
-                {l.icon}
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          {isAuthenticated && (
+            <nav className="hidden items-center gap-1 rounded-xl bg-muted/60 p-1 md:flex border border-border/40">
+              {links.map((l) => (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
+                    isA(l.to)
+                      ? "bg-background text-foreground shadow-2xs border border-border/50"
+                      : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
+                  }`}
+                >
+                  {l.icon}
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
-          {/* Desktop User Profile / Auth Area */}
-          <div className="hidden items-center gap-3 md:flex">
+          {/* Right cluster: search + notifications + profile */}
+          <div className="flex items-center gap-2">
+            {/* Search (desktop inline, mobile icon) */}
+            <form
+              onSubmit={submitSearch}
+              className="hidden lg:flex items-center rounded-xl border border-border/60 bg-card px-3 py-1.5 focus-within:border-primary/40 transition-colors"
+            >
+              <Icons.search className="h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search stories..."
+                className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none px-2 w-40 xl:w-52"
+              />
+            </form>
+
+            <button
+              type="button"
+              onClick={() => (window.innerWidth < 1024 ? setSearchOpen((o) => !o) : document.querySelector("form input")?.focus())}
+              aria-label="Search"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-foreground hover:bg-muted transition-colors lg:hidden"
+            >
+              <Icons.search className="h-5 w-5" />
+            </button>
+
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setNotifOpen(true)}
+                aria-label="Notifications"
+                className="relative w-9 h-9 rounded-full flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+              >
+                <Icons.bell className="h-5 w-5" />
+                <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-background" />
+              </button>
+            )}
+
+            {/* Desktop User Profile / Auth Area */}
             {isAuthenticated && author ? (
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative hidden md:block" ref={dropdownRef}>
                 <button
                   type="button"
                   onClick={() => setProfileOpen(!profileOpen)}
@@ -102,7 +143,6 @@ export function Navbar() {
                     size="sm"
                     className="ring-2 ring-border/80"
                   />
-                  
                   <Icons.chevronDown
                     className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
                       profileOpen ? "rotate-180" : ""
@@ -110,7 +150,7 @@ export function Navbar() {
                   />
                 </button>
 
-                {/* Profile Dropdown */}
+                {/* Profile Dropdown — only items NOT in the bottom tabs */}
                 <AnimatePresence>
                   {profileOpen && (
                     <motion.div
@@ -118,10 +158,10 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border/80 bg-popover p-1.5 shadow-md shadow-black/5"
+                      className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-border/80 bg-popover p-1.5 shadow-md shadow-black/5"
                     >
-                      <div className="border-b border-border/50 px-3 py-2 mb-1">
-                        <p className="text-xs font-semibold text-foreground">
+                      <div className="border-b border-border/50 px-3 py-2.5 mb-1">
+                        <p className="text-sm font-semibold text-foreground">
                           {author.fullName}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
@@ -130,20 +170,25 @@ export function Navbar() {
                       </div>
 
                       <Link
-                        to="/dashboard"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      >
-                        <Icons.dashboard className="h-4 w-4" /> Dashboard
-                      </Link>
-
-                      <Link
                         to="/profile"
                         onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       >
-                        <Icons.user className="h-4 w-4" /> Profile
+                        <Icons.settings className="h-4 w-4 text-muted-foreground" />
+                        Account Settings
                       </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          setNotifOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <Icons.bell className="h-4 w-4 text-muted-foreground" />
+                        Notifications
+                      </button>
 
                       <hr className="my-1 border-border/50" />
 
@@ -152,8 +197,9 @@ export function Navbar() {
                         onClick={() => {
                           logout();
                           setProfileOpen(false);
+                          navigate("/");
                         }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                       >
                         <Icons.logout className="h-4 w-4" /> Sign Out
                       </button>
@@ -162,95 +208,46 @@ export function Navbar() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <Link to="/login">
                   <Button size="sm">Sign In</Button>
                 </Link>
               </div>
             )}
           </div>
-
-          {/* Mobile Controls */}
-          <div className="flex items-center gap-2 md:hidden">
-            {isAuthenticated ? (
-              <Link to="/profile">
-                <Avatar
-                  src={author?.avatar?.url}
-                  name={author?.fullName}
-                  size="sm"
-                  className="ring-1 ring-border"
-                />
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-full p-2 text-muted-foreground hover:bg-accent transition-colors"
-              >
-                <Icons.user className="h-5 w-5" />
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() => setMobile(!mobile)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-accent transition-colors"
-              aria-label="Toggle menu"
-            >
-              {mobile ? (
-                <Icons.close className="h-5 w-5" />
-              ) : (
-                <Icons.menu className="h-5 w-5" />
-              )}
-            </button>
-          </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Dummy notifications drawer (mock data for now) */}
+        <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
+
+        {/* Mobile search bar (toggled) */}
         <AnimatePresence>
-          {mobile && (
-            <motion.div
+          {searchOpen && (
+            <motion.form
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t border-border/50 md:hidden"
+              onSubmit={submitSearch}
+              className="overflow-hidden md:hidden"
             >
-              <div className="space-y-1 py-3">
-                {links.map((l) => (
-                  <Link
-                    key={l.to}
-                    to={l.to}
-                    onClick={() => setMobile(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      isA(l.to)
-                        ? "bg-accent text-foreground font-semibold"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    }`}
-                  >
-                    {l.icon} {l.label}
-                  </Link>
-                ))}
-                {isAuthenticated && (
-                  <>
-                    <Link
-                      to="/profile"
-                      onClick={() => setMobile(false)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-                    >
-                      <Icons.user className="h-4 w-4" /> Profile
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        logout();
-                        setMobile(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-                    >
-                      <Icons.logout className="h-4 w-4" /> Sign Out
-                    </button>
-                  </>
-                )}
+              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5 mb-3">
+                <Icons.search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search stories..."
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  <Icons.close className="h-4 w-4" />
+                </button>
               </div>
-            </motion.div>
+            </motion.form>
           )}
         </AnimatePresence>
       </div>

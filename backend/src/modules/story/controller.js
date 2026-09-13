@@ -4,12 +4,15 @@ const viewerOf = (req) =>
   req.user ? { id: req.user.id, role: req.role } : null;
 
 /**
- * POST /stories/upload-image
- * Upload an image asset embedded in a chapter.
+ * POST /stories/upload-media
+ * Upload a media asset (photo / video / audio) used in chapters or stories.
  */
-export async function uploadImage(req, res, next) {
+export async function uploadMedia(req, res, next) {
   try {
-    const data = await storyService.uploadStoryAsset({ file: req.file });
+    const data = await storyService.uploadMediaAsset({
+      file: req.file,
+      caption: req.body?.caption,
+    });
 
     res.json({ success: true, data });
   } catch (error) {
@@ -19,7 +22,7 @@ export async function uploadImage(req, res, next) {
 
 /**
  * POST /stories
- * Create draft.
+ * Create lifebook draft.
  */
 export async function create(req, res, next) {
   try {
@@ -37,7 +40,7 @@ export async function create(req, res, next) {
 
 /**
  * PATCH /stories/:storyId
- * Update draft.
+ * Update lifebook (allowed in any state — full author control).
  */
 export async function update(req, res, next) {
   try {
@@ -56,6 +59,7 @@ export async function update(req, res, next) {
 
 /**
  * DELETE /stories/:storyId
+ * Delete lifebook (allowed in any state — full author control).
  */
 export async function remove(req, res, next) {
   try {
@@ -89,7 +93,7 @@ export async function getDrafts(req, res, next) {
 
 /**
  * GET /stories/:storyId
- * Single story by id or slug.
+ * Single lifebook by id or slug.
  */
 export async function getStory(req, res, next) {
   try {
@@ -180,37 +184,90 @@ export async function reorderChapters(req, res, next) {
   }
 }
 
-/* ---------- Moderation & publishing ---------- */
+/* ---------- Chapter stories (individual stories inside a chapter) ---------- */
 
-/**
- * POST /stories/:storyId/verify
- */
-export async function verify(req, res, next) {
+export async function addChapterStory(req, res, next) {
   try {
-    const data = await storyService.verifyStory({
+    const story = await storyService.addChapterStory({
       authorId: req.user.id,
       storyId: req.params.storyId,
+      chapterId: req.params.chapterId,
+      body: req.body,
     });
 
-    res.json({ success: true, data });
+    res.status(201).json({ success: true, data: story });
   } catch (error) {
     next(error);
   }
 }
 
+export async function updateChapterStory(req, res, next) {
+  try {
+    const story = await storyService.updateChapterStory({
+      authorId: req.user.id,
+      storyId: req.params.storyId,
+      chapterId: req.params.chapterId,
+      storyEntryId: req.params.storyEntryId,
+      body: req.body,
+    });
+
+    res.json({ success: true, data: story });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteChapterStory(req, res, next) {
+  try {
+    const story = await storyService.deleteChapterStory({
+      authorId: req.user.id,
+      storyId: req.params.storyId,
+      chapterId: req.params.chapterId,
+      storyEntryId: req.params.storyEntryId,
+    });
+
+    res.json({ success: true, data: story });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/* ---------- Publishing ---------- */
+
 /**
- * POST /stories/:storyId/publish
+ * POST /stories/:storyId/publish — synchronous, no review pipeline.
  */
 export async function publish(req, res, next) {
   try {
     const data = await storyService.publishStory({
       authorId: req.user.id,
       storyId: req.params.storyId,
+      body: req.body,
     });
 
     res.status(200).json({
       success: true,
-      message: "Story submitted successfully for moderation and processing.",
+      message: "Story published successfully.",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /stories/:storyId/unpublish — back to draft, any time.
+ */
+export async function unpublish(req, res, next) {
+  try {
+    const data = await storyService.unpublishStory({
+      authorId: req.user.id,
+      storyId: req.params.storyId,
+    });
+
+    res.json({
+      success: true,
+      message: "Story unpublished.",
       data,
     });
   } catch (error) {
@@ -270,7 +327,7 @@ export async function updateComment(req, res, next) {
     });
 
     res.json({ success: true, data: comment });
-  } catch (error) {
+  } catch ( error ) {
     next(error);
   }
 }

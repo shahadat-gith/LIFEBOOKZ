@@ -283,26 +283,53 @@ export async function getMyStory({ authorId, storyId }) {
 }
 
 /**
- * Lightweight status-only view used by the author editor's polling loop.
- * Avoids transferring the full story content on every poll tick.
+ * Aggregated profile stats for the author's own profile page:
+ * followers, following, chapters, stories, and total likes received.
  */
-export async function getMyStoryStatus({ authorId, storyId }) {
+export async function getMyAuthorStats({ authorId }) {
   if (!authorId) {
     throw new Errors.AuthenticationError("Authentication required.");
   }
 
-  const story = await Story.findOne({ _id: storyId, author: authorId })
-    .select("status processing analysis")
-    .lean();
+  const Follow = (await import("../following/model.js")).default;
 
-  if (!story) {
-    throw new Errors.NotFoundError("Story not found.");
-  }
+  const [author, followers, publishedBooks] = await Promise.all([
+    Author.findById(authorId).select("stats").lean(),
+    Follow.countDocuments({ whom: authorId }),
+    Story.aggregate([
+      { $match: { author: authorId, status: "published" } },
+      {
+        $project: {
+          likes: "$stats.likes",
+          chapters: { $size: { $ifNull: ["$chapters", []] } },
+          stories: {
+            $sum: {
+              $map: {
+                input: { $ifNull: ["$chapters", []] },
+                as: "ch",
+                in: { $size: { $ifNull: ["$$ch.stories", []] } },
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          likes: { $sum: "$likes" },
+          chapters: { $sum: "$chapters" },
+          stories: { $sum: "$stories" },
+        },
+      },
+    ]),
+  ]);
 
   return {
-    status: story.status,
-    processing: story.processing || {},
-    analysis: story.analysis || {},
+    followers: followers || 0,
+    following: 0,
+    chapters: publishedBooks[0]?.chapters || 0,
+    stories: publishedBooks[0]?.stories || 0,
+    likes: publishedBooks[0]?.likes || 0,
   };
 }
 

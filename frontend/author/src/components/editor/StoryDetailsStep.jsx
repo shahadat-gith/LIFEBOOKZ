@@ -1,106 +1,79 @@
-import { motion } from "framer-motion";
-import Card, { CardContent } from "../ui/Card";
-import CategorySelect from "../editor/CategorySelect";
-import StoryTitleInput from "../editor/StoryTitleInput";
-import CoverImageUploader from "../editor/CoverImageUploader";
-import StoryStats from "../editor/StoryStats";
 import { Icons } from "../../icons";
+import { WizardShell } from "./WizardShell";
+import { PrimaryButton } from "./wizardShared";
 
 export default function StoryDetailsStep({
-  title,
-  setTitle,
-  storyType,
-  setStoryType,
-  storyLanguage,
-  coverPreview,
-  coverFileRef,
-  handleCoverChange,
-  slugPreview,
-  storyStats,
-  isLocked,
+  story,
+  onChange,
   onContinue,
-  onCancel,
+  onBack,
 }) {
+  const canContinue = story.title?.trim().length > 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6"
-    >
-      {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-            1
-          </span>
-          <span className="text-sm font-semibold text-foreground">Story Details</span>
+    <WizardShell step={3} totalSteps={10} title="Story Details" onBack={onBack}>
+      <div className="text-center mb-6">
+        <h2 className="font-display text-2xl font-bold text-foreground">
+          Name your story
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A title helps readers know what this memory is about.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Story Title *
+          </label>
+          <input
+            type="text"
+            value={story.title || ""}
+            onChange={(e) => onChange({ ...story, title: e.target.value })}
+            placeholder="e.g., The Day Everything Changed"
+            maxLength={200}
+            autoFocus
+            className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
+          />
         </div>
-        <div className="flex-1 h-px bg-border/40" />
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground text-sm font-bold">
-            2
-          </span>
-          <span className="text-sm text-muted-foreground">Chapters</span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
+              <Icons.clock className="h-4 w-4 text-muted-foreground" />
+              When (Optional)
+            </label>
+            <input
+              type="text"
+              value={story.dateLabel || ""}
+              onChange={(e) => onChange({ ...story, dateLabel: e.target.value })}
+              placeholder="12 June 2022"
+              maxLength={100}
+              className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
+              <Icons.globe className="h-4 w-4 text-muted-foreground" />
+              Where (Optional)
+            </label>
+            <input
+              type="text"
+              value={story.location || ""}
+              onChange={(e) => onChange({ ...story, location: e.target.value })}
+              placeholder="Bangalore, India"
+              maxLength={150}
+              className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all"
+            />
+          </div>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-6">
-          <div>
-            <h2 className="text-lg font-display font-semibold text-foreground mb-1">
-              Set up your story
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Choose a category, give your story a title, and add a cover image.
-            </p>
-          </div>
-
-          <StoryStats stats={storyStats} />
-
-          <CategorySelect
-            storyType={storyType}
-            setStoryType={setStoryType}
-            storyLanguage={storyLanguage}
-          />
-
-          <StoryTitleInput
-            title={title}
-            setTitle={setTitle}
-            storyType={storyType}
-            slugPreview={slugPreview}
-            disabled={isLocked}
-          />
-
-          <CoverImageUploader
-            coverPreview={coverPreview}
-            coverFileRef={coverFileRef}
-            handleCoverChange={handleCoverChange}
-            disabled={isLocked}
-          />
-        </CardContent>
-
-        {/* Actions */}
-        <div className="px-6 py-4 border-t border-border flex justify-between">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onContinue}
-            disabled={!title.trim()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Continue to Chapters
-            <Icons.chevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </Card>
-    </motion.div>
+      <div className="mt-8">
+        <PrimaryButton onClick={onContinue} disabled={!canContinue}>
+          Continue
+        </PrimaryButton>
+      </div>
+    </WizardShell>
   );
 }

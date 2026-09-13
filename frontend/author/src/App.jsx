@@ -1,13 +1,14 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import AppLayout, { AuthLayout, HomeLayout } from './components/layout/AppLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoadingScreen from './components/common/LoadingScreen';
 
-const Home = lazy(() => import('./pages/Home'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Landing = lazy(() => import('./pages/Landing'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const Discover = lazy(() => import('./pages/Discover'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -35,10 +36,14 @@ export default function App() {
     <Suspense fallback={<LazyFallback />}>
      <Routes>
       <Route element={<HomeLayout />}>
-       <Route path="/" element={<Home />} />
+       <Route path="/" element={<Landing />} />
       </Route>
       <Route element={<AppLayout />}>
-       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+       <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+       {/* legacy alias */}
+       <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+       <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
+       <Route path="/my-lifebook" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
        <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/stories/:storyId/edit" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

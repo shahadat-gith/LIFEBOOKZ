@@ -27,12 +27,7 @@ router.patch(
 
 router.get("/me/stories", authenticate, authorize("author"), author.getMyStories);
 
-router.get(
-  "/me/stories/:storyId/status",
-  authenticate,
-  authorize("author"),
-  author.getMyStoryStatus,
-);
+router.get("/me/stats", authenticate, authorize("author"), author.getMyStats);
 
 router.get(
   "/me/stories/:storyId",

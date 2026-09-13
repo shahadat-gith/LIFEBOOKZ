@@ -23,14 +23,7 @@ function getPreview(story, max = 80) {
 
 const statusBadge = {
   draft: { variant: 'warning', label: 'Draft' },
-  submitted: { variant: 'info', label: 'Submitted' },
-  analyzing: { variant: 'info', label: 'Analyzing' },
-  verified: { variant: 'info', label: 'Verified' },
-  enriching: { variant: 'info', label: 'Enriching' },
-  enriched: { variant: 'info', label: 'Enriched' },
   published: { variant: 'success', label: 'Published' },
-  rejected: { variant: 'danger', label: 'Rejected' },
-  failed: { variant: 'danger', label: 'Failed' },
 };
 
 export default function StoriesPage() {

@@ -1,6 +1,7 @@
 import Follow from "./model.js";
 import User from "../user/model.js";
 import Author from "../author/model.js";
+import { createNotification } from "../notification/service.js";
 import { NotFoundError, ValidationError } from "../../core/utils/errors.js";
 
 const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
@@ -28,6 +29,17 @@ export async function followAuthor({ userId, role, authorId }) {
     User.findByIdAndUpdate(userId, { $inc: { "stats.following": 1 } }),
     Author.findByIdAndUpdate(authorId, { $inc: { "stats.followers": 1 } }),
   ]);
+
+  // Notify the author (best-effort)
+  const follower = await User.findById(userId).select("fullName avatar").lean();
+  createNotification({
+    recipient: authorId,
+    type: "follow",
+    actor: userId,
+    actorName: follower?.fullName || "A reader",
+    actorAvatar: follower?.avatar || "",
+    preview: "started following you",
+  });
 }
 
 /**
