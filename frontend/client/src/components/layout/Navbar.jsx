@@ -8,6 +8,8 @@ import UserDropdown from "./UserDropdown";
 import PortalMenu from "./PortalMenu";
 import SearchModal from "./SearchModal";
 import NotificationsDrawer from "./NotificationsDrawer";
+import useNotifications from "../../hooks/useNotifications";
+import api from "../../config/axios";
 
 function BrandWordmark() {
   return (
@@ -36,6 +38,7 @@ export function Navbar() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isActive = (path) => location.pathname === path;
 
@@ -102,10 +105,17 @@ export function Navbar() {
               className={iconButtonClass}
             >
               <Icons.bell className="h-[18px] w-[18px]" />
-              <span
-                aria-hidden="true"
-                className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-background sm:right-2.5 sm:top-2.5"
-              />
+              {isAuthenticated && unread > 0 && (
+                <span className="absolute right-1.5 top-1.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-white sm:right-2 sm:top-2">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+              {(!isAuthenticated || unread === 0) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-background sm:right-2.5 sm:top-2.5"
+                />
+              )}
             </button>
 
             {/* Portals + account settings */}

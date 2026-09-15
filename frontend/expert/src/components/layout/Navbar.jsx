@@ -6,13 +6,18 @@ import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
+import NotificationsDrawer from "./NotificationsDrawer";
+import useNotifications from "../../hooks/useNotifications";
+import api from "../../config/api";
 
 export function Navbar() {
   const { expert, isAuthenticated, logout } = useAuth();
   const loc = useLocation();
   const [mobile, setMobile] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isA = (p) => loc.pathname === p;
 
@@ -83,6 +88,21 @@ export function Navbar() {
 
           {/* Desktop auth area */}
           <div className="hidden items-center gap-3 md:flex">
+            {isAuthenticated && expert && (
+              <button
+                type="button"
+                onClick={() => setNotifOpen(true)}
+                aria-label="Notifications"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                <Icons.bell className="h-5 w-5" />
+                {unread > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent flex items-center justify-center text-[9px] font-bold text-accent-foreground">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </button>
+            )}
             {isAuthenticated && expert ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -164,6 +184,21 @@ export function Navbar() {
 
           {/* Mobile controls */}
           <div className="flex items-center gap-2 md:hidden">
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setNotifOpen(true)}
+                aria-label="Notifications"
+                className="relative rounded-full p-2 text-muted-foreground hover:bg-accent transition-colors"
+              >
+                <Icons.bell className="h-5 w-5" />
+                {unread > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-accent flex items-center justify-center text-[8px] font-bold text-accent-foreground">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </button>
+            )}
             {isAuthenticated ? (
               <Link to="/profile">
                 <Avatar
@@ -245,6 +280,8 @@ export function Navbar() {
           )}
         </AnimatePresence>
       </div>
+      {/* Notifications drawer */}
+      <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
     </header>
   );
 }

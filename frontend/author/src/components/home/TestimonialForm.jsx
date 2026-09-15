@@ -1,16 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import toast from "react-hot-toast";
 
+/**
+ * Author testimonial form — one testimonial per author, editable until
+ * deleted. Shows the author's existing testimonial when present.
+ */
 export default function TestimonialForm({ onSubmitted }) {
   const { author, isAuthenticated } = useAuth();
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [mine, setMine] = useState(null);
+  const [loadedMine, setLoadedMine] = useState(false);
+
+  // Load the author's existing testimonial (if any) once.
+  useEffect(() => {
+    if (!isAuthenticated || loadedMine) return;
+    api
+      .get("/testimonials/me")
+      .then((res) => {
+        const data = res.data?.data;
+        if (data) {
+          setMine(data);
+          setMessage(data.message || "");
+          setRating(data.rating || 5);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadedMine(true));
+  }, [isAuthenticated, loadedMine]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,13 +44,12 @@ export default function TestimonialForm({ onSubmitted }) {
 
     setSubmitting(true);
     try {
-      await api.post("/testimonials", {
+      const res = await api.post("/testimonials", {
         message: message.trim(),
         rating,
       });
+      setMine(res.data?.data || null);
       toast.success("Thank you! Your testimonial is now live.");
-      setMessage("");
-      setRating(5);
       if (onSubmitted) onSubmitted();
     } catch (err) {
       const msg =
@@ -36,6 +58,23 @@ export default function TestimonialForm({ onSubmitted }) {
       toast.error(msg);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!mine) return;
+    try {
+      await api.delete(`/testimonials/${mine.id}`);
+      setMine(null);
+      setMessage("");
+      setRating(5);
+      toast.success("Your testimonial has been removed.");
+      if (onSubmitted) onSubmitted();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.error?.message ||
+        "Failed to remove your testimonial.";
+      toast.error(msg);
     }
   }
 
@@ -59,6 +98,13 @@ export default function TestimonialForm({ onSubmitted }) {
           onSubmit={handleSubmit}
           className="p-6 sm:p-8 rounded-xl bg-card border border-border/60 shadow-xs"
         >
+          {mine && (
+            <p className="mb-4 text-xs font-medium text-success bg-success/10 rounded-lg px-3 py-2">
+              You already shared a testimonial — editing it will update your
+              existing entry.
+            </p>
+          )}
+
           {/* Star rating picker */}
           <div className="flex items-center justify-center gap-1.5 mb-5">
             <span className="text-xs font-medium text-muted-foreground mr-2">
@@ -93,12 +139,23 @@ export default function TestimonialForm({ onSubmitted }) {
           />
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-            <span className="text-[11px] text-muted-foreground">
-              Signed in as{" "}
-              <span className="font-semibold text-foreground">
-                {author?.fullName || "you"}
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-muted-foreground">
+                Signed in as{" "}
+                <span className="font-semibold text-foreground">
+                  {author?.fullName || "you"}
+                </span>
               </span>
-            </span>
+              {mine && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="text-[11px] font-semibold text-destructive hover:underline"
+                >
+                  Delete my testimonial
+                </button>
+              )}
+            </div>
             <button
               type="submit"
               disabled={submitting || !message.trim()}
@@ -109,7 +166,11 @@ export default function TestimonialForm({ onSubmitted }) {
               ) : (
                 <Icons.starSolid className="h-4 w-4" />
               )}
-              {submitting ? "Sharing..." : "Share Testimonial"}
+              {submitting
+                ? "Sharing..."
+                : mine
+                  ? "Update Testimonial"
+                  : "Share Testimonial"}
             </button>
           </div>
         </form>

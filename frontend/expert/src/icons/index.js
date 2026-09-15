@@ -27,6 +27,7 @@ import {
   HiOutlineHome,
   HiOutlineViewGrid,
   HiOutlineShieldCheck,
+  HiOutlineBell,
   HiCamera,
   HiEye,
   HiOutlineGlobe,
@@ -86,6 +87,7 @@ export const Icons = {
   calendar: HiOutlineCalendar,
   money: HiOutlineCurrencyDollar,
   plus: HiOutlinePlus,
+  bell: HiOutlineBell,
 
   starSolid: FaStar,
   starRegular: FaRegStar,

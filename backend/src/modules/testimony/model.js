@@ -4,7 +4,7 @@ const testimonialSchema = new mongoose.Schema(
   {
     personType: {
       type: String,
-      enum: ["User", "Author"],
+      enum: ["User", "Author", "Expert"],
       required: true,
     },
 
@@ -18,6 +18,7 @@ const testimonialSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 1000,
     },
 
     rating: {
@@ -25,6 +26,15 @@ const testimonialSchema = new mongoose.Schema(
       min: 1,
       max: 5,
       default: 5,
+    },
+
+    // Public testimonials only appear in the section once approved.
+    // Auto-approved at creation for now — an admin can hide it later.
+    status: {
+      type: String,
+      enum: ["approved", "hidden"],
+      default: "approved",
+      index: true,
     },
   },
   {
@@ -60,6 +70,7 @@ testimonialSchema.pre("validate", async function (next) {
   }
 });
 
-const Testimonial = mongoose.models.Testimonial || mongoose.model("Testimonial", testimonialSchema);
+const Testimonial =
+  mongoose.models.Testimonial || mongoose.model("Testimonial", testimonialSchema);
 
 export default Testimonial;

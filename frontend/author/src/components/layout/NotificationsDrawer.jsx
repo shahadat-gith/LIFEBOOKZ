@@ -1,84 +1,76 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Icons } from "../../icons";
-
-/** Placeholder notifications until the backend endpoint exists */
-const DUMMY_NOTIFICATIONS = [
-  {
-    id: 1,
-    type: "like",
-    actor: "Ananya Sharma",
-    text: "liked your story “Starting Over”",
-    time: "2 minutes ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    type: "follow",
-    actor: "Kabir Singh",
-    text: "started following you",
-    time: "26 minutes ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    type: "comment",
-    actor: "Neha Iyer",
-    text: "commented on your story: “This moved me deeply.”",
-    time: "1 hour ago",
-    unread: true,
-  },
-  {
-    id: 4,
-    type: "share",
-    actor: "Rohan Mehta",
-    text: "shared your story with 214 readers",
-    time: "3 hours ago",
-    unread: false,
-  },
-  {
-    id: 5,
-    type: "system",
-    actor: "Lifebookz",
-    text: "Congrats! Your chapter crossed 1,000 readers.",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: 6,
-    type: "like",
-    actor: "Meera Kapoor",
-    text: "and 12 others liked your story “First Job”",
-    time: "2 days ago",
-    unread: false,
-  },
-];
+import Avatar from "../ui/Avatar";
+import { useNotifications, timeAgo } from "../../hooks/useNotifications";
+import api from "../../config/api";
+import { useAuth } from "../../context/AuthContext";
 
 const TYPE_STYLES = {
   like: { icon: Icons.heartSolid, chip: "bg-rose-500/10 text-rose-500" },
-  follow: { icon: Icons.userAdd, chip: "bg-blue-500/10 text-info" },
   comment: { icon: Icons.chat, chip: "bg-emerald-500/10 text-success" },
-  share: { icon: Icons.share, chip: "bg-sky-500/10 text-info" },
+  follow: { icon: Icons.userAdd, chip: "bg-blue-500/10 text-info" },
+  publish: { icon: Icons.book, chip: "bg-sky-500/10 text-info" },
+  booking: { icon: Icons.clock, chip: "bg-violet-500/10 text-violet-500" },
+  testimonial: {
+    icon: Icons.starSolid,
+    chip: "bg-amber-400/15 text-warning",
+  },
   system: { icon: Icons.sparkles, chip: "bg-amber-400/15 text-warning" },
 };
 
+/**
+ * Author notifications drawer — fully wired to the notifications API.
+ */
 export default function NotificationsDrawer({ open, onClose }) {
-  const [items, setItems] = useState(DUMMY_NOTIFICATIONS);
-  const unreadCount = items.filter((n) => n.unread).length;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const {
+    unread,
+    items,
+    loading,
+    loaded,
+    hasMore,
+    fetchItems,
+    markRead,
+    markAllRead,
+    remove,
+  } = useNotifications(api, { enabled: isAuthenticated && open });
 
-  function markAllRead() {
-    setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
+  // Snapshot of the unread badge at open time — shown in the header while
+  // the drawer is open (everything gets marked read on open, like Facebook).
+  const [badgeAtOpen, setBadgeAtOpen] = useState(0);
+  const markedRef = useRef(false);
+
+  // Load (or reload) the list each time the drawer opens, then mark all read.
+  useEffect(() => {
+    if (open && isAuthenticated) {
+      setBadgeAtOpen(unread);
+      markedRef.current = false;
+      fetchItems().then(() => {
+        if (!markedRef.current) {
+          markedRef.current = true;
+          markAllRead();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isAuthenticated]);
+
+  function handleClick(n) {
+    if (!n.read) markRead(n.id);
+    onClose();
+    if (n.link) navigate(n.link);
   }
 
-  function markRead(id) {
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
-    );
+  function loadMore() {
+    const last = items[items.length - 1];
+    if (last) fetchItems({ append: true, before: last.id });
   }
 
-  // Rendered via portal so the drawer always stacks above the sticky navbar
-  // and page content (a blurred header creates its own stacking context).
+  // Rendered via portal so the drawer stacks above sticky bars.
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -108,23 +100,14 @@ export default function NotificationsDrawer({ open, onClose }) {
                 <h2 className="font-display text-lg font-extrabold tracking-tight text-foreground">
                   Notifications
                 </h2>
-                {unreadCount > 0 && (
+                {badgeAtOpen > 0 && (
                   <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
-                    {unreadCount} new
+                    {badgeAtOpen} new
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-1.5">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={markAllRead}
-                    className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    Mark all read
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={onClose}
@@ -138,43 +121,119 @@ export default function NotificationsDrawer({ open, onClose }) {
 
             {/* List */}
             <div className="flex-1 divide-y divide-border/50 overflow-y-auto">
-              {items.map((n) => {
-                const style = TYPE_STYLES[n.type] || TYPE_STYLES.system;
-                const Icon = style.icon;
+              {loading && !loaded ? (
+                <div className="flex flex-col gap-4 p-5">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-start gap-3.5">
+                      <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-muted" />
+                      <div className="flex-1 space-y-2 pt-1">
+                        <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                        <div className="h-2.5 w-1/3 animate-pulse rounded bg-muted/70" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                    <Icons.bell className="h-6 w-6 text-muted-foreground" />
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">
+                    No notifications yet
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Likes, comments, follows and new followers' activity will
+                    show up here.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {items.map((n) => {
+                    const style = TYPE_STYLES[n.type] || TYPE_STYLES.system;
+                    const Icon = style.icon;
+                    const actorName = n.actor?.name || n.actorName || "Lifebookz";
 
-                return (
-                  <button
-                    key={n.id}
-                    type="button"
-                    onClick={() => markRead(n.id)}
-                    className={`flex w-full items-start gap-3.5 px-5 py-4 text-left transition-colors hover:bg-muted/40 ${
-                      n.unread ? "bg-accent/[0.03]" : ""
-                    }`}
-                  >
-                    {/* Icon chip */}
-                    <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                    </span>
+                    return (
+                      <div
+                        key={n.id}
+                        className={`group relative flex w-full items-start gap-3.5 px-5 py-4 transition-colors ${
+                          n.read
+                            ? "hover:bg-muted/40"
+                            : "bg-accent/[0.04] hover:bg-accent/[0.07]"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleClick(n)}
+                          className="flex min-w-0 flex-1 items-start gap-3.5 text-left"
+                        >
+                          {/* Icon chip or actor avatar */}
+                          {n.actor?.avatar?.url || n.actorAvatar ? (
+                            <Avatar
+                              src={n.actor?.avatar?.url || n.actorAvatar}
+                              name={actorName}
+                              size="sm"
+                              className="mt-0.5 shrink-0 ring-2 ring-border/50"
+                            />
+                          ) : (
+                            <span
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}
+                            >
+                              <Icon className="h-[18px] w-[18px]" />
+                            </span>
+                          )}
 
-                    {/* Content */}
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] leading-snug text-foreground">
-                        <span className="font-bold">{n.actor}</span>{" "}
-                        <span className="text-muted-foreground">{n.text}</span>
-                      </span>
-                      <span className="mt-1 block text-[11px] font-medium text-muted-foreground/80">
-                        {n.time}
-                      </span>
-                    </span>
+                          <span className="min-w-0 flex-1">
+                            {n.title && (
+                              <span className="mb-0.5 block text-xs font-bold uppercase tracking-wide text-foreground">
+                                {n.title}
+                              </span>
+                            )}
+                            <span className="block text-[15px] leading-snug text-foreground">
+                              {!n.title && (
+                                <span className="font-bold">{actorName} </span>
+                              )}
+                              <span className="text-muted-foreground">
+                                {n.preview}
+                              </span>
+                            </span>
+                            <span className="mt-1 block text-[11px] font-medium text-muted-foreground/80">
+                              {timeAgo(n.createdAt)}
+                            </span>
+                          </span>
 
-                    {n.unread && (
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
-                    )}
-                  </button>
-                );
-              })}
+                          {!n.read && (
+                            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
+                          )}
+                        </button>
+
+                        {/* Per-item delete (appears on hover / always on touch) */}
+                        <button
+                          type="button"
+                          onClick={() => remove(n.id)}
+                          aria-label="Delete notification"
+                          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/50 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100 sm:opacity-0"
+                        >
+                          <Icons.close className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {hasMore && (
+                    <div className="p-3 text-center">
+                      <button
+                        type="button"
+                        onClick={loadMore}
+                        disabled={loading}
+                        className="rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                      >
+                        {loading ? "Loading..." : "Load more"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Footer */}

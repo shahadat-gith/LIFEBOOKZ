@@ -6,6 +6,8 @@ import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import NotificationsDrawer from "./NotificationsDrawer";
+import useNotifications from "../../hooks/useNotifications";
+import api from "../../config/api";
 
 export function Navbar() {
   const { author, isAuthenticated, logout } = useAuth();
@@ -14,6 +16,7 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isA = (p) => loc.pathname === p;
 
@@ -90,7 +93,11 @@ export function Navbar() {
                 className="relative w-9 h-9 rounded-full flex items-center justify-center text-foreground hover:bg-muted transition-colors"
               >
                 <Icons.bell className="h-5 w-5" />
-                <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-background" />
+                {unread > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-accent-foreground">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
               </button>
             )}
 

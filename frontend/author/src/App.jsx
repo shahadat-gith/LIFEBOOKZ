@@ -8,6 +8,7 @@ import LoadingScreen from './components/common/LoadingScreen';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const Feed = lazy(() => import('./pages/Feed'));
+const StoryDetail = lazy(() => import('./pages/StoryDetail'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -40,6 +41,7 @@ export default function App() {
        {/* legacy alias */}
        <Route path="/dashboard" element={<Navigate to="/" replace />} />
        <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+       <Route path="/feed/story/:slug" element={<ProtectedRoute><StoryDetail /></ProtectedRoute>} />
        <Route path="/my-lifebook" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
        <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/stories/:storyId/edit" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />

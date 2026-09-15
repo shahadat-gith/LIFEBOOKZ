@@ -4,7 +4,7 @@ import Comment from "./models/Comment.js";
 import Follow from "../following/model.js";
 import Author from "../author/model.js";
 import User from "../user/model.js";
-import { createNotification } from "../notification/service.js";
+import { createNotification, createNotificationsForMany } from "../notification/service.js";
 
 import {
   uploadStoryImage,
@@ -767,6 +767,27 @@ export async function publishStory({ authorId, storyId, body }) {
 
   await story.save();
 
+  // Notify the author's followers (best-effort, never blocks publishing)
+  try {
+    const [authorDoc, followers] = await Promise.all([
+      Author.findById(story.author).select("fullName").lean(),
+      Follow.find({ whom: story.author }).select("who").lean(),
+    ]);
+
+    const authorName = authorDoc?.fullName || "An author";
+    const followersToNotify = (body?.visibility === "public" ? followers : [])
+      .map((f) => ({ id: f.who, model: "User" }));
+
+    await createNotificationsForMany(followersToNotify, {
+      type: "publish",
+      actor: { id: story.author, model: "Author", name: authorName },
+      title: "New story published",
+      preview: `${authorName} published a new lifebook: "${story.title}"`,
+    });
+  } catch (err) {
+    // Publishing must never fail because of notifications.
+  }
+
   return {
     id: story.id,
     status: story.status,
@@ -799,7 +820,7 @@ export async function toggleLike({ storyId, userId }) {
     _id: storyId,
     status: "published",
     visibility: "public",
-  }).select("_id author");
+  }).select("_id author slug");
 
   if (!story) {
     throw new NotFoundError("Story not found.");
@@ -843,12 +864,11 @@ export async function toggleLike({ storyId, userId }) {
 
   // Notify the author (best-effort, never blocks the like)
   createNotification({
-    recipient: story.author,
+    recipient: { id: story.author, model: "Author" },
     type: "like",
-    actor: userId,
-    actorName: userDoc?.fullName || "A reader",
-    story: story._id,
+    actor: { id: userId, model: "User", name: userDoc?.fullName || "A reader" },
     preview: "liked your lifebook",
+    link: story.slug ? `/feed/story/${story.slug}` : "",
   });
 
   return { liked: true };
@@ -891,13 +911,11 @@ export async function createComment({ storyId, userId, content }) {
   ]);
 
   createNotification({
-    recipient: storyAuthor?.author,
+    recipient: { id: storyAuthor?.author, model: "Author" },
     type: "comment",
-    actor: userId,
-    actorName: userDoc?.fullName || "A reader",
-    story: storyId,
-    storySlug: storyAuthor?.slug || "",
+    actor: { id: userId, model: "User", name: userDoc?.fullName || "A reader" },
     preview: content.trim().slice(0, 200),
+    link: storyAuthor?.slug ? `/feed/story/${storyAuthor.slug}` : "",
   });
 
   await Story.findByIdAndUpdate(storyId, { $inc: { "stats.comments": 1 } });
@@ -939,7 +957,7 @@ export async function deleteComment({ commentId, userId }) {
   ]);
 }
 
-export async function listComments({ storyId, page, limit }) {
+export async function listComments({ storyId, page, limit, viewerId, viewerModel }) {
   const safePage = Math.max(Number(page) || 1, 1);
   const safeLimit = Math.min(Number(limit) || 20, 50);
 
@@ -954,8 +972,17 @@ export async function listComments({ storyId, page, limit }) {
     Comment.countDocuments({ story: storyId }),
   ]);
 
+  const viewerIdStr = viewerId ? String(viewerId) : null;
+
   return {
-    comments,
+    comments: comments.map((c) => ({
+      ...c,
+      likeCount: c.likes?.length || 0,
+      likedByMe:
+        viewerIdStr && c.likes
+          ? c.likes.some((l) => String(l.who) === viewerIdStr)
+          : false,
+    })),
     pagination: {
       page: safePage,
       limit: safeLimit,
@@ -963,6 +990,72 @@ export async function listComments({ storyId, page, limit }) {
       pages: Math.ceil(total / safeLimit),
     },
   };
+}
+
+/**
+ * Toggle a like on a comment. Any signed-in account (user, author or
+ * expert) can like comments.
+ */
+export async function toggleCommentLike({ commentId, whoId, whoModel }) {
+  const comment = await Comment.findById(commentId);
+  if (!comment) {
+    throw new NotFoundError("Comment not found.");
+  }
+
+  const existing = comment.likes.find(
+    (l) => String(l.who) === String(whoId),
+  );
+
+  if (existing) {
+    comment.likes = comment.likes.filter(
+      (l) => String(l.who) !== String(whoId),
+    );
+  } else {
+    comment.likes.push({ who: whoId, whoModel: whoModel || "User" });
+  }
+
+  await comment.save();
+
+  return {
+    liked: !existing,
+    likeCount: comment.likes.length,
+  };
+}
+
+/**
+ * Reply to a comment — story author only (route + ownership both enforced).
+ */
+export async function replyToComment({ commentId, authorId, fullName, avatar, content }) {
+  if (!content?.trim()) {
+    throw new ValidationError("Reply cannot be empty.");
+  }
+
+  const comment = await Comment.findById(commentId).populate(
+    "story",
+    "author",
+  );
+
+  if (!comment) {
+    throw new NotFoundError("Comment not found.");
+  }
+
+  if (String(comment.story.author) !== String(authorId)) {
+    throw new ForbiddenError(
+      "Only the story's author can reply to comments.",
+    );
+  }
+
+  comment.replies.push({
+    author: authorId,
+    fullName: fullName || "Author",
+    avatar: avatar || "",
+    content: content.trim(),
+  });
+
+  await comment.save();
+
+  const reply = comment.replies[comment.replies.length - 1];
+  return reply;
 }
 
 /* ---------- Search helpers (used by the search module) ---------- */

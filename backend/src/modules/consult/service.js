@@ -7,6 +7,7 @@ import {
 import { searchExpertVectors } from "../expert/embeddings.js";
 import { logger } from "../../core/services/logger.js";
 import * as Errors from "../../core/utils/errors.js";
+import { createNotification } from "../notification/service.js";
 
 // Fields the consult results cards need.
 const EXPERT_SELECT =
@@ -186,6 +187,15 @@ export async function createBooking({ user, input }) {
     time: time?.trim() || "",
     notes: notes?.trim() || "",
     preferredContact: preferredContact || "email",
+  });
+
+  // Notify the expert (best-effort, never blocks the booking)
+  createNotification({
+    recipient: { id: expert._id, model: "Expert" },
+    type: "booking",
+    actor: { id: user.id, model: "User", name: user.fullName || "A client" },
+    title: "New consultation request",
+    preview: `${user.fullName || "A client"} requested a ${sessionType || "video"} session.`,
   });
 
   return {

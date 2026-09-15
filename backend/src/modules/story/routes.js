@@ -101,10 +101,27 @@ router.post("/:storyId/like", userOnly, story.toggleLike);
 
 /* ---------- Comments ---------- */
 
-// Comments are publicly readable
-router.get("/:storyId/comments", story.getComments);
+// Comments are publicly readable (viewer state attached when signed in)
+router.get("/:storyId/comments", optionalAuth, story.getComments);
 
 router.post("/:storyId/comments", userOnly, story.createComment);
+
+// Comment likes — any signed-in account (user, author or expert)
+router.post(
+  "/comments/:commentId/like",
+  authenticate,
+  authorize("user", "author", "expert"),
+  story.toggleCommentLike,
+);
+
+// Replies — the story's author only
+router.post(
+  "/comments/:commentId/reply",
+  authenticate,
+  authorize("author"),
+  requireApproved,
+  story.replyToComment,
+);
 
 router.patch("/comments/:commentId", userOnly, story.updateComment);
 

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import toast from "react-hot-toast";
 
 /**
- * Reader testimonial form — one testimonial per person, editable until
- * deleted. Shows the reader's existing testimonial when present.
+ * Testimonial form for experts — one testimonial per expert, editable
+ * until deleted. Shows the expert's existing testimonial when present.
  */
 export default function TestimonialForm({ onSubmitted }) {
-  const { user, isAuthenticated } = useAuth();
+  const { expert, isAuthenticated } = useAuth();
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -18,7 +18,7 @@ export default function TestimonialForm({ onSubmitted }) {
   const [mine, setMine] = useState(null);
   const [loadedMine, setLoadedMine] = useState(false);
 
-  // Load the reader's existing testimonial (if any) once.
+  // Load the expert's existing testimonial (if any) once.
   useEffect(() => {
     if (!isAuthenticated || loadedMine) return;
     api
@@ -83,20 +83,20 @@ export default function TestimonialForm({ onSubmitted }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-6">
-        <h3 className="text-2xl sm:text-3xl font-bold font-display mb-2">
+        <h3 className="font-display text-2xl sm:text-3xl font-bold mb-2">
           Share Your Experience
         </h3>
         <p className="text-sm text-muted-foreground">
           {isAuthenticated
-            ? "Tell us what Lifebookz means to you — your words help others discover real stories."
-            : "Join our community and share how Lifebookz has touched your life."}
+            ? "Tell the community what consulting on Lifebookz is like — your words help future clients and fellow experts."
+            : "Join our expert community and share how Lifebookz supports your practice."}
         </p>
       </div>
 
       {isAuthenticated ? (
         <form
           onSubmit={handleSubmit}
-          className="p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 shadow-xs"
+          className="p-6 sm:p-8 rounded-2xl bg-card border border-border/60 shadow-xs"
         >
           {mine && (
             <p className="mb-4 text-xs font-medium text-emerald-600 bg-emerald-500/10 rounded-lg px-3 py-2">
@@ -134,7 +134,7 @@ export default function TestimonialForm({ onSubmitted }) {
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             maxLength={500}
-            placeholder="Share how Lifebookz has helped you"
+            placeholder="Share how consulting on Lifebookz has been for you"
             className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
           />
 
@@ -143,7 +143,7 @@ export default function TestimonialForm({ onSubmitted }) {
               <span className="text-[11px] text-muted-foreground">
                 Signed in as{" "}
                 <span className="font-semibold text-foreground">
-                  {user?.fullName || "you"}
+                  {expert?.fullName || "you"}
                 </span>
               </span>
               {mine && (
@@ -175,16 +175,15 @@ export default function TestimonialForm({ onSubmitted }) {
           </div>
         </form>
       ) : (
-        <div className="p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 text-center shadow-xs">
+        <div className="p-8 rounded-2xl bg-card border border-border/60 text-center shadow-xs">
           <Icons.starSolid className="h-8 w-8 text-amber-400 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-5">
-            Sign in to share your experience with our community.
+            Sign in to share your experience with the community.
           </p>
           <Link
             to="/login"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:brightness-110 transition-all"
           >
-            <Icons.login className="h-4 w-4" />
             Sign in to share
           </Link>
         </div>

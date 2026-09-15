@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import { useNotifications, timeAgo } from "../../hooks/useNotifications";
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 
 const TYPE_STYLES = {
@@ -12,7 +12,7 @@ const TYPE_STYLES = {
   comment: { icon: Icons.chat, chip: "bg-emerald-500/10 text-emerald-600" },
   follow: { icon: Icons.userAdd, chip: "bg-blue-500/10 text-blue-500" },
   publish: { icon: Icons.book, chip: "bg-sky-500/10 text-sky-600" },
-  booking: { icon: Icons.clock, chip: "bg-violet-500/10 text-violet-500" },
+  booking: { icon: Icons.calendar, chip: "bg-violet-500/10 text-violet-500" },
   testimonial: {
     icon: Icons.starSolid,
     chip: "bg-amber-400/15 text-amber-500",
@@ -21,10 +21,9 @@ const TYPE_STYLES = {
 };
 
 /**
- * Reader notifications drawer — fully wired to the notifications API.
+ * Expert notifications drawer — consultation requests and account activity.
  */
 export default function NotificationsDrawer({ open, onClose }) {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const {
     unread,
@@ -60,7 +59,9 @@ export default function NotificationsDrawer({ open, onClose }) {
   function handleClick(n) {
     if (!n.read) markRead(n.id);
     onClose();
-    if (n.link) navigate(n.link);
+    // Experts handle bookings from the dashboard.
+    if (n.link) window.location.href = n.link;
+    else if (n.type === "booking") window.location.href = "/dashboard";
   }
 
   function loadMore() {
@@ -68,7 +69,7 @@ export default function NotificationsDrawer({ open, onClose }) {
     if (last) fetchItems({ append: true, before: last.id });
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -79,7 +80,7 @@ export default function NotificationsDrawer({ open, onClose }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] bg-primary/40 backdrop-blur-sm"
           />
 
           {/* Drawer */}
@@ -88,7 +89,7 @@ export default function NotificationsDrawer({ open, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            className="fixed inset-y-0 right-0 z-[80] flex w-full max-w-md flex-col bg-card shadow-2xl"
+            className="fixed inset-y-0 right-0 z-[9999] flex w-full max-w-md flex-col bg-card shadow-2xl"
             aria-label="Notifications"
           >
             {/* Header */}
@@ -138,7 +139,10 @@ export default function NotificationsDrawer({ open, onClose }) {
                   <p className="text-sm font-semibold text-foreground">
                     No notifications yet
                   </p>
-                  
+                  <p className="text-xs text-muted-foreground">
+                    New consultation requests will appear here the moment a
+                    client books you.
+                  </p>
                 </div>
               ) : (
                 <>
@@ -237,6 +241,7 @@ export default function NotificationsDrawer({ open, onClose }) {
           </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

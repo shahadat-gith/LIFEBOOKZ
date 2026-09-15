@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -5,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { CONSULT_CATEGORIES } from "../config";
 import { Icons } from "../icons";
 import Button from "../components/ui/Button";
+import TestimonialForm from "../components/home/TestimonialForm";
+import TestimonialsSection from "../components/home/TestimonialsSection";
 
 const BENEFITS = [
   {
@@ -26,6 +29,7 @@ const BENEFITS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const [testimonialKey, setTestimonialKey] = useState(0);
 
   return (
     <div className="bg-background text-foreground">
@@ -181,6 +185,12 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials */}
+      <section className="border-t border-border/60 py-20 px-4 sm:px-6">
+        <TestimonialForm onSubmitted={() => setTestimonialKey((k) => k + 1)} />
+      </section>
+      <TestimonialsSection refreshKey={testimonialKey} />
     </div>
   );
 }

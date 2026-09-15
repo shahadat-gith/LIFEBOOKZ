@@ -42,11 +42,13 @@ export async function followAuthor({ userId, role, authorId }) {
     .select("fullName avatar")
     .lean();
   createNotification({
-    recipient: authorId,
+    recipient: { id: authorId, model: "Author" },
     type: "follow",
-    actor: userId,
-    actorName: follower?.fullName || "A reader",
-    actorAvatar: follower?.avatar || "",
+    actor: {
+      id: userId,
+      model: followerModel.modelName,
+      name: follower?.fullName || "A reader",
+    },
     preview: "started following you",
   });
 }

@@ -351,9 +351,50 @@ export async function getComments(req, res, next) {
       storyId: req.params.storyId,
       page: req.query.page,
       limit: req.query.limit,
+      viewerId: req.user?.id,
+      viewerModel: req.role,
     });
 
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /stories/comments/:commentId/like
+ * Toggle a like on a comment — any signed-in account (user/author/expert).
+ */
+export async function toggleCommentLike(req, res, next) {
+  try {
+    const MODEL_BY_ROLE = { user: "User", author: "Author", expert: "Expert" };
+    const result = await storyService.toggleCommentLike({
+      commentId: req.params.commentId,
+      whoId: req.user.id,
+      whoModel: MODEL_BY_ROLE[req.role] || "User",
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /stories/comments/:commentId/reply
+ * Reply to a comment — story author only.
+ */
+export async function replyToComment(req, res, next) {
+  try {
+    const reply = await storyService.replyToComment({
+      commentId: req.params.commentId,
+      authorId: req.user.id,
+      fullName: req.user.fullName,
+      avatar: req.user.avatar?.url || "",
+      content: req.body?.content,
+    });
+
+    res.status(201).json({ success: true, data: reply });
   } catch (error) {
     next(error);
   }
