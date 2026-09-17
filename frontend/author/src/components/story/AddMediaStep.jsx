@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
-import { PrimaryButton, LinkButton } from "./WizardShell";
+import { PrimaryButton } from "./WizardShell";
 import * as storyApi from "../../utils/client";
 import toast from "react-hot-toast";
 
@@ -94,8 +94,8 @@ export default function AddMediaStep({
       </div>
 
       {/* Tile grid */}
-      {shown.length > 0 ? (
-        <div className="grid grid-cols-3 gap-2.5">
+      {shown.length > 0 && (
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
           {media.map((m, idx) =>
             m.type !== tab ? null : (
               <div
@@ -139,7 +139,10 @@ export default function AddMediaStep({
             )}
           </button>
         </div>
-      ) : (
+      )}
+
+      {/* Empty state for the active tab */}
+      {shown.length === 0 && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -154,6 +157,7 @@ export default function AddMediaStep({
               <span className="text-sm">
                 Add {tab === "image" ? "photos" : tab === "video" ? "videos" : "audio"}
               </span>
+              <span className="text-xs">Up to 50 MB per file</span>
             </>
           )}
         </button>
@@ -168,14 +172,10 @@ export default function AddMediaStep({
         onChange={handleFiles}
       />
 
-      <div className="mt-8 space-y-3">
-        <PrimaryButton onClick={() => inputRef.current?.click()} disabled={uploading}>
-          Add More Media
+      <div className="mt-8">
+        <PrimaryButton onClick={onContinue} disabled={uploading}>
+          {media.length > 0 ? "Save & Continue" : "Skip for Now"}
         </PrimaryButton>
-        <div className="text-center">
-          <LinkButton onClick={onContinue}>Skip for Now</LinkButton>
-        </div>
-        <PrimaryButton onClick={onContinue} className="hidden" />
       </div>
     </WizardShell>
   );

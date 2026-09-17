@@ -63,25 +63,8 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          {isAuthenticated && (
-            <nav className="hidden items-center gap-1 rounded-xl bg-muted/60 p-1 md:flex border border-border/40">
-              {links.map((l) => (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
-                    isA(l.to)
-                      ? "bg-background text-foreground shadow-2xs border border-border/50"
-                      : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
-                  }`}
-                >
-                  {l.icon}
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-          )}
+          {/* Desktop: navigation lives in the profile dropdown; mobile:
+              bottom tabs carry the nav. Nothing inline here. */}
 
           {/* Right cluster: notifications + profile */}
           <div className="flex items-center gap-2">
@@ -139,6 +122,25 @@ export function Navbar() {
                         <p className="truncate text-xs text-muted-foreground">
                           {author.email}
                         </p>
+                      </div>
+
+                      {/* Navigation items (moved out of the navbar) */}
+                      <div className="pb-1 mb-1 border-b border-border/50">
+                        {links.map((l) => (
+                          <Link
+                            key={l.to}
+                            to={l.to}
+                            onClick={() => setProfileOpen(false)}
+                            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                              isA(l.to)
+                                ? "bg-primary/5 text-primary"
+                                : "text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <span className="text-muted-foreground">{l.icon}</span>
+                            {l.label}
+                          </Link>
+                        ))}
                       </div>
 
                       <Link

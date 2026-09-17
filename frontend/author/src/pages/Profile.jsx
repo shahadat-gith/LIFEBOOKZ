@@ -97,7 +97,9 @@ export default function AuthorProfilePage() {
   }, [loadData]);
 
   // ?complete=1 → open the edit form so the author can finish their profile
-  // (required before a story can be published).
+  // (required before a story can be published). ?redirect=<path> is where
+  // to go once the profile is saved (e.g. back to the publish step).
+  const redirectTarget = searchParams.get("redirect");
   useEffect(() => {
     if (searchParams.get("complete")) setEditOpen(true);
   }, [searchParams]);
@@ -196,6 +198,11 @@ export default function AuthorProfilePage() {
       );
       setEditOpen(false);
       setAvatarFile(null);
+      // ?redirect=<path> — resume whatever the author was doing before
+      // being asked to complete their profile (e.g. the publish step).
+      if (redirectTarget && redirectTarget.startsWith("/")) {
+        navigate(redirectTarget);
+      }
     } catch {
       toast.error("Failed to update profile");
     } finally {

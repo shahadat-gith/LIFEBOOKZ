@@ -64,7 +64,7 @@ export default function TestimonialForm({ onSubmitted }) {
   async function handleDelete() {
     if (!mine) return;
     try {
-      await api.delete(`/testimonials/${mine.id}`);
+      await api.delete(`/testimonials/${mine.id || mine._id}`);
       setMine(null);
       setMessage("");
       setRating(5);

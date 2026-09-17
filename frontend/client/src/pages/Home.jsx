@@ -32,7 +32,10 @@ export function HomePage() {
       {/* SECTION 6: TESTIMONIALS — display + share */}
       <div className="border-t border-border/60">
         <TestimonialsSection refreshKey={testimonialsRefresh} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div
+          id="share-testimonial"
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 scroll-mt-24"
+        >
           <TestimonialForm
             onSubmitted={() => setTestimonialsRefresh((k) => k + 1)}
           />

@@ -90,7 +90,7 @@ export default function TestimonialsSection({ refreshKey = 0 }) {
 
               return (
                 <motion.div
-                  key={t.id || i}
+                  key={t.id || t._id || i}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}

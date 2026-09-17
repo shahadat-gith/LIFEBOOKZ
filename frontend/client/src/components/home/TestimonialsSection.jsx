@@ -1,93 +1,45 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Avatar } from "../ui/Avatar";
-import { Icons } from "../../icons";
 import api from "../../config/axios";
+import { Avatar } from "../ui/Avatar";
+import { Spinner } from "../ui/Spinner";
+import { Icons } from "../../icons";
 
-const FALLBACK_TESTIMONIALS = [
-  {
-    name: "Priya Sharma",
-    role: "Author",
-    title: "Hindi Story Writer",
-    avatar: "",
-    content:
-      "Lifebookz gave me the platform to share my Hindi stories with readers across India. The editing tools helped me refine my work beautifully.",
-    rating: 5,
-  },
-  {
-    name: "Arun Kumar",
-    role: "Author",
-    title: "Tamil Poet & Author",
-    avatar: "",
-    content:
-      "Writing in Tamil and reaching thousands of readers was a dream. Lifebookz made it real. The community is incredibly supportive.",
-    rating: 5,
-  },
-  {
-    name: "Sneha Patel",
-    role: "Reader",
-    title: "Avid Reader",
-    avatar: "",
-    content:
-      "The platform is so intuitive! I love how I can read stories in my native language and discover regional voices from across India.",
-    rating: 5,
-  },
-  {
-    name: "Rajesh Das",
-    role: "Guest",
-    title: "Literary Enthusiast",
-    avatar: "",
-    content:
-      "A wonderfully crafted space for modern Indian literature. Exploring distinct regional stories has never been easier.",
-    rating: 5,
-  },
-];
-
-const ROLE_STYLES = {
-  Author: "bg-accent/10 text-accent border-accent/30",
-  Reader: "bg-primary/10 text-primary border-primary/20",
-  Guest: "bg-muted text-muted-foreground border-border",
-};
-
-/**
- * Map the API response shape to the card display shape.
- * The API returns:
- *   { person: { fullName, avatar, profession }, personType: "Author"|"User",
- *     message, rating, createdAt }
- */
-function mapApiToCard(t) {
-  const person = t.person || {};
-  const role = t.personType === "Author" ? "Author" : "Reader";
-  return {
-    name: person.fullName || "Anonymous",
-    role,
-    title: person.profession || "Community Member",
-    avatar: person.avatar?.url || "",
-    content: t.message || "",
-    rating: Number(t.rating) || 0,
-  };
+function Stars({ rating }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Icons.starSolid
+          key={n}
+          className={`h-3.5 w-3.5 ${
+            n <= rating ? "text-amber-400" : "text-muted-foreground/25"
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
-export function TestimonialsSection({ refreshKey = 0 }) {
-  const [cards, setCards] = useState([]);
+/**
+ * Community testimonials grid — same design as the author portal.
+ * Real testimonials from the backend (readers, authors, experts);
+ * hidden with a friendly prompt when none exist yet.
+ */
+export default function TestimonialsSection({ refreshKey = 0 }) {
+  const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     api
-      .get("/testimonials", { params: { limit: 10 } })
+      .get("/testimonials", { params: { limit: 12 } })
       .then((res) => {
-        if (cancelled) return;
-        const data = res.data.data || [];
-        if (data.length > 0) {
-          setCards(data.map(mapApiToCard));
-        } else {
-          setCards(FALLBACK_TESTIMONIALS);
-        }
+        if (!cancelled) setTestimonials(res.data.data || []);
       })
       .catch(() => {
-        if (!cancelled) setCards(FALLBACK_TESTIMONIALS);
+        if (!cancelled) setTestimonials([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -98,129 +50,83 @@ export function TestimonialsSection({ refreshKey = 0 }) {
     };
   }, [refreshKey]);
 
-  // Use hardcoded fallback while loading to avoid visual blankness
-  const displayCards = (loading ? [] : cards).length > 0 ? cards : FALLBACK_TESTIMONIALS;
-  const isShowingFallback = loading || cards.length === 0;
-
-  // Duplicate array so the seamless infinite loop has no visible break
-  const carouselItems = [...displayCards, ...displayCards];
-
   return (
-    <section className="relative overflow-hidden py-14 sm:py-24">
-      {/* Background Glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/50 to-background" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 blur-3xl rounded-full" />
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 sm:mb-12">
-        {/* Section Header */}
-        <div className="text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
-            Loved by{" "}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Storytellers & Readers
-            </span>
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            {isShowingFallback
-              ? "Loading voices from our community..."
-              : "Hear from our community across India"}
-          </p>
-        </div>
-      </div>
-
-      {/* Infinite Moving Track */}
-      <div className="relative w-full overflow-hidden py-4">
-        {/* Fade masks on sides for clean visual transition */}
-        <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-r from-background to-transparent z-20 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none" />
-
+    <section className="py-16 px-4 sm:px-6 bg-muted/20">
+      <div className="max-w-6xl mx-auto">
         <motion.div
-          className="flex gap-6 w-max"
-          animate={{
-            x: ["0%", "-50%"],
-          }}
-          transition={{
-            duration: 25,
-            ease: "linear",
-            repeat: Infinity,
-          }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center max-w-2xl mx-auto mb-12"
         >
-          {carouselItems.map((testimonial, index) => {
-            const roleStyle = ROLE_STYLES[testimonial.role] ?? "bg-muted text-muted-foreground border-border";
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-foreground tracking-tight mb-4">
+            What Our Community Says
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+            Real voices from readers and writers who love Lifebookz.
+          </p>
+        </motion.div>
 
-            return (
-              <div
-                key={`${testimonial.name}-${index}`}
-                className="w-[320px] sm:w-[380px] shrink-0"
-              >
-                <div className="h-full flex flex-col justify-between p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 hover:border-accent/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                  <div>
-                    {/* Header: Quote Icon & Role Pill */}
-                    <div className="flex items-center justify-between mb-6">
-                      <svg
-                        className="w-8 h-8 text-accent/25"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z" />
-                      </svg>
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Spinner size="lg" label="Loading testimonials..." />
+          </div>
+        ) : testimonials.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground">
+            No testimonials yet — be the first to share yours!
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {testimonials.map((t, i) => {
+              const person = t.person || {};
+              const name = person.fullName || "Community Member";
+              const role =
+                t.personType === "Expert"
+                  ? "Verified Expert"
+                  : t.personType === "Author"
+                    ? "Author"
+                    : "Reader";
 
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border tracking-wide uppercase ${roleStyle}`}
-                      >
-                        {testimonial.role}
-                      </span>
-                    </div>
-
-                    {/* Content */}
-                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-4">
-                      &ldquo;{testimonial.content}&rdquo;
-                    </p>
-
-                    {/* Star rating */}
-                    {testimonial.rating > 0 && (
-                      <div className="flex gap-0.5 mb-8">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Icons.starSolid
-                            key={n}
-                            className={`h-3.5 w-3.5 ${
-                              n <= testimonial.rating
-                                ? "text-amber-400"
-                                : "text-muted-foreground/25"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
+              return (
+                <motion.div
+                  key={t.id || t._id || i}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: (i % 3) * 0.08, duration: 0.4 }}
+                  className="p-6 rounded-xl bg-card border border-border/60 hover:border-border transition-all duration-300 shadow-xs hover:shadow-md"
+                >
+                  <div className="mb-4">
+                    <Stars rating={Number(t.rating) || 0} />
                   </div>
-
-                  {/* Author Info Footer */}
-                  <div className="flex items-center gap-3.5 pt-4 border-t border-border/40">
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                    &ldquo;{t.message}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3 pt-4 border-t border-border/40">
                     <Avatar
-                      src={testimonial.avatar}
-                      alt={testimonial.name}
-                      fallback={testimonial.name.charAt(0)}
-                      className="w-10 h-10 ring-2 ring-border/50 shrink-0"
+                      src={person.avatar?.url}
+                      name={name}
+                      size="sm"
+                      className="ring-2 ring-border/50"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-foreground text-sm truncate">
-                        {testimonial.name}
+                      <div className="text-sm font-semibold text-foreground truncate">
+                        {name}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {testimonial.title}
+                        {person.profession || role}
                       </div>
                     </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                      {role}
+                    </span>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </motion.div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
 }
-
-export default TestimonialsSection;

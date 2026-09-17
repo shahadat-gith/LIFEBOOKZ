@@ -8,12 +8,13 @@ import {
 const PERSON_SELECT = "fullName avatar profession";
 
 /**
- * Latest approved testimonials, newest first.
+ * Latest testimonials, newest first. Docs created before the status field
+ * existed have no `status`; treat anything not explicitly hidden as visible.
  */
 export async function listTestimonials({ limit } = {}) {
   const safeLimit = Math.min(Number(limit) || 20, 50);
 
-  return Testimonial.find({ status: "approved" })
+  return Testimonial.find({ status: { $ne: "hidden" } })
     .populate("person", PERSON_SELECT)
     .sort({ createdAt: -1 })
     .limit(safeLimit)
@@ -36,11 +37,17 @@ export async function createTestimonial({ role, userId, message, rating }) {
 
   const personType = role === "author" ? "Author" : role === "expert" ? "Expert" : "User";
 
+  // One testimonial per person — submitting again UPDATES the existing
+  // entry instead of erroring (the UI presents it as "Update Testimonial").
   const existing = await Testimonial.findOne({ personType, person: userId });
   if (existing) {
-    throw new ValidationError(
-      "You have already shared a testimonial. Delete your old one to write a new one.",
-    );
+    existing.message = message.trim().slice(0, 1000);
+    existing.rating = rating ? Math.min(Math.max(Number(rating), 1), 5) : existing.rating;
+    await existing.save();
+
+    return Testimonial.findById(existing.id)
+      .populate("person", PERSON_SELECT)
+      .lean();
   }
 
   const testimonial = await Testimonial.create({

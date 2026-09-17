@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import StoryTile from "./StoryTile";
 import { Icons } from "../../icons";
 import api from "../../config/axios";
-import { useAuth } from "../../context/AuthContext";
 
 function SkeletonTile() {
   return (
@@ -35,21 +34,11 @@ function SkeletonTile() {
 export function LatestStories() {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-80px" });
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // The stories endpoint requires a session — don't call it anonymously.
-    if (authLoading) return undefined;
-
-    if (!isAuthenticated) {
-      setStories([]);
-      setLoading(false);
-      return undefined;
-    }
-
     let cancelled = false;
 
     setLoading(true);
@@ -79,7 +68,7 @@ export function LatestStories() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, authLoading]);
+  }, []);
 
   const displayStories = stories.slice(0, 8);
 
@@ -161,24 +150,9 @@ export function LatestStories() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border/70 px-6 py-14 text-center">
               <Icons.book className="mx-auto mb-3 h-12 w-12 text-muted-foreground/40" />
-              {isAuthenticated ? (
-                <p className="text-sm font-medium text-muted-foreground">
-                  No stories yet. Be the first to share your story!
-                </p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Sign in to read stories from the community.
-                  </p>
-                  <Link
-                    to="/login"
-                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground transition-all hover:brightness-110"
-                  >
-                    <Icons.login className="h-3.5 w-3.5" />
-                    Log in
-                  </Link>
-                </>
-              )}
+              <p className="text-sm font-medium text-muted-foreground">
+                No stories yet. Be the first to share your story!
+              </p>
             </div>
           )}
         </motion.div>

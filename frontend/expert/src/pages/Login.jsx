@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
@@ -16,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,7 +25,11 @@ export default function Login() {
     try {
       await login({ email, password });
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      // ?redirect=<path> — land the expert where they were headed
+      const redirect = searchParams.get("redirect");
+      navigate(
+        redirect && redirect.startsWith("/") ? redirect : "/dashboard",
+      );
     } catch (err) {
       setError(
         err?.response?.data?.error?.message || "Invalid email or password",

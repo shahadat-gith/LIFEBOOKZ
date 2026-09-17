@@ -64,7 +64,7 @@ export default function TestimonialForm({ onSubmitted }) {
   async function handleDelete() {
     if (!mine) return;
     try {
-      await api.delete(`/testimonials/${mine.id}`);
+      await api.delete(`/testimonials/${mine.id || mine._id}`);
       setMine(null);
       setMessage("");
       setRating(5);
@@ -181,7 +181,7 @@ export default function TestimonialForm({ onSubmitted }) {
             Sign in to share your experience with our community.
           </p>
           <Link
-            to="/login"
+            to="/login?redirect=/#share-testimonial"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:brightness-110 transition-all"
           >
             <Icons.login className="h-4 w-4" />

@@ -9,7 +9,6 @@ import LoadingScreen from "../components/common/LoadingScreen";
 import TestimonialForm from "../components/home/TestimonialForm";
 import TestimonialsSection from "../components/home/TestimonialsSection";
 import GreetingHero from "../components/home/GreetingHero";
-import LifebookProgressCard from "../components/home/LifebookProgressCard";
 import WritingGuide from "../components/home/WritingGuide";
 import QuickActions from "../components/home/QuickActions";
 import DraftsList from "../components/home/DraftsList";
@@ -58,14 +57,8 @@ export default function HomePage() {
   }, [author]);
 
   const stats = useMemo(() => {
-    const chapters = myBooks.reduce((sum, b) => sum + (b.chapters?.length || 0), 0);
-    const stories = myBooks.reduce(
-      (sum, b) => sum + (b.chapters || []).reduce((s, ch) => s + (ch.stories?.length || 0), 0),
-      0,
-    );
     const drafts = myBooks.filter((b) => b.status !== "published").length;
-    const percent = Math.min(100, Math.round((stories / 10) * 100));
-    return { chapters, stories, drafts, percent };
+    return { drafts };
   }, [myBooks]);
 
   if (authLoading || loading) {
@@ -133,14 +126,8 @@ export default function HomePage() {
       {/* ═══════════ Greeting ═══════════ */}
       <GreetingHero author={author} />
 
-      {/* ═══════════ Lifebook progress card ═══════════ */}
-      <LifebookProgressCard stats={stats} />
-
       {/* ═══════════ How to write your story ═══════════ */}
       <WritingGuide onStart={() => navigate("/stories/new")} />
-
-      {/* ═══════════ Quick actions ═══════════ */}
-      <QuickActions actions={quickActions} />
 
       {/* ═══════════ My drafts (with delete) ═══════════ */}
       <DraftsList books={myBooks} onDelete={handleDeleteDraft} deletingId={deletingId} />

@@ -3,7 +3,7 @@ dotenv.config();
 
 const config = {
   env: process.env.NODE_ENV || "dev",
-  port: parseInt(process.env.PORT, 10),
+  port: parseInt(process.env.PORT, 10) || 5000,
 
   database: {
     url: process.env.DATABASE_URL,
