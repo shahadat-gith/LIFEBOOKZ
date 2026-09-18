@@ -8,7 +8,11 @@ import * as Errors from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
 import { sendEmail } from "../../core/services/email.js";
 import { logger } from "../../core/services/logger.js";
-import { uploadAvatar, deleteFile } from "../../core/services/upload.js";
+import {
+  uploadAvatar,
+  replaceImage,
+  deleteFile,
+} from "../../core/services/upload.js";
 
 const RESET_SELECT =
   "+auth.passwordResetOTP +auth.passwordResetOTPExpires +auth.passwordResetVerified";
@@ -17,7 +21,7 @@ const OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;
 
 const PUBLIC_AUTHOR_SELECT =
-  "fullName username profession avatar verification bio socialLinks address phone dob gender stats createdAt";
+  "fullName username profession avatar coverImage coverImageMobile verification bio socialLinks address phone dob gender stats createdAt";
 
 function authorToken(author) {
   return generateToken({ role: "author", authorId: author.id });
@@ -107,11 +111,11 @@ export async function registerAuthor({ body, file }) {
     );
   }
 
-  let avatar = { url: "", publicId: "" };
+  let avatar = { url: "", key: "" };
 
   if (file) {
-    const uploaded = await uploadAvatar(file.buffer);
-    avatar = { url: uploaded.url, publicId: uploaded.publicId };
+    const uploaded = await uploadAvatar(file.buffer, file.mimetype, "author");
+    avatar = { url: uploaded.url, key: uploaded.key };
   }
 
   const isProfileCompleted = Boolean(
@@ -205,7 +209,13 @@ export async function getMyAuthorProfile(userId) {
   return { ...author, role: "author" };
 }
 
-export async function updateAuthor({ userId, body, file }) {
+export async function updateAuthor({
+  userId,
+  body,
+  file,
+  coverFile,
+  coverMobileFile,
+}) {
   const author = await findAuthorById(userId);
 
   let { fullName, profession, bio, phone, dob, gender, address, socialLinks } =
@@ -231,13 +241,35 @@ export async function updateAuthor({ userId, body, file }) {
   }
 
   if (file) {
-    const uploaded = await uploadAvatar(file.buffer);
+    author.avatar = await replaceImage({
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      role: "author",
+      kind: "avatar",
+      previousKey: author.avatar?.key,
+    });
+  }
 
-    if (author.avatar?.publicId) {
-      await deleteFile(author.avatar.publicId);
-    }
+  // Desktop (16:5) cover variant
+  if (coverFile) {
+    author.coverImage = await replaceImage({
+      buffer: coverFile.buffer,
+      contentType: coverFile.mimetype,
+      role: "author",
+      kind: "cover",
+      previousKey: author.coverImage?.key,
+    });
+  }
 
-    author.avatar = { url: uploaded.url, publicId: uploaded.publicId };
+  // Mobile (4:3) cover variant — shown below the sm breakpoint
+  if (coverMobileFile) {
+    author.coverImageMobile = await replaceImage({
+      buffer: coverMobileFile.buffer,
+      contentType: coverMobileFile.mimetype,
+      role: "author",
+      kind: "coverMobile",
+      previousKey: author.coverImageMobile?.key,
+    });
   }
 
   // Profile is considered complete once the publishing-critical fields are

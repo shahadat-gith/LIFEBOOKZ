@@ -89,12 +89,7 @@ export async function getMyStory(storyId) {
   return res.data.data;
 }
 
-// Media Upload (photos / videos / audio)
-export async function uploadMedia(file) {
-  const fd = new FormData();
-  fd.append('media', file);
-  const res = await api.post('/stories/upload-media', fd);
-  return res.data.data;
-}
+// Media upload was moved to presigned direct-to-R2 uploads — see
+// components/story/AddMediaStep.jsx (photos & videos only, no server pass-through).
 
 export default api;

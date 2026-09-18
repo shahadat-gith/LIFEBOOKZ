@@ -53,6 +53,11 @@ import {
  HiOutlineCamera,
  HiOutlineCalendar,
  HiOutlineIdentification,
+ HiOutlineZoomIn,
+ HiOutlineZoomOut,
+ HiOutlineDeviceMobile,
+ HiOutlineDesktopComputer,
+ HiOutlineUpload,
 } from 'react-icons/hi';
 
 import {
@@ -139,6 +144,11 @@ export const Icons = {
  id: HiOutlineIdentification,
  externalLink: HiOutlineExternalLink,
  code: HiOutlineCode,
+ zoomIn: HiOutlineZoomIn,
+ zoomOut: HiOutlineZoomOut,
+ mobile: HiOutlineDeviceMobile,
+ desktop: HiOutlineDesktopComputer,
+ upload: HiOutlineUpload,
 
  // Brand Icons (FontAwesome)
  google: FaGoogle,

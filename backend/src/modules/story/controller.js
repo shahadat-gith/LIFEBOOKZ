@@ -4,23 +4,6 @@ const viewerOf = (req) =>
   req.user ? { id: req.user.id, role: req.role } : null;
 
 /**
- * POST /stories/upload-media
- * Upload a media asset (photo / video / audio) used in chapters or stories.
- */
-export async function uploadMedia(req, res, next) {
-  try {
-    const data = await storyService.uploadMediaAsset({
-      file: req.file,
-      caption: req.body?.caption,
-    });
-
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-}
-
-/**
  * POST /stories
  * Create lifebook draft.
  */

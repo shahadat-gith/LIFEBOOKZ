@@ -1,26 +1,15 @@
 import axios from 'axios';
-import { nanoid } from 'nanoid';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
 });
 
-// Inject JWT token + idempotency key. Every mutating request gets a unique
-// key so a network-level retry (double-click, timeout resend) can never
-// create duplicates — the backend caches the first response against it.
+// Inject JWT token on every request.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    if (
-      ['post', 'patch', 'put', 'delete'].includes(
-        (config.method || '').toLowerCase(),
-      ) &&
-      !config.headers['Idempotency-Key']
-    ) {
-      config.headers['Idempotency-Key'] = nanoid();
     }
     return config;
   },

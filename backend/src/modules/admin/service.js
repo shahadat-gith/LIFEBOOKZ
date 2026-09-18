@@ -11,10 +11,6 @@ import { logger } from "../../core/services/logger.js";
 
 import { sendApplicationApproved, sendApplicationRejected } from "./utils.js";
 import { sendExpertApproved, sendExpertRejected } from "../expert/utils.js";
-import {
-  removeExpertVector,
-  syncExpertEmbedding,
-} from "../expert/embeddings.js";
 
 /* ---------- Authentication ---------- */
 
@@ -191,11 +187,6 @@ export async function approveExpert({ expertId }) {
     throw new Errors.NotFoundError("Expert not found.");
   }
 
-  // Refresh the vector before flipping the status. Approval is refused when
-  // that fails, because an approved expert without a vector would be
-  // invisible in consult matching.
-  await syncExpertEmbedding(expert, { force: true });
-
   expert.verification.status = "approved";
   expert.verification.verifiedAt = new Date();
   expert.verification.rejectionReason = "";
@@ -228,15 +219,6 @@ export async function rejectExpert({ expertId, reason }) {
   expert.verification.rejectionReason = reason.trim();
 
   await expert.save();
-
-  // Take the rejected expert out of the matching index so their vector never
-  // occupies a consult result slot. Approving again rebuilds it.
-  removeExpertVector(expert).catch((err) =>
-    logger.warn("Failed to remove rejected expert vector", {
-      expertId: expert.id,
-      reason: err.message,
-    }),
-  );
 
   sendExpertRejected(expert.email, expert.fullName, reason.trim()).catch((err) =>
     logger.error("Failed to send expert rejection email", {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
@@ -14,7 +14,6 @@ import StoriesTab from "../components/profile/StoriesTab";
 import MemoriesTab from "../components/profile/MemoriesTab";
 import LikesTab from "../components/profile/LikesTab";
 import ActivityTab from "../components/profile/ActivityTab";
-import EditProfileModal from "../components/profile/EditProfileModal";
 
 /* ---------- Constants ---------- */
 
@@ -48,40 +47,13 @@ const CHAPTER_NUM_COLORS = [
 /* ---------- Page ---------- */
 
 export default function AuthorProfilePage() {
-  const { author, updateProfile } = useAuth();
+  const { author } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [stories, setStories] = useState([]);
   const [stats, setStats] = useState(null);
   const [activeTab, setActiveTab] = useState("lifebook");
-  const [editOpen, setEditOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  // Edit form state
-  const [fullName, setFullName] = useState(author?.fullName || "");
-  const [profession, setProfession] = useState(author?.profession || "");
-  const [bio, setBio] = useState(author?.bio || "");
-  const [city, setCity] = useState(author?.address?.city || "");
-  const [country, setCountry] = useState(author?.address?.country || "");
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const avatarRef = useRef(null);
-
-  useEffect(() => {
-    if (!author) return;
-    setFullName(author.fullName || "");
-    setProfession(author.profession || "");
-    setBio(author.bio || "");
-    setCity(author.address?.city || "");
-    setCountry(author.address?.country || "");
-  }, [author]);
-
-  useEffect(() => {
-    return () => {
-      if (avatarPreview?.startsWith?.("blob:")) URL.revokeObjectURL(avatarPreview);
-    };
-  }, [avatarPreview]);
 
   const loadData = useCallback(() => {
     if (!author) return;
@@ -96,13 +68,17 @@ export default function AuthorProfilePage() {
     loadData();
   }, [loadData]);
 
-  // ?complete=1 → open the edit form so the author can finish their profile
-  // (required before a story can be published). ?redirect=<path> is where
-  // to go once the profile is saved (e.g. back to the publish step).
-  const redirectTarget = searchParams.get("redirect");
+  // ?complete=1&redirect=<path> → profile editing lives on its own page now,
+  // which also handles the "come back and publish" return trip.
   useEffect(() => {
-    if (searchParams.get("complete")) setEditOpen(true);
-  }, [searchParams]);
+    if (!searchParams.get("complete")) return;
+
+    const redirect = searchParams.get("redirect");
+    navigate(
+      `/profile/edit?complete=1${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`,
+      { replace: true },
+    );
+  }, [searchParams, navigate]);
 
   if (!author) {
     navigate("/login");
@@ -180,43 +156,6 @@ export default function AuthorProfilePage() {
     }
   }
 
-  async function handleSave(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      fd.append("fullName", fullName);
-      fd.append("profession", profession);
-      fd.append("bio", bio);
-      fd.append("address", JSON.stringify({ city, country }));
-      if (avatarFile) fd.append("avatar", avatarFile);
-      await updateProfile(fd);
-      toast.success(
-        author?.isProfileCompleted
-          ? "Profile updated"
-          : "Profile completed — you can now publish stories",
-      );
-      setEditOpen(false);
-      setAvatarFile(null);
-      // ?redirect=<path> — resume whatever the author was doing before
-      // being asked to complete their profile (e.g. the publish step).
-      if (redirectTarget && redirectTarget.startsWith("/")) {
-        navigate(redirectTarget);
-      }
-    } catch {
-      toast.error("Failed to update profile");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleAvatarChange(e) {
-    const file = e.target.files?.[0] || null;
-    if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  }
-
   const handleShare = () => {
     const url = `${window.location.origin}/authors/${author.id || author._id}`;
     if (navigator.share) {
@@ -239,10 +178,27 @@ export default function AuthorProfilePage() {
       {/* ═══════════ Cover header ═══════════ */}
       <ProfileHeader
         author={author}
-        bio={bio}
+        bio={author.bio}
         onShare={handleShare}
-        onEdit={() => setEditOpen(true)}
+        onEdit={() => navigate("/profile/edit")}
       />
+
+      {/* Prompt for authors who still need to finish their profile */}
+      {!author.isProfileCompleted && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-4">
+          <button
+            type="button"
+            onClick={() => navigate("/profile/edit?complete=1")}
+            className="w-full flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-left hover:bg-warning/15 transition-colors"
+          >
+            <Icons.infoCircle className="h-4 w-4 text-warning flex-shrink-0" />
+            <span className="flex-1 text-sm text-foreground">
+              Complete your profile to publish stories.
+            </span>
+            <Icons.chevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      )}
 
       {/* ═══════════ Stats row ═══════════ */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
@@ -279,30 +235,6 @@ export default function AuthorProfilePage() {
           <ActivityTab chapterRows={chapterRows} empty={renderEmpty} />
         )}
       </div>
-
-      {/* ═══════════ Edit modal ═══════════ */}
-      {editOpen && (
-        <EditProfileModal
-          formState={{
-            fullName,
-            setFullName,
-            profession,
-            setProfession,
-            bio,
-            setBio,
-            city,
-            setCity,
-            country,
-            setCountry,
-          }}
-          avatarPreview={avatarPreview}
-          avatarRef={avatarRef}
-          onAvatarChange={handleAvatarChange}
-          saving={saving}
-          onSave={handleSave}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
     </motion.div>
   );
 }

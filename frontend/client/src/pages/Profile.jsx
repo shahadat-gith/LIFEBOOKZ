@@ -6,6 +6,27 @@ import api from "../config/axios";
 import { useAuth } from "../context/AuthContext";
 import { Icons } from "../icons";
 import Input from "../components/ui/Input";
+import ImageCropper from "../components/common/ImageCropper";
+
+/** Cover variants — wide banner for desktops, tighter crop for phones. */
+const COVER_VARIANTS = [
+  {
+    key: "desktop",
+    label: "Desktop cover",
+    ratio: "16:5",
+    aspect: 16 / 5,
+    icon: Icons.desktop,
+    hint: "Wide banner shown on laptops and desktops",
+  },
+  {
+    key: "mobile",
+    label: "Mobile cover",
+    ratio: "4:3",
+    aspect: 4 / 3,
+    icon: Icons.mobile,
+    hint: "Taller crop shown on phones",
+  },
+];
 
 const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif";
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -65,8 +86,19 @@ export default function Profile() {
   const { user, isAuthenticated, isLoading: authLoading, updateUser } = useAuth();
 
   const [fullName, setFullName] = useState("");
+
+  // Images are cropped in the browser before upload, so we hold the
+  // resulting Blob plus a preview URL for each slot.
   const [avatarFile, setAvatarFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [covers, setCovers] = useState({ desktop: null, mobile: null });
+  const [coverPreviews, setCoverPreviews] = useState({
+    desktop: "",
+    mobile: "",
+  });
+  // Pending crop: { kind: 'avatar' | 'desktop' | 'mobile', src }
+  const [cropping, setCropping] = useState(null);
+
   const [fieldError, setFieldError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -74,6 +106,8 @@ export default function Profile() {
   const [activityError, setActivityError] = useState(false);
 
   const fileInputRef = useRef(null);
+  const desktopCoverRef = useRef(null);
+  const mobileCoverRef = useRef(null);
 
   /* ---------- Seed the form from the loaded session ---------- */
   useEffect(() => {
@@ -82,18 +116,14 @@ export default function Profile() {
     setFullName(user.fullName || "");
   }, [user]);
 
-  /* ---------- Local preview for a freshly picked avatar ---------- */
+  /* ---------- Show the stored cover images when nothing new is pending ---------- */
   useEffect(() => {
-    if (!avatarFile) {
-      setPreviewUrl("");
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(avatarFile);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [avatarFile]);
+    if (!user) return;
+    setCoverPreviews((prev) => ({
+      desktop: prev.desktop || user.coverImage?.url || "",
+      mobile: prev.mobile || user.coverImageMobile?.url || "",
+    }));
+  }, [user]);
 
   /* ---------- Booking activity summary ---------- */
   const loadActivity = useCallback(async () => {
@@ -123,11 +153,15 @@ export default function Profile() {
   }, [authLoading, isAuthenticated, loadActivity]);
 
   const isDirty = useMemo(() => {
-    if (avatarFile) return true;
+    if (avatarFile || covers.desktop || covers.mobile) return true;
     return (fullName || "").trim() !== (user?.fullName || "").trim();
-  }, [avatarFile, fullName, user?.fullName]);
+  }, [avatarFile, covers, fullName, user?.fullName]);
 
-  const handlePickAvatar = (event) => {
+  /**
+   * Pick a file for a slot, then open the cropper so the person can position
+   * it. Only the cropped result is ever uploaded.
+   */
+  const handlePickImage = (kind, event) => {
     const file = event.target.files?.[0];
     // Allow re-selecting the same file after a failed attempt
     event.target.value = "";
@@ -144,7 +178,32 @@ export default function Profile() {
       return;
     }
 
-    setAvatarFile(file);
+    setCropping({ kind, src: URL.createObjectURL(file) });
+  };
+
+  /** A crop finished — park the blob until the form is saved. */
+  const handleCropped = (blob, objectUrl) => {
+    const kind = cropping?.kind;
+    if (cropping?.src?.startsWith("blob:")) URL.revokeObjectURL(cropping.src);
+
+    if (kind === "avatar") {
+      if (previewUrl?.startsWith?.("blob:")) URL.revokeObjectURL(previewUrl);
+      setAvatarFile(blob);
+      setPreviewUrl(objectUrl);
+    } else if (kind === "desktop" || kind === "mobile") {
+      if (coverPreviews[kind]?.startsWith?.("blob:")) {
+        URL.revokeObjectURL(coverPreviews[kind]);
+      }
+      setCovers((prev) => ({ ...prev, [kind]: blob }));
+      setCoverPreviews((prev) => ({ ...prev, [kind]: objectUrl }));
+    }
+
+    setCropping(null);
+  };
+
+  const cancelCrop = () => {
+    if (cropping?.src?.startsWith("blob:")) URL.revokeObjectURL(cropping.src);
+    setCropping(null);
   };
 
   const handleSubmit = async (event) => {
@@ -163,11 +222,18 @@ export default function Profile() {
     try {
       const payload = new FormData();
       payload.append("fullName", cleanName);
-      if (avatarFile) payload.append("avatar", avatarFile);
+      if (avatarFile) payload.append("avatar", avatarFile, "avatar.jpg");
+      if (covers.desktop) {
+        payload.append("coverImage", covers.desktop, "cover-desktop.jpg");
+      }
+      if (covers.mobile) {
+        payload.append("coverImageMobile", covers.mobile, "cover-mobile.jpg");
+      }
 
       await updateUser(payload);
 
       setAvatarFile(null);
+      setCovers({ desktop: null, mobile: null });
       toast.success("Profile updated.");
     } catch (err) {
       toast.error(
@@ -232,9 +298,43 @@ export default function Profile() {
           </p>
         </header>
 
-        {/* Identity card */}
+        {/* Identity card — the cover swaps to the mobile crop on phones */}
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs">
-          <div className="h-24 bg-gradient-to-r from-primary via-primary to-accent/70 sm:h-28" />
+          <div className="relative h-24 bg-gradient-to-r from-primary via-primary to-accent/70 sm:h-28">
+            {coverPreviews.desktop || coverPreviews.mobile ? (
+              <picture>
+                {coverPreviews.mobile && (
+                  <source media="(max-width: 639px)" srcSet={coverPreviews.mobile} />
+                )}
+                {coverPreviews.desktop && (
+                  <img
+                    src={coverPreviews.desktop}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+              </picture>
+            ) : (
+              <button
+                type="button"
+                onClick={() => desktopCoverRef.current?.click()}
+                className="absolute inset-0 flex flex-col items-center justify-center text-primary-foreground/80 transition-colors hover:text-primary-foreground"
+              >
+                <Icons.image className="h-5 w-5" />
+                <span className="mt-0.5 text-xs">Add a cover image</span>
+              </button>
+            )}
+            {(coverPreviews.desktop || coverPreviews.mobile) && (
+              <button
+                type="button"
+                onClick={() => desktopCoverRef.current?.click()}
+                aria-label="Change cover image"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-sm transition-colors hover:bg-card"
+              >
+                <Icons.camera className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
           <div className="flex flex-col items-center gap-4 px-5 pb-6 sm:flex-row sm:items-end sm:gap-6 sm:px-7">
             <div className="-mt-12 shrink-0 sm:-mt-14">
@@ -256,7 +356,7 @@ export default function Profile() {
                   ref={fileInputRef}
                   type="file"
                   accept={ACCEPTED_IMAGE_TYPES}
-                  onChange={handlePickAvatar}
+                  onChange={(e) => handlePickImage("avatar", e)}
                   className="hidden"
                 />
               </div>
@@ -296,6 +396,91 @@ export default function Profile() {
               </Link>
             </div>
           </div>
+        </section>
+
+        {/* Cover images — cropped for both large and small screens */}
+        <section className="space-y-3 rounded-2xl border border-border/70 bg-card p-5 shadow-xs sm:p-6">
+          <div>
+            <h2 className="font-display text-base font-bold text-foreground">
+              Cover images
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Choose and position a crop for each screen size.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {COVER_VARIANTS.map((v) => {
+              const preview = coverPreviews[v.key];
+              const Icon = v.icon;
+              return (
+                <div key={v.key}>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      {v.label}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        ({v.ratio})
+                      </span>
+                    </span>
+                    {preview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCovers((prev) => ({ ...prev, [v.key]: null }));
+                          setCoverPreviews((prev) => ({ ...prev, [v.key]: "" }));
+                        }}
+                        className="text-xs text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      (v.key === "desktop"
+                        ? desktopCoverRef
+                        : mobileCoverRef
+                      ).current?.click()
+                    }
+                    className="relative w-full overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 transition-colors hover:border-primary/50"
+                    style={{ aspectRatio: `${v.aspect}` }}
+                  >
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        <Icons.upload className="h-5 w-5" />
+                        <span className="mt-1 text-xs">Choose image</span>
+                      </span>
+                    )}
+                  </button>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{v.hint}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <input
+            ref={desktopCoverRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES}
+            onChange={(e) => handlePickImage("desktop", e)}
+            className="hidden"
+          />
+          <input
+            ref={mobileCoverRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES}
+            onChange={(e) => handlePickImage("mobile", e)}
+            className="hidden"
+          />
         </section>
 
         {/* Stats */}
@@ -480,6 +665,37 @@ export default function Profile() {
           </section>
         </div>
       </div>
+
+      {/* Crop dialog — avatar (1:1, circular) or either cover variant */}
+      {cropping && (
+        <ImageCropper
+          imageSrc={cropping.src}
+          aspect={
+            cropping.kind === "avatar"
+              ? 1
+              : cropping.kind === "desktop"
+                ? 16 / 5
+                : 4 / 3
+          }
+          circular={cropping.kind === "avatar"}
+          title={
+            cropping.kind === "avatar"
+              ? "Crop your profile photo"
+              : cropping.kind === "desktop"
+                ? "Crop your desktop cover"
+                : "Crop your mobile cover"
+          }
+          hint={
+            cropping.kind === "avatar"
+              ? "This is how your photo appears in the circular avatar."
+              : cropping.kind === "desktop"
+                ? "Shown on laptops and desktops."
+                : "Shown on phones."
+          }
+          onCropped={handleCropped}
+          onCancel={cancelCrop}
+        />
+      )}
     </div>
   );
 }

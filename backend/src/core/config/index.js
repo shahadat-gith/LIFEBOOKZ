@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const config = {
+export const config = {
   env: process.env.NODE_ENV || "dev",
   port: parseInt(process.env.PORT, 10) || 5000,
 
@@ -29,28 +29,13 @@ const config = {
     password: process.env.APP_MAIL_PASSWORD,
   },
 
-  cloudinary: {
-    name: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-    secretKey: process.env.CLOUDINARY_API_SECRET,
-  },
-
-  qdrant: {
-    url: process.env.QDRANT_ENDPOINT,
-    apiKey: process.env.QDRANT_API_KEY,
-    vectorSize: 2560,
-    collections: {
-      user: "lifebookz_user_embeddings",
-      story: "lifebookz_story_embeddings",
-      expert: "lifebookz_expert_embeddings",
-    },
-  },
-
-  openrouter: {
-    apiKey: process.env.OPENROUTER_API_KEY,
-    chatModel: process.env.OPENROUTER_CHAT_MODEL,
-    embeddingModel: process.env.OPENROUTER_EMBEDDING_MODEL,
-    baseUrl: process.env.OPENROUTER_BASE_URL,
+  r2: {
+    accountId: process.env.R2_ACCOUNT_ID,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    bucketName: process.env.R2_BUCKET_NAME,
+    endpoint: process.env.R2_ENDPOINT,
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL,
   },
 
   frontend: {

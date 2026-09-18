@@ -52,7 +52,9 @@ export async function updateMe(req, res, next) {
     const author = await authorService.updateAuthor({
       userId: req.user?.id,
       body: req.body,
-      file: req.file,
+      file: req.files?.avatar?.[0] || null,
+      coverFile: req.files?.coverImage?.[0] || null,
+      coverMobileFile: req.files?.coverImageMobile?.[0] || null,
     });
 
     return res.json({ success: true, data: author });

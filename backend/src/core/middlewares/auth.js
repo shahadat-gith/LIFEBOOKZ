@@ -132,43 +132,6 @@ export async function authenticate(req, _res, next) {
 }
 
 /**
- * Optional authentication — like `authenticate`, but guests are allowed
- * through. Attaches `req.user`/`req.role` when a valid token is present so
- * responses can include personalized state (likes, follows); otherwise the
- * request continues anonymously. Never throws for missing/invalid tokens.
- */
-export async function optionalAuth(req, _res, next) {
-  try {
-    const token = extractToken(req);
-
-    if (!token) return next();
-
-    const decoded = verifyToken(token);
-
-    req.role = decoded.role;
-
-    switch (decoded.role) {
-      case "user":
-      case "author":
-      case "expert": {
-        req.user = await loadAccount(decoded.role, decoded);
-        return next();
-      }
-      default:
-        // Admin/developer tokens are not meaningful for public reads —
-        // treat the caller as anonymous rather than failing the request.
-        req.role = undefined;
-        return next();
-    }
-  } catch {
-    // Invalid/expired token on a public route: continue as anonymous.
-    req.user = undefined;
-    req.role = undefined;
-    return next();
-  }
-}
-
-/**
  * Role gate. Must run after `authenticate`, which sets `req.role`.
  * Rejects anyone whose role isn't in the allowed list with a 403.
  *
@@ -189,35 +152,9 @@ export function authorize(...roles) {
 }
 
 /**
- * Application gate for self-service roles. Authors and experts can sign in
- * and manage their own data while pending, but only approved accounts may
- * publish or take consultations.
- */
-export function requireApproved(req, _res, next) {
-  const status = req.user?.verification?.status;
-
-  if (status === "approved") {
-    return next();
-  }
-
-  if (status === "rejected") {
-    return next(
-      new AuthorizationError(
-        "Your application was not approved, so this action is unavailable.",
-      ),
-    );
-  }
-
-  return next(
-    new AuthorizationError(
-      "Your account is still awaiting approval. You can continue this once an admin reviews your application.",
-    ),
-  );
-}
-
-/**
  * Publishing gate for authors: the profile must be completed (profession,
- * bio, phone, DOB, gender) before a story can be published.
+ * bio, phone, DOB, gender) before a story can be published. Writing, media
+ * uploads and drafts are available without completing the profile.
  */
 export function requireProfileComplete(req, _res, next) {
   if (req.user?.isProfileCompleted) {

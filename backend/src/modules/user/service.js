@@ -6,7 +6,11 @@ import * as Errors from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
 import { sendEmail } from "../../core/services/email.js";
 import { logger } from "../../core/services/logger.js";
-import { uploadAvatar, deleteFile } from "../../core/services/upload.js";
+import {
+  uploadAvatar,
+  replaceImage,
+  deleteFile,
+} from "../../core/services/upload.js";
 
 const RESET_SELECT =
   "+auth.passwordResetOTP +auth.passwordResetOTPExpires +auth.passwordResetVerified";
@@ -60,11 +64,11 @@ export async function registerUser({ email, password, fullName, file }) {
 
   const username = await buildUniqueUsername(email);
 
-  let avatar = { url: "", publicId: "" };
+  let avatar = { url: "", key: "" };
 
   if (file) {
-    const uploaded = await uploadAvatar(file.buffer);
-    avatar = { url: uploaded.url, publicId: uploaded.publicId };
+    const uploaded = await uploadAvatar(file.buffer, file.mimetype, "user");
+    avatar = { url: uploaded.url, key: uploaded.key };
   }
 
   const user = await User.create({
@@ -126,7 +130,7 @@ export async function getUserById(userId) {
   return user;
 }
 
-export async function updateUser({ userId, fullName, file }) {
+export async function updateUser({ userId, fullName, file, coverFile, coverMobileFile }) {
   const user = await getUserById(userId);
 
   if (fullName !== undefined) {
@@ -134,13 +138,35 @@ export async function updateUser({ userId, fullName, file }) {
   }
 
   if (file) {
-    const uploaded = await uploadAvatar(file.buffer);
+    user.avatar = await replaceImage({
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      role: "user",
+      kind: "avatar",
+      previousKey: user.avatar?.key,
+    });
+  }
 
-    if (user.avatar?.publicId) {
-      await deleteFile(user.avatar.publicId);
-    }
+  // Desktop (16:5) cover variant
+  if (coverFile) {
+    user.coverImage = await replaceImage({
+      buffer: coverFile.buffer,
+      contentType: coverFile.mimetype,
+      role: "user",
+      kind: "cover",
+      previousKey: user.coverImage?.key,
+    });
+  }
 
-    user.avatar = { url: uploaded.url, publicId: uploaded.publicId };
+  // Mobile (4:3) cover variant
+  if (coverMobileFile) {
+    user.coverImageMobile = await replaceImage({
+      buffer: coverMobileFile.buffer,
+      contentType: coverMobileFile.mimetype,
+      role: "user",
+      kind: "coverMobile",
+      previousKey: user.coverImageMobile?.key,
+    });
   }
 
   await user.save();
@@ -151,8 +177,8 @@ export async function updateUser({ userId, fullName, file }) {
 export async function deleteUser({ userId }) {
   const user = await getUserById(userId);
 
-  if (user.avatar?.publicId) {
-    await deleteFile(user.avatar.publicId);
+  if (user.avatar?.key) {
+    await deleteFile(user.avatar.key);
   }
 
   await user.deleteOne();
@@ -160,7 +186,7 @@ export async function deleteUser({ userId }) {
 
 export async function getPublicProfile(userId) {
   const user = await User.findById(userId)
-    .select("fullName avatar createdAt")
+    .select("fullName avatar coverImage coverImageMobile createdAt")
     .lean();
 
   if (!user) {

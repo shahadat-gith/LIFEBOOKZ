@@ -127,6 +127,18 @@ const expertSchema = new mongoose.Schema(
       default: () => ({}),
     },
 
+    /** Wide (16:5) cover shown on larger screens. */
+    coverImage: {
+      type: imageSchema,
+      default: () => ({}),
+    },
+
+    /** Taller (4:3) cover shown on phones. */
+    coverImageMobile: {
+      type: imageSchema,
+      default: () => ({}),
+    },
+
     rating: {
       type: Number,
       min: 0,

@@ -6,10 +6,7 @@ import Author from "../author/model.js";
 import User from "../user/model.js";
 import { createNotification, createNotificationsForMany } from "../notification/service.js";
 
-import {
-  uploadStoryImage,
-  uploadStoryMedia,
-} from "../../core/services/upload.js";
+import { uploadStoryImage } from "../../core/services/upload.js";
 import {
   NotFoundError,
   ValidationError,
@@ -65,39 +62,28 @@ async function findOwnedStory({ authorId, storyId }) {
 
 /* ---------- Media ---------- */
 
-const ALLOWED_MEDIA_TYPES = ["image", "video", "audio"];
-
-function detectMediaType(mimeType) {
-  if (mimeType.startsWith("image/")) return "image";
-  if (mimeType.startsWith("video/")) return "video";
-  if (mimeType.startsWith("audio/")) return "audio";
-  return null;
-}
+/**
+ * Media descriptors stored on chapters and story entries. Photos and videos
+ * only — media is uploaded by the client straight to R2 via presigned URLs
+ * (modules/story/media.controller.js); the server only ever stores the
+ * resulting URL + key.
+ */
+const ALLOWED_MEDIA_TYPES = ["image", "video"];
 
 /**
- * Upload a single media asset (photo / video / audio) to Cloudinary and
- * return the descriptor stored in chapter or story media arrays.
+ * Validate/normalize a media descriptor list sent from the client.
  */
-export async function uploadMediaAsset({ file, caption }) {
-  if (!file) {
-    throw new ValidationError("No media file provided.");
-  }
+export function sanitizeMediaList(media) {
+  if (!Array.isArray(media)) return [];
 
-  const type = detectMediaType(file.mimetype || "");
-  if (!type || !ALLOWED_MEDIA_TYPES.includes(type)) {
-    throw new ValidationError(
-      "Unsupported media type. Use an image, video, or audio file.",
-    );
-  }
-
-  const uploaded = await uploadStoryMedia(file.buffer, type);
-
-  return {
-    url: uploaded.url,
-    publicId: uploaded.publicId,
-    type,
-    caption: caption?.trim() || "",
-  };
+  return media
+    .filter((m) => m && typeof m === "object" && m.url)
+    .map((m) => ({
+      url: String(m.url),
+      key: m.key || "",
+      type: ALLOWED_MEDIA_TYPES.includes(m.type) ? m.type : "image",
+      caption: typeof m.caption === "string" ? m.caption.trim() : "",
+    }));
 }
 
 /* ---------- Stories (lifebooks) ---------- */
@@ -118,8 +104,8 @@ export async function createStory({ authorId, body, file }) {
 
   let coverImage = null;
   if (file) {
-    const uploaded = await uploadStoryImage(file.buffer);
-    coverImage = { url: uploaded.url, publicId: uploaded.publicId };
+    const uploaded = await uploadStoryImage(file.buffer, file.mimetype);
+    coverImage = { url: uploaded.url, key: uploaded.key };
   }
 
   const authorDoc = await Author.findById(authorId)
@@ -130,7 +116,7 @@ export async function createStory({ authorId, body, file }) {
     title: ch.title || `Chapter ${idx + 1}`,
     description: ch.description || "",
     coverImage: ch.coverImage || null,
-    media: Array.isArray(ch.media) ? ch.media : [],
+    media: sanitizeMediaList(ch.media),
     visibility: ["public", "followers", "private"].includes(ch.visibility)
       ? ch.visibility
       : "private",
@@ -141,7 +127,7 @@ export async function createStory({ authorId, body, file }) {
           content: s.content || "",
           dateLabel: s.dateLabel || "",
           location: s.location || "",
-          media: Array.isArray(s.media) ? s.media : [],
+          media: sanitizeMediaList(s.media),
           visibility: s.visibility || null,
           status: s.status === "published" ? "published" : "draft",
         }))
@@ -180,7 +166,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
         title: ch.title || `Chapter ${idx + 1}`,
         description: ch.description || "",
         coverImage: ch.coverImage || null,
-        media: Array.isArray(ch.media) ? ch.media : [],
+        media: sanitizeMediaList(ch.media),
         visibility: ["public", "followers", "private"].includes(ch.visibility)
           ? ch.visibility
           : "private",
@@ -192,7 +178,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
               content: s.content || "",
               dateLabel: s.dateLabel || "",
               location: s.location || "",
-              media: Array.isArray(s.media) ? s.media : [],
+              media: sanitizeMediaList(s.media),
               visibility: s.visibility ?? null,
               status: s.status === "published" ? "published" : "draft",
             }))
@@ -210,8 +196,8 @@ export async function updateStory({ authorId, storyId, body, file }) {
   }
 
   if (file) {
-    const uploaded = await uploadStoryImage(file.buffer);
-    story.coverImage = { url: uploaded.url, publicId: uploaded.publicId };
+    const uploaded = await uploadStoryImage(file.buffer, file.mimetype);
+    story.coverImage = { url: uploaded.url, key: uploaded.key };
   }
 
   await story.save();
@@ -615,7 +601,7 @@ function sanitizeStoryInput(body = {}) {
     content: body.content || "",
     dateLabel: body.dateLabel || "",
     location: body.location || "",
-    media: Array.isArray(body.media) ? body.media : [],
+    media: sanitizeMediaList(body.media),
     visibility: ["public", "followers", "private"].includes(body.visibility)
       ? body.visibility
       : null,

@@ -43,14 +43,6 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // so the response "finish" listener is always attached).
 app.use(requestLogger);
 
-/* ---------- Idempotency ---------- */
-
-// Requests carrying an `Idempotency-Key` header are de-duplicated: replays
-// get the original response instead of executing again. Must be registered
-// before the routes; its error handler sits just before the global one.
-import { idempotencyMiddleware, idempotencyErrorHandler } from "./core/middlewares/idempotency.js";
-app.use(idempotencyMiddleware);
-
 /* ---------- Routes ---------- */
 
 app.use("/api/v1", apiRoutes);
@@ -85,7 +77,6 @@ app.use((req, res) => {
 
 /* ---------- Error Handler ---------- */
 
-app.use(idempotencyErrorHandler);
 app.use(errorHandler);
 
 export default app;

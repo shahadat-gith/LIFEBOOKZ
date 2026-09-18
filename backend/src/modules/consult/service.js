@@ -4,7 +4,6 @@ import {
   CONSULT_CATEGORY_IDS,
   categoryLabel,
 } from "../expert/constants.js";
-import { searchExpertVectors } from "../expert/embeddings.js";
 import { logger } from "../../core/services/logger.js";
 import * as Errors from "../../core/utils/errors.js";
 import { createNotification } from "../notification/service.js";
@@ -18,9 +17,8 @@ const MIN_PROBLEM_LENGTH = 10;
 /* ---------- Semantic matching ---------- */
 
 /**
- * Generates an embedding for the described problem, finds the closest
- * approved experts and ranks them by rating first, vector relevance second.
- * Falls back to rating-only results when embeddings are unavailable.
+ * Finds approved experts for the described problem and ranks them by
+ * rating. (Semantic vector matching was removed.)
  */
 export async function matchExperts({ problem, category, limit }) {
   const cleanProblem = problem?.trim();
@@ -37,86 +35,28 @@ export async function matchExperts({ problem, category, limit }) {
     throw new Errors.ValidationError("Unknown consultancy category.");
   }
 
-  // The category is part of the query text so the vector captures intent
-  // even when the problem description is short.
-  const queryText = cleanCategory
-    ? `${categoryLabel(cleanCategory)} consultancy. ${cleanProblem}`
-    : cleanProblem;
+  // Semantic matching was removed — experts are surfaced by category and
+  // ranked by rating.
+  const query = {
+    status: "active",
+    "verification.status": "approved",
+  };
 
-  let hits = [];
+  if (cleanCategory) query.categories = cleanCategory;
 
-  try {
-    hits = await searchExpertVectors({
-      text: queryText,
-      category: cleanCategory || undefined,
-      limit: Math.max(safeLimit * 4, 20),
-    });
-  } catch (error) {
-    // Embedding/Qdrant unavailable — degrade to rating-based results
-    // instead of failing the whole consult flow.
-    logger.warn("Consult vector search failed — falling back to ratings", {
-      category: cleanCategory || null,
-      reason: error.message,
-      stack: error.stack,
-    });
-  }
+  let experts = await Expert.find(query).select(EXPERT_SELECT).lean();
 
-  let experts = [];
-
-  if (hits.length) {
-    const ids = hits.map((hit) => hit.payload?.expertId).filter(Boolean);
-
-    const docs = await Expert.find({
-      _id: { $in: ids },
-      status: "active",
-      "verification.status": "approved",
-    })
-      .select(EXPERT_SELECT)
-      .lean();
-
-    const docMap = new Map(docs.map((d) => [d._id.toString(), d]));
-    const scoreMap = new Map(
-      hits.map((hit) => [String(hit.payload?.expertId), hit.score]),
-    );
-
-    // Preserve vector relevance order while hydrating.
-    experts = ids
-      .map((id) => {
-        const doc = docMap.get(String(id));
-        return doc
-          ? { ...doc, matchScore: scoreMap.get(String(id)) ?? null }
-          : null;
-      })
-      .filter(Boolean);
-  } else {
-    const query = {
-      status: "active",
-      "verification.status": "approved",
-    };
-
-    if (cleanCategory) query.categories = cleanCategory;
-
-    experts = (await Expert.find(query).select(EXPERT_SELECT).lean()).map(
-      (expert) => ({ ...expert, matchScore: null }),
-    );
-  }
-
-  // Ranking: rating first (as requested), vector relevance as tie-breaker.
-  experts.sort(
-    (a, b) =>
-      (b.rating || 0) - (a.rating || 0) ||
-      (b.matchScore || 0) - (a.matchScore || 0),
-  );
+  // Ranking: rating first.
+  experts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
   const results = experts
     .slice(0, safeLimit)
-    .map((expert, index) => ({ ...expert, matchRank: index + 1 }));
+    .map((expert, index) => ({ ...expert, matchRank: index + 1, matchScore: null }));
 
   return {
     experts: results,
     category: cleanCategory || null,
-    // False when we had to fall back to rating-only results.
-    matched: hits.length > 0,
+    matched: false,
   };
 }
 

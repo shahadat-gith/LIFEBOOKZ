@@ -11,7 +11,30 @@ import Textarea from "../components/ui/Textarea";
 import Avatar from "../components/ui/Avatar";
 import Card, { CardTitle, CardContent, CardFooter } from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import ImageCropper from "../components/common/ImageCropper";
 import { Icons } from "../icons";
+
+/** Cover variants — wide banner for desktops, tighter crop for phones. */
+const COVER_VARIANTS = [
+  {
+    key: "desktop",
+    field: "coverImage",
+    label: "Desktop cover",
+    ratio: "16:5",
+    aspect: 16 / 5,
+    icon: Icons.desktop,
+    hint: "Wide banner shown on laptops and desktops",
+  },
+  {
+    key: "mobile",
+    field: "coverImageMobile",
+    label: "Mobile cover",
+    ratio: "4:3",
+    aspect: 4 / 3,
+    icon: Icons.mobile,
+    hint: "Taller crop shown on phones",
+  },
+];
 
 export default function Profile() {
   const { expert, updateProfile, logout } = useAuth();
@@ -29,14 +52,18 @@ export default function Profile() {
   const [categories, setCategories] = useState(expert?.categories || []);
 
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(expert?.avatar?.url || null);
+  const [covers, setCovers] = useState({ desktop: null, mobile: null });
+  const [coverPreviews, setCoverPreviews] = useState({
+    desktop: expert?.coverImage?.url || null,
+    mobile: expert?.coverImageMobile?.url || null,
+  });
+  // Pending crop: { kind: 'avatar' | 'desktop' | 'mobile', src }
+  const [cropping, setCropping] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    };
-  }, [avatarPreview]);
+  const desktopRef = useRef(null);
+  const mobileRef = useRef(null);
 
   useEffect(() => {
     if (!expert) {
@@ -54,10 +81,47 @@ export default function Profile() {
     );
   };
 
-  const handleAvatarChange = (e) => {
+  /** Pick a file and open the cropper for that slot. */
+  const handleFilePicked = (kind, e) => {
     const file = e.target.files?.[0] || null;
-    setAvatarFile(file);
-    setAvatarPreview(file ? URL.createObjectURL(file) : null);
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Images must be 15 MB or smaller.");
+      return;
+    }
+
+    setCropping({ kind, src: URL.createObjectURL(file) });
+  };
+
+  /** A cropped blob is ready — park it until save. */
+  const handleCropped = (blob, previewUrl) => {
+    const kind = cropping?.kind;
+    if (cropping?.src?.startsWith("blob:")) URL.revokeObjectURL(cropping.src);
+
+    if (kind === "avatar") {
+      if (avatarPreview?.startsWith?.("blob:")) URL.revokeObjectURL(avatarPreview);
+      setAvatarFile(blob);
+      setAvatarPreview(previewUrl);
+    } else if (kind === "desktop" || kind === "mobile") {
+      if (coverPreviews[kind]?.startsWith?.("blob:")) {
+        URL.revokeObjectURL(coverPreviews[kind]);
+      }
+      setCovers((prev) => ({ ...prev, [kind]: blob }));
+      setCoverPreviews((prev) => ({ ...prev, [kind]: previewUrl }));
+    }
+
+    setCropping(null);
+  };
+
+  const cancelCrop = () => {
+    if (cropping?.src?.startsWith("blob:")) URL.revokeObjectURL(cropping.src);
+    setCropping(null);
   };
 
   async function handleSubmit(e) {
@@ -88,13 +152,19 @@ export default function Profile() {
         ),
       );
       fd.append("categories", JSON.stringify(categories));
-      if (avatarFile) fd.append("avatar", avatarFile);
+      if (avatarFile) fd.append("avatar", avatarFile, "avatar.jpg");
+      if (covers.desktop) {
+        fd.append("coverImage", covers.desktop, "cover-desktop.jpg");
+      }
+      if (covers.mobile) {
+        fd.append("coverImageMobile", covers.mobile, "cover-mobile.jpg");
+      }
 
       await updateProfile(fd);
 
-      toast.success("Profile updated — your matching profile was refreshed.");
+      toast.success("Profile updated.");
       setAvatarFile(null);
-      setAvatarPreview(null);
+      setCovers({ desktop: null, mobile: null });
     } catch (err) {
       toast.error(
         err.response?.data?.error?.message || "Failed to update profile.",
@@ -117,49 +187,159 @@ export default function Profile() {
       transition={{ duration: 0.5 }}
       className="max-w-4xl mx-auto py-10 px-4 space-y-8"
     >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 p-8 rounded-3xl border bg-gradient-to-br from-card to-muted/30">
-        <div className="relative group flex-shrink-0">
-          <Avatar
-            src={avatarPreview || expert.avatar?.url}
-            name={expert.fullName}
-            size="xl"
-            className="ring-4 ring-primary/10 w-20 h-20"
-          />
+      {/* Header — responsive cover (mobile crop on phones, desktop crop on
+          larger screens) with the avatar overlapping it */}
+      <div className="rounded-3xl border overflow-hidden bg-card">
+        <div className="relative h-32 sm:h-48 bg-gradient-to-br from-primary/20 to-accent/20">
+          {coverPreviews.desktop || coverPreviews.mobile ? (
+            <picture>
+              {coverPreviews.mobile && (
+                <source
+                  media="(max-width: 639px)"
+                  srcSet={coverPreviews.mobile}
+                />
+              )}
+              {coverPreviews.desktop && (
+                <img
+                  src={coverPreviews.desktop}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              )}
+            </picture>
+          ) : (
+            <button
+              type="button"
+              onClick={() => desktopRef.current?.click()}
+              className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Icons.photo className="h-6 w-6" />
+              <span className="text-xs mt-1">Add a cover image</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 px-8 pb-8 -mt-12 sm:-mt-14">
+          <div className="relative group flex-shrink-0">
+            <Avatar
+              src={avatarPreview || expert.avatar?.url}
+              name={expert.fullName}
+              size="xl"
+              className="ring-4 ring-card w-24 h-24"
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              aria-label="Change profile photo"
+            >
+              <Icons.camera className="h-6 w-6 text-white" />
+            </button>
+          </div>
+          <div className="text-center sm:text-left flex-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              {expert.fullName}
+            </h1>
+            <p className="text-sm text-muted-foreground">{expert.email}</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <Badge variant={isApproved ? "success" : "warning"}>
+                {isApproved ? "Verified Expert" : "Pending Approval"}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                &bull; {expert.expertise}
+              </span>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="text-xs font-medium text-primary hover:underline"
           >
-            <Icons.camera className="h-6 w-6 text-white" />
+            {avatarPreview ? "Change photo" : "Upload photo"}
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            className="hidden"
-          />
         </div>
-        <div className="text-center sm:text-left">
-          <h1 className="text-2xl font-bold text-foreground">
-            {expert.fullName}
-          </h1>
-          <p className="text-sm text-muted-foreground">{expert.email}</p>
-          <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-            <Badge variant={isApproved ? "success" : "warning"}>
-              {isApproved ? "Verified Expert" : "Pending Approval"}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              &bull; {expert.expertise}
-            </span>
-          </div>
-          {avatarFile && (
-            <p className="text-xs text-primary mt-2">
-              New image selected: {avatarFile.name}
-            </p>
-          )}
+
+        {/* Cover controls — both variants are cropped before upload */}
+        <div className="grid sm:grid-cols-2 gap-4 px-8 pb-8">
+          {COVER_VARIANTS.map((v) => {
+            const preview = coverPreviews[v.key];
+            const Icon = v.icon;
+            return (
+              <div key={v.key}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {v.label}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      ({v.ratio})
+                    </span>
+                  </span>
+                  {preview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCovers((prev) => ({ ...prev, [v.key]: null }));
+                        setCoverPreviews((prev) => ({ ...prev, [v.key]: null }));
+                      }}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    (v.key === "desktop" ? desktopRef : mobileRef).current?.click()
+                  }
+                  className="relative w-full rounded-xl border border-dashed border-border hover:border-primary/50 overflow-hidden bg-muted/40 transition-colors"
+                  style={{ aspectRatio: `${v.aspect}` }}
+                >
+                  {preview ? (
+                    <>
+                      <img
+                        src={preview}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <span className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition-opacity">
+                        <Icons.edit className="h-3.5 w-3.5 mr-1.5" /> Reposition
+                      </span>
+                    </>
+                  ) : (
+                    <span className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                      <Icons.upload className="h-5 w-5" />
+                      <span className="text-xs mt-1">Choose image</span>
+                    </span>
+                  )}
+                </button>
+                <p className="mt-1 text-[11px] text-muted-foreground">{v.hint}</p>
+              </div>
+            );
+          })}
         </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFilePicked("avatar", e)}
+          className="hidden"
+        />
+        <input
+          ref={desktopRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFilePicked("desktop", e)}
+          className="hidden"
+        />
+        <input
+          ref={mobileRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFilePicked("mobile", e)}
+          className="hidden"
+        />
       </div>
 
       {/* Form */}
@@ -304,6 +484,37 @@ export default function Profile() {
           </CardFooter>
         </Card>
       </form>
+
+      {/* Crop dialog — avatar (1:1, circular) or either cover variant */}
+      {cropping && (
+        <ImageCropper
+          imageSrc={cropping.src}
+          aspect={
+            cropping.kind === "avatar"
+              ? 1
+              : cropping.kind === "desktop"
+                ? 16 / 5
+                : 4 / 3
+          }
+          circular={cropping.kind === "avatar"}
+          title={
+            cropping.kind === "avatar"
+              ? "Crop your profile photo"
+              : cropping.kind === "desktop"
+                ? "Crop your desktop cover"
+                : "Crop your mobile cover"
+          }
+          hint={
+            cropping.kind === "avatar"
+              ? "This is how your photo appears in the circular avatar."
+              : cropping.kind === "desktop"
+                ? "Shown on laptops and desktops."
+                : "Shown on phones."
+          }
+          onCropped={handleCropped}
+          onCancel={cancelCrop}
+        />
+      )}
     </motion.div>
   );
 }

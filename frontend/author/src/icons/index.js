@@ -1,4 +1,4 @@
-import { HiOutlineMenu, HiOutlineX, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineArrowLeft, HiOutlineUser, HiOutlineUserAdd, HiOutlineLogin, HiOutlineLogout, HiOutlineLockClosed, HiOutlineMail, HiOutlineBookOpen, HiOutlinePencil, HiOutlineTrash, HiOutlineClock, HiOutlineTag, HiOutlineDocumentText, HiOutlineDocumentAdd, HiOutlinePlus, HiOutlineCheck, HiOutlineSave, HiOutlineCog, HiOutlineRefresh, HiOutlineLink, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineSparkles, HiOutlineSearch, HiOutlineHome, HiOutlineViewGrid, HiOutlineShieldCheck, HiCamera, HiEye, HiOutlineGlobe, HiOutlinePhone, HiOutlineAtSymbol, HiOutlineChat, HiOutlineShare, HiOutlineTranslate, HiOutlineBriefcase } from 'react-icons/hi';
+import { HiOutlineMenu, HiOutlineX, HiOutlineChevronDown, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineArrowLeft, HiOutlineUser, HiOutlineUserAdd, HiOutlineLogin, HiOutlineLogout, HiOutlineLockClosed, HiOutlineMail, HiOutlineBookOpen, HiOutlinePencil, HiOutlineTrash, HiOutlineClock, HiOutlineTag, HiOutlineDocumentText, HiOutlineDocumentAdd, HiOutlinePlus, HiOutlineCheck, HiOutlineSave, HiOutlineCog, HiOutlineRefresh, HiOutlineLink, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineSparkles, HiOutlineSearch, HiOutlineHome, HiOutlineViewGrid, HiOutlineShieldCheck, HiCamera, HiEye, HiOutlineGlobe, HiOutlinePhone, HiOutlineAtSymbol, HiOutlineChat, HiOutlineShare, HiOutlineTranslate, HiOutlineBriefcase, HiOutlineZoomIn, HiOutlineZoomOut, HiOutlinePhotograph, HiOutlineDeviceMobile, HiOutlineDesktopComputer, HiOutlineUpload } from 'react-icons/hi';
 import { FaTwitter, FaLinkedin, FaInstagram, FaFacebook, FaYoutube, FaSpinner, FaRegHeart, FaHeart, FaStar, FaRegStar, FaRegBell } from 'react-icons/fa';
 import { MdVerified, MdPending } from 'react-icons/md';
 export const Icons = {
@@ -12,6 +12,8 @@ export const Icons = {
  checkCircle: HiOutlineCheckCircle, exclamationCircle: HiOutlineExclamationCircle,
  infoCircle: HiOutlineInformationCircle, sparkles: HiOutlineSparkles, search: HiOutlineSearch,
  dashboard: HiOutlineViewGrid, shieldCheck: HiOutlineShieldCheck, camera: HiCamera, eye: HiEye,
+ zoomIn: HiOutlineZoomIn, zoomOut: HiOutlineZoomOut, photo: HiOutlinePhotograph,
+ mobile: HiOutlineDeviceMobile, desktop: HiOutlineDesktopComputer, upload: HiOutlineUpload,
  globe: HiOutlineGlobe, phone: HiOutlinePhone, atSymbol: HiOutlineAtSymbol,
  chat: HiOutlineChat, share: HiOutlineShare, translate: HiOutlineTranslate,
  heartRegular: FaRegHeart,

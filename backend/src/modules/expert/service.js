@@ -9,12 +9,11 @@ import * as Errors from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
 import { sendEmail } from "../../core/services/email.js";
 import { logger } from "../../core/services/logger.js";
-import { uploadAvatar, deleteFile } from "../../core/services/upload.js";
 import {
-  embedExpertProfile,
-  removeExpertVector,
-  storeExpertVector,
-} from "./embeddings.js";
+  uploadAvatar,
+  uploadCover,
+  deleteFile,
+} from "../../core/services/upload.js";
 import {
   parseCategories,
   parseLanguages,
@@ -28,7 +27,7 @@ const OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;
 
 const PUBLIC_EXPERT_SELECT =
-  "fullName username expertise qualification categories bio languages experience price avatar rating sessions verification createdAt";
+  "fullName username expertise qualification categories bio languages experience price avatar coverImage coverImageMobile rating sessions verification createdAt";
 
 function expertToken(expert) {
   return generateToken({ role: "expert", expertId: expert.id });
@@ -114,9 +113,6 @@ export async function registerExpert({ body, file }) {
     throw new Errors.ConflictError("That username is already taken.");
   }
 
-  // Built in memory with its final id — nothing is persisted until the
-  // matching vector exists, because an expert without one could never be
-  // found by consult matching.
   const expert = new Expert({
     _id: new mongoose.Types.ObjectId(),
     email,
@@ -131,36 +127,20 @@ export async function registerExpert({ body, file }) {
     languages: parseLanguages(languages),
     experience: Math.max(0, Number(experience) || 0),
     price: Math.max(0, Number(price) || 0),
-    avatar: { url: "", publicId: "" },
+    avatar: { url: "", key: "" },
   });
-
-  let uploadedAvatarId = "";
-  let vectorStored = false;
 
   try {
     if (file) {
-      const uploaded = await uploadAvatar(file.buffer);
-      uploadedAvatarId = uploaded.publicId;
-      expert.avatar = { url: uploaded.url, publicId: uploaded.publicId };
+      const uploaded = await uploadAvatar(file.buffer, file.mimetype, "expert");
+      expert.avatar = { url: uploaded.url, key: uploaded.key };
     }
-
-    const embedding = await embedExpertProfile(expert);
-
-    await storeExpertVector(expert, embedding);
-    vectorStored = true;
-
-    expert.embeddingText = embedding.text;
-    expert.embeddingUpdatedAt = new Date();
 
     await expert.save();
   } catch (error) {
-    // Reject the application cleanly: no expert row, no vector and no
-    // orphaned avatar may survive a failed onboarding.
-    await discardFailedRegistration({
-      expert,
-      avatarPublicId: uploadedAvatarId,
-      vectorStored,
-    });
+    // Reject the application cleanly — no expert row or orphaned avatar
+    // may survive a failed onboarding.
+    await discardFailedRegistration({ expert });
 
     throw error;
   }
@@ -173,11 +153,7 @@ export async function registerExpert({ body, file }) {
  * Cleanup failures are logged, never thrown, so the original registration
  * error is what reaches the caller.
  */
-async function discardFailedRegistration({
-  expert,
-  avatarPublicId,
-  vectorStored,
-}) {
+async function discardFailedRegistration({ expert }) {
   const expertId = expert?._id?.toString() || null;
 
   try {
@@ -189,20 +165,9 @@ async function discardFailedRegistration({
     });
   }
 
-  if (vectorStored) {
+  if (expert?.avatar?.key) {
     try {
-      await removeExpertVector(expert);
-    } catch (error) {
-      logger.error("Failed to remove expert vector after failed registration", {
-        expertId,
-        reason: error.message,
-      });
-    }
-  }
-
-  if (avatarPublicId) {
-    try {
-      await deleteFile(avatarPublicId);
+      await deleteFile(expert.avatar.key);
     } catch (error) {
       logger.error("Failed to remove expert avatar after failed registration", {
         expertId,
@@ -264,7 +229,7 @@ export async function getMyExpertProfile(userId) {
   return { ...expert, role: "expert" };
 }
 
-export async function updateExpert({ userId, body, file }) {
+export async function updateExpert({ userId, body, file, coverFile, coverMobileFile }) {
   const expert = await findExpertById(userId);
 
   const {
@@ -279,16 +244,12 @@ export async function updateExpert({ userId, body, file }) {
     price,
   } = body;
 
-  // Track whether anything embeddable changed so we only re-embed then.
-  let embeddableChanged = false;
-
   if (
     fullName !== undefined &&
     fullName.trim() &&
     fullName.trim() !== expert.fullName
   ) {
     expert.fullName = fullName.trim();
-    embeddableChanged = true;
   }
 
   if (
@@ -297,7 +258,6 @@ export async function updateExpert({ userId, body, file }) {
     expertise.trim() !== expert.expertise
   ) {
     expert.expertise = expertise.trim();
-    embeddableChanged = true;
   }
 
   if (
@@ -306,12 +266,10 @@ export async function updateExpert({ userId, body, file }) {
     qualification.trim() !== expert.qualification
   ) {
     expert.qualification = qualification.trim();
-    embeddableChanged = true;
   }
 
   if (bio !== undefined && bio.trim() && bio.trim() !== expert.bio) {
     expert.bio = bio.trim();
-    embeddableChanged = true;
   }
 
   if (phone !== undefined && phone.trim()) expert.phone = phone.trim();
@@ -320,7 +278,6 @@ export async function updateExpert({ userId, body, file }) {
     const nextCategories = validateCategories(parseCategories(categories));
     if (nextCategories.join() !== (expert.categories || []).join()) {
       expert.categories = nextCategories;
-      embeddableChanged = true;
     }
   }
 
@@ -328,57 +285,76 @@ export async function updateExpert({ userId, body, file }) {
     const nextLanguages = parseLanguages(languages);
     if (nextLanguages.join() !== (expert.languages || []).join()) {
       expert.languages = nextLanguages;
-      embeddableChanged = true;
     }
   }
 
   if (experience !== undefined) {
     expert.experience = Math.max(0, Number(experience) || 0);
-    embeddableChanged = true;
   }
 
   if (price !== undefined) expert.price = Math.max(0, Number(price) || 0);
 
-  // Rebuild the vector before the row is written. If the embedding or the
-  // index write fails, the update is rejected and the stored profile stays
-  // untouched — an expert is never saved without a matching vector.
-  if (embeddableChanged) {
-    const embedding = await embedExpertProfile(expert);
-
-    await storeExpertVector(expert, embedding);
-
-    expert.embeddingText = embedding.text;
-    expert.embeddingUpdatedAt = new Date();
-  }
-
-  const replacedAvatarId = expert.avatar?.publicId || "";
+  // Upload new images BEFORE saving, so a storage failure rejects the whole
+  // update and the stored profile stays untouched.
+  const replacedKeys = [];
+  const freshKeys = [];
 
   if (file) {
-    const uploaded = await uploadAvatar(file.buffer);
-
-    expert.avatar = { url: uploaded.url, publicId: uploaded.publicId };
-
-    try {
-      await expert.save();
-    } catch (error) {
-      // Nothing references the fresh upload yet, so drop it again.
-      await deleteFile(uploaded.publicId).catch(() => {});
-      throw error;
-    }
-  } else {
-    await expert.save();
+    replacedKeys.push(["avatar", expert.avatar?.key]);
+    const uploaded = await uploadAvatar(file.buffer, file.mimetype, "expert");
+    expert.avatar = { url: uploaded.url, key: uploaded.key };
+    freshKeys.push(uploaded.key);
   }
 
-  // The replaced avatar is only removed once the new one is committed.
-  if (file && replacedAvatarId) {
-    await deleteFile(replacedAvatarId).catch((error) =>
-      logger.warn("Failed to delete replaced expert avatar", {
-        expertId: expert.id,
-        publicId: replacedAvatarId,
-        reason: error.message,
-      }),
+  // Desktop (16:5) cover variant
+  if (coverFile) {
+    replacedKeys.push(["coverImage", expert.coverImage?.key]);
+    const uploaded = await uploadCover(
+      coverFile.buffer,
+      coverFile.mimetype,
+      "expert",
+      "desktop",
     );
+    expert.coverImage = { url: uploaded.url, key: uploaded.key };
+    freshKeys.push(uploaded.key);
   }
+
+  // Mobile (4:3) cover variant
+  if (coverMobileFile) {
+    replacedKeys.push(["coverImageMobile", expert.coverImageMobile?.key]);
+    const uploaded = await uploadCover(
+      coverMobileFile.buffer,
+      coverMobileFile.mimetype,
+      "expert",
+      "mobile",
+    );
+    expert.coverImageMobile = { url: uploaded.url, key: uploaded.key };
+    freshKeys.push(uploaded.key);
+  }
+
+  try {
+    await expert.save();
+  } catch (error) {
+    // Nothing references the fresh uploads yet, so drop them again.
+    await Promise.all(freshKeys.map((key) => deleteFile(key).catch(() => {})));
+    throw error;
+  }
+
+  // Replaced images are only removed once the new ones are committed.
+  await Promise.all(
+    replacedKeys
+      .filter(([, key]) => key)
+      .map(([field, key]) =>
+        deleteFile(key).catch((error) =>
+          logger.warn("Failed to delete replaced expert image", {
+            expertId: expert.id,
+            field,
+            key,
+            reason: error.message,
+          }),
+        ),
+      ),
+  );
 
   return expert;
 }

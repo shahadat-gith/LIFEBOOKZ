@@ -39,6 +39,12 @@ import {
   HiOutlineCalendar,
   HiOutlineCurrencyDollar,
   HiOutlinePlus,
+  HiOutlineZoomIn,
+  HiOutlineZoomOut,
+  HiOutlinePhotograph,
+  HiOutlineDeviceMobile,
+  HiOutlineDesktopComputer,
+  HiOutlineUpload,
 } from 'react-icons/hi';
 import { FaStar, FaRegStar, FaSpinner, FaRegHeart, FaHeart } from 'react-icons/fa';
 import { MdVerified, MdPending } from 'react-icons/md';
@@ -87,6 +93,12 @@ export const Icons = {
   calendar: HiOutlineCalendar,
   money: HiOutlineCurrencyDollar,
   plus: HiOutlinePlus,
+  zoomIn: HiOutlineZoomIn,
+  zoomOut: HiOutlineZoomOut,
+  photo: HiOutlinePhotograph,
+  mobile: HiOutlineDeviceMobile,
+  desktop: HiOutlineDesktopComputer,
+  upload: HiOutlineUpload,
   bell: HiOutlineBell,
 
   starSolid: FaStar,

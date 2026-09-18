@@ -21,7 +21,11 @@ router.patch(
   "/me",
   authenticate,
   authorize("expert"),
-  upload.single("avatar"),
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+    { name: "coverImageMobile", maxCount: 1 },
+  ]),
   expert.updateMe,
 );
 

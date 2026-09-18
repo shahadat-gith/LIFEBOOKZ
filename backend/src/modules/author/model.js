@@ -188,6 +188,16 @@ const authorSchema = new mongoose.Schema(
       default: () => ({}),
     },
 
+    /**
+     * Mobile (4:3) variant of the cover. Phones are much narrower than
+     * desktops, so authors pick a tighter crop for small screens — rendered
+     * below the `sm` breakpoint instead of the wide desktop banner.
+     */
+    coverImageMobile: {
+      type: imageSchema,
+      default: () => ({}),
+    },
+
     address: {
       type: addressSchema,
       default: () => ({}),

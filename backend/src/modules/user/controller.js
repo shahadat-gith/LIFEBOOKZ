@@ -54,7 +54,9 @@ export async function updateMe(req, res, next) {
     const user = await userService.updateUser({
       userId: req.user?.id,
       fullName: req.body.fullName,
-      file: req.file,
+      file: req.files?.avatar?.[0] || null,
+      coverFile: req.files?.coverImage?.[0] || null,
+      coverMobileFile: req.files?.coverImageMobile?.[0] || null,
     });
 
     return res.json({ success: true, data: user });

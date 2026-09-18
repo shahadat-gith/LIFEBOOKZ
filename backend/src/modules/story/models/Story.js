@@ -14,7 +14,11 @@ const statsSchema = new mongoose.Schema(
   { _id: false }
 );
 
-/** Photo / video / audio attached to a chapter or a story. */
+/**
+ * Media attached to a chapter or a story. Files live in Cloudflare R2 —
+ * `url` is the publicly accessible URL, `key` is the R2 object key
+ * (used to delete the object later).
+ */
 const mediaSchema = new mongoose.Schema(
   {
     url: {
@@ -22,14 +26,14 @@ const mediaSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    publicId: {
+    key: {
       type: String,
       trim: true,
       default: "",
     },
     type: {
       type: String,
-      enum: ["image", "video", "audio"],
+      enum: ["image", "video"],
       default: "image",
     },
     caption: {
@@ -148,7 +152,7 @@ const chapterSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Chapter-level media gallery (multiple photos / videos / audio)
+    // Chapter-level media gallery (multiple photos / videos)
     media: {
       type: [mediaSchema],
       default: [],

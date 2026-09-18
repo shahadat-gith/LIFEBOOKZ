@@ -49,3 +49,9 @@ export class ServiceUnavailableError extends AppError {
     super(message, 503, 'SERVICE_UNAVAILABLE');
   }
 }
+
+export class StorageError extends AppError {
+  constructor(message = 'File storage is unavailable. Please try again later.') {
+    super(message, 502, 'STORAGE_ERROR');
+  }
+}

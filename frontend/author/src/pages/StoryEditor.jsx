@@ -343,8 +343,10 @@ export default function StoryEditorPage() {
       const returnUrl = lifebookId
         ? `/stories/${lifebookId}/edit?publish=1`
         : `/stories/new?publish=1`;
+      // Profile completion is its own page now (with avatar/cover cropping);
+      // it sends the author straight back to the publish step afterwards.
       navigate(
-        `/profile?complete=1&redirect=${encodeURIComponent(returnUrl)}`,
+        `/profile/edit?complete=1&redirect=${encodeURIComponent(returnUrl)}`,
       );
       return;
     }
@@ -453,7 +455,13 @@ export default function StoryEditorPage() {
       return (
         <AddMediaStep
           story={draft}
-          onChange={setDraft}
+          onChange={(updater) =>
+            // Supports both plain objects and functional updates (used by
+            // the media step's video status polling).
+            typeof updater === "function"
+              ? setDraft((d) => updater(d))
+              : setDraft(updater)
+          }
           onContinue={() => setPhase(6)}
           onBack={() => setPhase(4)}
         />

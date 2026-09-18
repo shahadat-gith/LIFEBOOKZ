@@ -3,21 +3,18 @@ import { Router } from "express";
 import upload from "../../core/middlewares/multer.js";
 import {
   authenticate,
-  optionalAuth,
   authorize,
-  requireApproved,
   requireProfileComplete,
 } from "../../core/middlewares/auth.js";
 import * as story from "./controller.js";
+import * as media from "./media.controller.js";
 
 const router = Router();
 
-// Reading is public — anyone can browse the feed and read published stories.
-// A valid token is still honored so responses can include personalized
-// like/follow state; guests simply get the public view.
-const canRead = [optionalAuth];
-// Writing requires an authenticated author account.
-const authorOnly = [authenticate, authorize("author"), requireApproved];
+// Writing requires an authenticated author account. Approval is NOT required —
+// authors can write, upload media and manage drafts while pending; only
+// publishing is gated further (profile completion).
+const authorOnly = [authenticate, authorize("author")];
 const userOnly = [authenticate, authorize("user")];
 
 /* ---------- Stories ---------- */
@@ -29,20 +26,21 @@ router.post(
   story.create,
 );
 
-// Media upload (photos / videos / audio) for chapters and stories
-router.post(
-  "/upload-media",
-  authorOnly,
-  upload.single("media"),
-  story.uploadMedia,
-);
+/* ---------- Media (presigned direct-to-R2 uploads) ---------- */
 
-// Auth optional so guests can read; personalized state attached when signed in
-router.get("/", canRead, story.list);
+// Issue a presigned PUT URL — the client uploads the file straight to R2.
+// Available to every signed-in author, no profile completion needed.
+router.post("/media/presign", authorOnly, media.presignMediaUpload);
+
+// Remove an uploaded object from R2
+router.delete("/media", authorOnly, media.deleteMedia);
+
+// Reading is public — anyone can browse the feed and read published stories.
+router.get("/", story.list);
 
 router.get("/drafts", authorOnly, story.getDrafts);
 
-router.get("/:storyId", canRead, story.getStory);
+router.get("/:storyId", story.getStory);
 router.patch(
   "/:storyId",
   authorOnly,
@@ -101,8 +99,8 @@ router.post("/:storyId/like", userOnly, story.toggleLike);
 
 /* ---------- Comments ---------- */
 
-// Comments are publicly readable (viewer state attached when signed in)
-router.get("/:storyId/comments", optionalAuth, story.getComments);
+// Comments are publicly readable
+router.get("/:storyId/comments", story.getComments);
 
 router.post("/:storyId/comments", userOnly, story.createComment);
 
@@ -119,7 +117,6 @@ router.post(
   "/comments/:commentId/reply",
   authenticate,
   authorize("author"),
-  requireApproved,
   story.replyToComment,
 );
 

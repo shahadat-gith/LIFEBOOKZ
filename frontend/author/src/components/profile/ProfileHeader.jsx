@@ -37,11 +37,21 @@ export default function ProfileHeader({ author, bio, onShare, onEdit }) {
     <div className="relative">
       <div className="relative h-44 sm:h-64 lg:h-80 overflow-hidden bg-gradient-to-b from-secondary via-[#7d9cc0] to-background">
         {author.coverImage?.url && (
-          <img
-            src={author.coverImage.url}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          // Phone-sized screens get the tighter 4:3 crop when the author
+          // uploaded one; larger screens use the wide 16:5 banner.
+          <picture>
+            {author.coverImageMobile?.url && (
+              <source
+                media="(max-width: 639px)"
+                srcSet={author.coverImageMobile.url}
+              />
+            )}
+            <img
+              src={author.coverImage.url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </picture>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-transparent to-background/90" />
 

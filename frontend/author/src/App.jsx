@@ -13,6 +13,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
+const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
 const StoryEditor = lazy(() => import('./pages/StoryEditor'));
 
 function LazyFallback() { return <LoadingScreen message="Loading..." />; }
@@ -46,6 +47,8 @@ export default function App() {
        <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/stories/:storyId/edit" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+       {/* Profile edit / completion is a full page (cropping needs the room) */}
+       <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
       </Route>
       <Route element={<AuthLayout />}>
        <Route path="/login" element={<Login />} />
