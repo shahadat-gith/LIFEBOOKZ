@@ -91,6 +91,17 @@ const notificationSchema = new mongoose.Schema(
       default: "",
     },
 
+    /**
+     * The comment this notification is about (comment notifications only).
+     * It lets the story's author reply straight from the notification
+     * drawer instead of having to find the comment again.
+     */
+    commentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+    },
+
     read: {
       type: Boolean,
       default: false,

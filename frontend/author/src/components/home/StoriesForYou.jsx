@@ -4,7 +4,7 @@ import Avatar from "../ui/Avatar";
 import { Icons } from "../../icons";
 
 /** Horizontal scroll of published stories from other authors. */
-export default function StoriesForYou({ stories }) {
+export default function StoriesForYou({ stories, loading = false, error = null, onRetry }) {
   const navigate = useNavigate();
 
   return (
@@ -24,7 +24,39 @@ export default function StoriesForYou({ stories }) {
         Experiences, lessons and journeys from other authors.
       </p>
 
-      {stories.length === 0 ? (
+      {loading ? (
+        <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 w-64 sm:w-72 animate-pulse rounded-2xl border border-border/60 bg-card overflow-hidden"
+            >
+              <div className="h-36 bg-muted" />
+              <div className="p-4">
+                <div className="h-3 w-2/3 rounded bg-muted" />
+                <div className="mt-3 h-3 w-full rounded bg-muted" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-border/60 bg-card p-8 text-center">
+          <Icons.exclamationCircle className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {error?.response?.data?.error?.message || "We couldn't load stories right now."}
+          </p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 text-sm font-semibold text-primary hover:text-accent transition-colors"
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      ) : stories.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
           <Icons.book className="h-9 w-9 text-muted-foreground/50 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">

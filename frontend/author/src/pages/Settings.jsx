@@ -1,21 +1,25 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../context/AuthContext";
+import useSettings from "../hooks/useSettings";
 import { Icons } from "../icons";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 
 /**
- * Author settings.
+ * Author settings — backed by `/authors/me/settings`.
  *
- * The page is a working preview: every option is interactive but nothing
- * is persisted yet (there is no preferences endpoint on the account
- * model). Account details themselves come from the signed-in author, and
- * editing them happens on the profile page.
+ * Every switch here changes real behaviour:
+ *  - default visibility seeds each new lifebook and story
+ *  - autosave saves drafts while writing
+ *  - the word count shows in the editor
+ *  - the directory listing hides the profile from the author list
+ *  - notification preferences gate the rows created for this author
+ *  - two-step sign-in emails a code before a session is issued
  */
 
 const VISIBILITY_OPTIONS = [
@@ -33,19 +37,23 @@ const NOTIFICATION_OPTIONS = [
   {
     key: "comments",
     label: "Comments and replies",
-    hint: "When a reader comments or answers on your story.",
+    hint: "When a reader comments on your story.",
   },
   {
     key: "followers",
     label: "New followers",
-    hint: "When another author starts following your lifebook.",
-  },
-  {
-    key: "digest",
-    label: "Weekly writing digest",
-    hint: "A Sunday summary of how your stories performed.",
+    hint: "When someone starts following your lifebook.",
   },
 ];
+
+const DEFAULT_FORM = {
+  defaultVisibility: "public",
+  autosave: true,
+  showWordCount: true,
+  inDirectory: true,
+  twoStep: false,
+  notifications: { likes: true, comments: true, followers: true },
+};
 
 function formatJoined(value) {
   if (!value) return "—";
@@ -99,7 +107,7 @@ function SectionCard({ title, description, icon: Icon, tone = "default", childre
   );
 }
 
-function Toggle({ checked, onChange, label, hint }) {
+function Toggle({ checked, onChange, label, hint, disabled = false }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <div className="min-w-0">
@@ -112,8 +120,9 @@ function Toggle({ checked, onChange, label, hint }) {
         role="switch"
         aria-checked={checked}
         aria-label={label}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors ${
+        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
           checked ? "bg-primary" : "bg-muted"
         }`}
       >
@@ -131,36 +140,80 @@ function Toggle({ checked, onChange, label, hint }) {
 
 export default function Settings() {
   const { author, logout } = useAuth();
+  // Always re-read on entry: this page must show the stored values, never a
+  // cached or default copy.
+  const {
+    settings,
+    error: settingsError,
+    loading: settingsLoading,
+    save: saveSettings,
+    refresh: reloadSettings,
+  } = useSettings({ refreshOnMount: true });
   const navigate = useNavigate();
+  const loaded = Boolean(settings);
+  // Until the first read lands there is nothing meaningful to show — and
+  // rendering defaults would let a save overwrite the real preferences.
+  const showForm = loaded || (!settingsLoading && Boolean(settingsError));
 
-  const [prefs, setPrefs] = useState({
-    defaultVisibility: "public",
-    autosave: true,
-    showWordCount: true,
-    inDirectory: true,
-    twoStep: false,
-  });
-  const [notifications, setNotifications] = useState({
-    likes: true,
-    comments: true,
-    followers: true,
-    digest: false,
-  });
+  const [form, setForm] = useState(DEFAULT_FORM);
+  /** idle → saving → saved/error, shown next to the section header. */
+  const [status, setStatus] = useState("idle");
 
-  const setPref = (key) => (value) => setPrefs((p) => ({ ...p, [key]: value }));
-  const setNotification = (key) => (value) =>
-    setNotifications((n) => ({ ...n, [key]: value }));
+  // The persisted copy, so we can tell whether there is anything to save.
+  const savedForm = useMemo(
+    () => ({
+      ...DEFAULT_FORM,
+      ...(settings || {}),
+      notifications: {
+        ...DEFAULT_FORM.notifications,
+        ...(settings?.notifications || {}),
+      },
+    }),
+    [settings],
+  );
 
-  function handleSavePreferences() {
-    // Preferences are not persisted yet — the account model has no
-    // preferences block. Saving is a local preview action for now.
-    toast("Preferences aren't saved yet — this page is a preview.");
+
+  // Seed the form from the server copy whenever it (re)loads or is saved.
+  useEffect(() => {
+    setForm(savedForm);
+  }, [savedForm]);
+
+  /**
+   * Every change is persisted the moment it is made — there is no save
+   * button to forget, so a refresh can never bring back the old value. Only
+   * the touched key is sent, and a failed save snaps the switch back to what
+   * the backend actually has.
+   */
+  async function applyChange(nextForm, patch) {
+    const previous = form;
+    setForm(nextForm);
+    setStatus("saving");
+
+    try {
+      await saveSettings(patch);
+      setStatus("saved");
+    } catch (err) {
+      setForm(previous);
+      setStatus("error");
+      toast.error(
+        err?.response?.data?.error?.message ||
+          "We couldn't save that change. Please try again.",
+      );
+    }
   }
 
-  function handleSignOutEverywhere() {
+  const setPref = (key) => (value) =>
+    applyChange({ ...form, [key]: value }, { [key]: value });
+
+  const setNotification = (key) => (value) =>
+    applyChange(
+      { ...form, notifications: { ...form.notifications, [key]: value } },
+      { notifications: { [key]: value } },
+    );
+
+  function handleSignOut() {
     logout();
     navigate("/login");
-    toast.success("Signed out on this device.");
   }
 
   return (
@@ -182,16 +235,43 @@ export default function Settings() {
           Manage your account, what you share and how LifeBookz reaches you.
         </p>
 
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-info/30 bg-info/5 px-4 py-3">
-          <Icons.infoCircle className="mt-0.5 h-4 w-4 shrink-0 text-info" />
-          <p className="text-xs text-muted-foreground">
-            Preferences below are a preview — they are interactive but not saved
-            to your account yet.
-          </p>
-        </div>
+        {/* Preferences come from the API — say so if they could not be read
+            instead of showing defaults that a save would then overwrite. */}
+        {settingsError && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <Icons.exclamationCircle className="h-4 w-4 shrink-0 text-destructive" />
+            <p className="mr-auto text-xs text-muted-foreground">
+              {settingsError?.response?.data?.error?.message ||
+                "We couldn't load your saved settings."}
+            </p>
+            <Button variant="outline" size="sm" onClick={reloadSettings}>
+              <Icons.refresh className="h-3.5 w-3.5" />
+              Retry
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div className="mx-auto mt-6 max-w-3xl space-y-5 px-4 sm:px-6">
+      {!loaded && settingsLoading && (
+        <div className="mx-auto mt-6 max-w-3xl space-y-3 px-4 sm:px-6" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-border bg-card p-5"
+            >
+              <div className="h-4 w-32 rounded bg-muted" />
+              <div className="mt-4 h-3 w-3/4 rounded bg-muted" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div
+        className={`mx-auto mt-6 max-w-3xl space-y-5 px-4 sm:px-6 ${
+          showForm ? "" : "hidden"
+        }`}
+      >
         {/* Account */}
         <SectionCard
           icon={Icons.user}
@@ -252,7 +332,7 @@ export default function Settings() {
           </div>
         </SectionCard>
 
-        {/* Writing preferences */}
+        {/* Writing */}
         <SectionCard
           icon={Icons.edit}
           title="Writing"
@@ -264,21 +344,22 @@ export default function Settings() {
               id="settings-default-visibility"
               options={VISIBILITY_OPTIONS}
               placeholder="Choose a default"
-              value={prefs.defaultVisibility}
+              value={form.defaultVisibility}
+              disabled={!loaded}
               onChange={(e) => setPref("defaultVisibility")(e.target.value)}
             />
 
             <div className="divide-y divide-border/60 pt-2">
               <Toggle
                 label="Autosave drafts as I write"
-                hint="Keeps your work safe if you close the tab mid-sentence."
-                checked={prefs.autosave}
+                hint="Saves your draft in the background while you write."
+                checked={form.autosave}
                 onChange={setPref("autosave")}
               />
               <Toggle
                 label="Show the word count while writing"
-                hint="A live count at the bottom of the story editor."
-                checked={prefs.showWordCount}
+                hint="A live count under the story editor."
+                checked={form.showWordCount}
                 onChange={setPref("showWordCount")}
               />
             </div>
@@ -289,7 +370,7 @@ export default function Settings() {
         <SectionCard
           icon={Icons.bell}
           title="Notifications"
-          description="Choose what shows up in your notification drawer."
+          description="Choose which events create a notification for you."
         >
           <div className="divide-y divide-border/60">
             {NOTIFICATION_OPTIONS.map((option) => (
@@ -297,11 +378,16 @@ export default function Settings() {
                 key={option.key}
                 label={option.label}
                 hint={option.hint}
-                checked={notifications[option.key]}
+                checked={form.notifications[option.key]}
                 onChange={setNotification(option.key)}
               />
             ))}
           </div>
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            Turning one off stops new notifications of that kind. Existing ones
+            stay in your drawer.
+          </p>
         </SectionCard>
 
         {/* Privacy */}
@@ -314,7 +400,7 @@ export default function Settings() {
             <Toggle
               label="List my profile in the author directory"
               hint="Readers browsing authors can find you by name and profession."
-              checked={prefs.inDirectory}
+              checked={form.inDirectory}
               onChange={setPref("inDirectory")}
             />
           </div>
@@ -333,9 +419,9 @@ export default function Settings() {
         >
           <div className="divide-y divide-border/60">
             <Toggle
-              label="Two-step verification"
-              hint="Requires a one-time code from your email when signing in."
-              checked={prefs.twoStep}
+              label="Two-step sign-in"
+              hint="Emails a 6-digit code that must be entered after your password."
+              checked={form.twoStep}
               onChange={setPref("twoStep")}
             />
           </div>
@@ -343,7 +429,7 @@ export default function Settings() {
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link
               to="/forgot-password"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
             >
               <Icons.lock className="h-3.5 w-3.5" />
               Change password
@@ -351,7 +437,7 @@ export default function Settings() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleSignOutEverywhere}
+              onClick={handleSignOut}
               className="rounded-full px-5 text-xs font-bold"
             >
               <Icons.logout className="h-3.5 w-3.5" />
@@ -360,12 +446,25 @@ export default function Settings() {
           </div>
         </SectionCard>
 
-        {/* Save */}
-        <div className="flex justify-end">
-          <Button onClick={handleSavePreferences}>
-            <Icons.save className="h-4 w-4" />
-            Save preferences
-          </Button>
+        {/* Changes save on their own — this just reports what happened. */}
+        <div className="flex items-center gap-2 text-xs font-medium">
+          {status === "saving" && (
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <Icons.spinner className="h-3.5 w-3.5 animate-spin" />
+              Saving your change…
+            </span>
+          )}
+          {status === "saved" && (
+            <span className="inline-flex items-center gap-2 text-success">
+              <Icons.check className="h-3.5 w-3.5" />
+              Saved — this is now your stored preference.
+            </span>
+          )}
+          {status === "error" && (
+            <span className="text-destructive">
+              That change didn't save, so the switch was put back.
+            </span>
+          )}
         </div>
 
         {/* Danger zone */}

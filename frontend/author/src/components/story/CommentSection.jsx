@@ -8,10 +8,11 @@ import { timeAgo } from "../../hooks/useNotifications";
 import toast from "react-hot-toast";
 
 /**
- * Author-portal comment section: authors can like any comment and reply
- * to comments on their own stories (replies are author-only on the API).
+ * Author-portal comment section: authors can like any comment, and reply to
+ * comments only on their own stories (`canReply`) — which is also exactly
+ * what the API allows.
  */
-export default function CommentSection({ storyId, commentTrigger }) {
+export default function CommentSection({ storyId, commentTrigger, canReply = false }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -207,20 +208,22 @@ export default function CommentSection({ storyId, commentTrigger }) {
                               )}
                               {(comment.likeCount || 0) > 0 && comment.likeCount}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setReplyFor(isReplying ? null : cid);
-                                setReplyText("");
-                                setTimeout(
-                                  () => replyInputRef.current?.focus(),
-                                  100,
-                                );
-                              }}
-                              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              Reply
-                            </button>
+                            {canReply && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReplyFor(isReplying ? null : cid);
+                                  setReplyText("");
+                                  setTimeout(
+                                    () => replyInputRef.current?.focus(),
+                                    100,
+                                  );
+                                }}
+                                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Reply
+                              </button>
+                            )}
                           </div>
 
                           {/* Author replies */}
@@ -258,8 +261,8 @@ export default function CommentSection({ storyId, commentTrigger }) {
                             </div>
                           )}
 
-                          {/* Reply input */}
-                          {isReplying && (
+                          {/* Reply input — story owner only */}
+                          {canReply && isReplying && (
                             <form
                               onSubmit={(e) => submitReply(comment, e)}
                               className="flex items-center gap-2 mt-2.5"

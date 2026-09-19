@@ -61,7 +61,13 @@ const TOOLBAR = [
   },
 ];
 
-export default function WriteStoryStep({ story, onChange, onContinue, onBack }) {
+export default function WriteStoryStep({
+  story,
+  onChange,
+  onContinue,
+  onBack,
+  showWordCount = true,
+}) {
   // Kept in a ref so the editor never reads stale wizard state.
   const storyRef = useRef(story);
   storyRef.current = story;
@@ -166,7 +172,8 @@ export default function WriteStoryStep({ story, onChange, onContinue, onBack }) 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border/60 px-4 py-2.5">
           <span className="text-xs text-muted-foreground">
-            {words} {words === 1 ? "word" : "words"}
+            {/* The counter is a preference — see Settings → Writing. */}
+            {showWordCount ? `${words} ${words === 1 ? "word" : "words"}` : ""}
           </span>
           <span className="hidden sm:block text-xs text-muted-foreground/70">
             Select text to bold, italicise or underline it

@@ -258,13 +258,29 @@ export async function unpublish(req, res, next) {
   }
 }
 
+/**
+ * Who is acting: the account id, the collection it lives in, and the name
+ * and avatar to denormalize onto likes and comments. Works for readers,
+ * authors and experts alike.
+ */
+function actorOf(req) {
+  const MODEL_BY_ROLE = { user: "User", author: "Author", expert: "Expert" };
+
+  return {
+    userId: req.user.id,
+    userModel: MODEL_BY_ROLE[req.role] || "User",
+    fullName: req.user.fullName || "A reader",
+    avatarUrl: req.user.avatar?.url || "",
+  };
+}
+
 /* ---------- Likes ---------- */
 
 export async function toggleLike(req, res, next) {
   try {
     const data = await storyService.toggleLike({
       storyId: req.params.storyId,
-      userId: req.user.id,
+      ...actorOf(req),
     });
 
     res.json({ success: true, data });
@@ -291,7 +307,7 @@ export async function createComment(req, res, next) {
   try {
     const comment = await storyService.createComment({
       storyId: req.params.storyId,
-      userId: req.user.id,
+      ...actorOf(req),
       content: req.body.content,
     });
 
@@ -305,7 +321,7 @@ export async function updateComment(req, res, next) {
   try {
     const comment = await storyService.updateComment({
       commentId: req.params.commentId,
-      userId: req.user.id,
+      ...actorOf(req),
       content: req.body.content,
     });
 
@@ -319,7 +335,7 @@ export async function deleteComment(req, res, next) {
   try {
     await storyService.deleteComment({
       commentId: req.params.commentId,
-      userId: req.user.id,
+      ...actorOf(req),
     });
 
     res.json({ success: true, message: "Comment deleted successfully." });
@@ -372,8 +388,6 @@ export async function replyToComment(req, res, next) {
     const reply = await storyService.replyToComment({
       commentId: req.params.commentId,
       authorId: req.user.id,
-      fullName: req.user.fullName,
-      avatar: req.user.avatar?.url || "",
       content: req.body?.content,
     });
 

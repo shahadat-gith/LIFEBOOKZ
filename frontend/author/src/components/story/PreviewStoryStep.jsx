@@ -117,30 +117,8 @@ export default function PreviewStoryStep({
             </button>
           )}
 
-          {/* Media strip */}
-          {(story.media || []).length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {(story.media || []).map((m, idx) =>
-                m.type === "image" ? (
-                  <img
-                    key={idx}
-                    src={m.url}
-                    alt=""
-                    className="w-full h-20 object-cover rounded-lg"
-                  />
-                ) : m.type === "video" ? (
-                  <video
-                    key={idx}
-                    src={m.url}
-                    className="w-full h-20 object-cover rounded-lg bg-black"
-                    muted
-                  />
-                ) : (
-                  <audio key={idx} src={m.url} controls className="col-span-3 w-full" />
-                ),
-              )}
-            </div>
-          )}
+          {/* Media — a lone photo or video reads full width, like it will in the story */}
+          <StoryMedia media={story.media} className="mt-4" />
         </div>
       </div>
 
@@ -163,5 +141,56 @@ export default function PreviewStoryStep({
         </button>
       </div>
     </WizardShell>
+  );
+}
+
+/**
+ * Wizard preview media: one photo or video spans the full width (that is how
+ * readers will see it), several fall back to a compact strip.
+ */
+function StoryMedia({ media, className = "" }) {
+  const items = media || [];
+  if (items.length === 0) return null;
+
+  const [only] = items;
+  if (items.length === 1) {
+    return only.type === "video" ? (
+      <video
+        src={only.url}
+        controls
+        muted
+        className={`w-full max-h-[22rem] rounded-xl bg-black ${className}`}
+      />
+    ) : (
+      <img
+        src={only.url}
+        alt={only.caption || "Story media"}
+        className={`w-full max-h-[22rem] rounded-xl object-cover ${className}`}
+      />
+    );
+  }
+
+  return (
+    <div className={`grid grid-cols-3 gap-2 ${className}`}>
+      {items.map((m, idx) =>
+        m.type === "image" ? (
+          <img
+            key={idx}
+            src={m.url}
+            alt={m.caption || "Story media"}
+            className="w-full h-20 object-cover rounded-lg"
+          />
+        ) : m.type === "video" ? (
+          <video
+            key={idx}
+            src={m.url}
+            className="w-full h-20 object-cover rounded-lg bg-black"
+            muted
+          />
+        ) : (
+          <audio key={idx} src={m.url} controls className="col-span-3 w-full" />
+        ),
+      )}
+    </div>
   );
 }

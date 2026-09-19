@@ -2,12 +2,20 @@ import mongoose from "mongoose";
 
 const followSchema = new mongoose.Schema(
   {
-    // Readers (User) and authors (Author) can both follow authors.
+    // Readers (User), authors (Author) and experts (Expert) can all follow
+    // an author, so the follower's collection is stored alongside the id.
     who: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "whoModel",
       required: true,
       index: true,
+    },
+
+    whoModel: {
+      type: String,
+      enum: ["User", "Author", "Expert"],
+      default: "User",
+      required: true,
     },
 
     whom: {

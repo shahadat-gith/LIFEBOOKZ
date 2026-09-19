@@ -4,8 +4,8 @@ import * as following from "./controller.js";
 
 const router = Router();
 
-// Readers and authors both follow authors, so allow both roles.
-const followerOnly = [authenticate, authorize("user", "author")];
+// Any signed-in account (reader, author or expert) can follow an author.
+const followerOnly = [authenticate, authorize("user", "author", "expert")];
 
 // Follow / Unfollow
 router.post("/:authorId/follow", followerOnly, following.followAuthor);

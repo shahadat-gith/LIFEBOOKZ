@@ -24,12 +24,15 @@ export default function StoryDetailPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [recentLikers, setRecentLikers] = useState([]);
   const [commentTrigger, setCommentTrigger] = useState(0);
+  // One chapter is read at a time; a freshly opened story starts at chapter 1.
+  const [activeChapter, setActiveChapter] = useState(0);
   const commentSectionRef = useRef(null);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
     setError("");
+    setActiveChapter(0);
 
     api
       .get(`/stories/${slug}`)
@@ -141,6 +144,8 @@ export default function StoryDetailPage() {
   const sortedChapters = hasChapters
     ? [...chapters].sort((a, b) => a.order - b.order)
     : [];
+  const currentChapterIndex = sortedChapters[activeChapter] ? activeChapter : 0;
+  const currentChapter = sortedChapters[currentChapterIndex];
 
   return (
     <motion.div
@@ -229,138 +234,19 @@ export default function StoryDetailPage() {
         transition={{ delay: 0.2 }}
         className="mt-8"
       >
-        {/* Chapter Navigation */}
-        {hasChapters && sortedChapters.length > 1 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Table of Contents
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {sortedChapters.length} chapters
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {sortedChapters.map((ch, idx) => (
-                <a
-                  key={ch._id || idx}
-                  href={`#chapter-${idx}`}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all"
-                >
-                  {idx + 1}. {ch.title || `Chapter ${idx + 1}`}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Chapter Content */}
+        {/* Chapter Content — one chapter at a time, chosen from the list */}
         {hasChapters ? (
-          <div className="space-y-12">
-            {sortedChapters.map((chapter, idx) => (
-              <motion.div
-                key={chapter._id || idx}
-                id={`chapter-${idx}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * idx }}
-                className="scroll-mt-24"
-              >
-                {/* Chapter Cover */}
-                {chapter.coverImage?.url && (
-                  <div className="mb-6 -mx-4 sm:-mx-6">
-                    <div className="relative w-full h-48 sm:h-64 overflow-hidden rounded-none sm:rounded-xl">
-                      <img
-                        src={chapter.coverImage.url}
-                        alt={chapter.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {chapter.description && (
-                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                          <p className="text-white text-xs italic">{chapter.description}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+          <>
+            {sortedChapters.length > 1 && (
+              <ChapterPicker
+                chapters={sortedChapters}
+                active={activeChapter}
+                onChange={setActiveChapter}
+              />
+            )}
 
-                {/* Chapter Title */}
-                {sortedChapters.length > 1 && (
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground font-display mb-2">
-                    {chapter.title || `Chapter ${idx + 1}`}
-                  </h2>
-                )}
-
-                {/* Chapter Description (if no cover) */}
-                {chapter.description && !chapter.coverImage?.url && (
-                  <p className="text-sm text-muted-foreground italic mb-4">
-                    {chapter.description}
-                  </p>
-                )}
-
-                {/* Chapter Media Gallery */}
-                {chapter.media?.length > 0 && (
-                  <ChapterMedia media={chapter.media} />
-                )}
-
-                {/* Stories in this chapter */}
-                <div className="space-y-8 mt-6">
-                  {(chapter.stories || []).map((entry, sIdx) => (
-                    <article
-                      key={entry._id || sIdx}
-                      className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6"
-                    >
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        {entry.storyType && (
-                          <span className="text-[10px] font-semibold uppercase tracking-widest text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">
-                            {entry.storyType}
-                          </span>
-                        )}
-                        {entry.dateLabel && (
-                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                            <Icons.clock className="h-3 w-3" />
-                            {entry.dateLabel}
-                          </span>
-                        )}
-                        {entry.location && (
-                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                            <Icons.globe className="h-3 w-3" />
-                            {entry.location}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-xl sm:text-2xl font-semibold text-foreground font-display mb-3">
-                        {entry.title}
-                      </h3>
-
-                      <RichText
-                        content={entry.content}
-                        className="text-[15px] leading-relaxed text-foreground/90"
-                      />
-
-                      {entry.media?.length > 0 && (
-                        <div className="mt-4">
-                          <ChapterMedia media={entry.media} small />
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
-
-                {/* Chapter Divider */}
-                {idx < sortedChapters.length - 1 && (
-                  <div className="my-12 flex items-center gap-4">
-                    <div className="flex-1 h-px bg-border/40" />
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
-                      <Icons.chevronDown className="h-3 w-3" />
-                    </div>
-                    <div className="flex-1 h-px bg-border/40" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
+            <ChapterBody chapter={currentChapter} index={currentChapterIndex} />
+          </>
         ) : (
           <p className="text-muted-foreground italic">
             This story has no chapters yet.
@@ -427,8 +313,275 @@ export default function StoryDetailPage() {
   );
 }
 
-/** Simple media gallery renderer for chapter / story media. */
+/**
+ * The picture that represents a chapter: its own cover if it has one,
+ * otherwise the first photo in the chapter, otherwise the first photo in one
+ * of its stories.
+ */
+function chapterLeadImage(chapter) {
+  if (chapter.coverImage?.url) return { url: chapter.coverImage.url, from: "cover" };
+
+  const chapterPhoto = (chapter.media || []).find((m) => m.type === "image");
+  if (chapterPhoto) return { url: chapterPhoto.url, from: "media" };
+
+  for (const entry of chapter.stories || []) {
+    const photo = (entry.media || []).find((m) => m.type === "image");
+    if (photo) return { url: photo.url, from: "story" };
+  }
+
+  return null;
+}
+
+/**
+ * Chapter list. The reader is shown one chapter at a time, so this is how
+ * they move between them — and it always starts on chapter 1.
+ */
+function ChapterPicker({ chapters, active, onChange }) {
+  const containerRef = useRef(null);
+
+  function select(index) {
+    onChange(index);
+    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  return (
+    <div ref={containerRef} className="mb-8 scroll-mt-24">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">Chapters</h3>
+        <span className="text-xs text-muted-foreground">
+          {chapters.length} chapters
+        </span>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label="Chapters"
+        className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-4 pb-1 no-scrollbar sm:mx-0 sm:px-0"
+      >
+        {chapters.map((chapter, idx) => {
+          const isActive = idx === active;
+          return (
+            <button
+              key={chapter._id || idx}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => select(idx)}
+              aria-current={isActive ? "true" : undefined}
+              className={`flex-shrink-0 snap-start rounded-xl border px-3.5 py-2 text-left transition-colors ${
+                isActive
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 bg-card text-foreground hover:bg-muted"
+              }`}
+            >
+              <span
+                className={`block text-[10px] font-bold uppercase tracking-widest ${
+                  isActive ? "text-primary-foreground/70" : "text-muted-foreground"
+                }`}
+              >
+                Chapter {idx + 1}
+              </span>
+              <span className="block max-w-[11rem] truncate text-sm font-semibold">
+                {chapter.title || "Untitled Chapter"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** One chapter: its header, then the stories written in it. */
+function ChapterBody({ chapter, index }) {
+  if (!chapter) return null;
+
+  const lead = chapterLeadImage(chapter);
+  const stories = chapter.stories || [];
+
+  return (
+    <div id={`chapter-${index}`} className="scroll-mt-24">
+      <ChapterHeader chapter={chapter} index={index} lead={lead} />
+
+      {stories.length === 0 ? (
+        <p className="mt-6 text-sm italic text-muted-foreground">
+          No stories in this chapter yet.
+        </p>
+      ) : (
+        <div className="mt-6 space-y-8">
+          {stories.map((entry, idx) => (
+            <StoryEntry key={entry._id || idx} entry={entry} leadUrl={lead?.url} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One story inside a chapter. The chapter's lead photo is dropped from the
+ * story's gallery — it is already the picture at the top of the chapter.
+ */
+function StoryEntry({ entry, leadUrl }) {
+  const media = (entry.media || []).filter((m) => m.url !== leadUrl);
+
+  return (
+    <article className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        {entry.storyType && (
+          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-accent">
+            {entry.storyType}
+          </span>
+        )}
+        {entry.dateLabel && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Icons.clock className="h-3 w-3" />
+            {entry.dateLabel}
+          </span>
+        )}
+        {entry.location && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Icons.globe className="h-3 w-3" />
+            {entry.location}
+          </span>
+        )}
+      </div>
+
+      <h3 className="mb-3 font-display text-xl font-semibold text-foreground sm:text-2xl">
+        {entry.title}
+      </h3>
+
+      <RichText
+        content={entry.content}
+        className="text-[15px] leading-relaxed text-foreground/90"
+      />
+
+      {media.length > 0 && (
+        <div className="mt-4">
+          <ChapterMedia media={media} small />
+        </div>
+      )}
+    </article>
+  );
+}
+
+/**
+ * Chapter header: the chapter's picture sits on top, and below it come the
+ * author, the numbered title ("Chapter 1 — Childhood") and what the chapter
+ * holds. Numbering is always shown so a chapter reads as a chapter.
+ */
+function ChapterHeader({ chapter, index, lead = null }) {
+  const media = chapter.media || [];
+  const stories = chapter.stories || [];
+
+  // When the chapter's picture already came from its gallery, keep that photo
+  // out of the gallery below so it isn't shown twice.
+  const galleryMedia = lead?.from === "media" ? media.filter((m) => m.url !== lead.url) : media;
+
+  const countMedia = (type) =>
+    media.filter((m) => m.type === type).length +
+    stories.reduce(
+      (total, entry) => total + (entry.media || []).filter((m) => m.type === type).length,
+      0,
+    );
+
+  const photoCount = countMedia("image");
+  const videoCount = countMedia("video");
+  const chapterLabel = `Chapter ${index + 1}`;
+
+  return (
+    <header>
+      {/* Chapter picture */}
+      <div className="relative -mx-4 overflow-hidden bg-muted sm:mx-0 sm:rounded-2xl">
+        <div className="relative h-52 w-full sm:h-72">
+          {lead ? (
+            <img
+              src={lead.url}
+              alt={chapter.title || chapterLabel}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+              <Icons.book className="h-10 w-10 text-primary/40" />
+            </div>
+          )}
+          {lead && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          )}
+          <span className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-foreground backdrop-blur">
+            {chapterLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Numbered title — the author is shown once, at the top of the story */}
+      <h2 className="mt-5 font-display text-2xl font-bold text-foreground sm:text-3xl">
+        {chapterLabel}
+        <span className="text-muted-foreground"> — </span>
+        {chapter.title || "Untitled Chapter"}
+      </h2>
+
+      {chapter.description && (
+        <p className="mt-2 text-sm italic text-muted-foreground">{chapter.description}</p>
+      )}
+
+      {/* Details */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Icons.book className="h-3.5 w-3.5" />
+          {stories.length} {stories.length === 1 ? "story" : "stories"}
+        </span>
+        {photoCount > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <Icons.camera className="h-3.5 w-3.5" />
+            {photoCount} {photoCount === 1 ? "photo" : "photos"}
+          </span>
+        )}
+        {videoCount > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <Icons.videoCamera className="h-3.5 w-3.5" />
+            {videoCount} {videoCount === 1 ? "video" : "videos"}
+          </span>
+        )}
+      </div>
+
+      {galleryMedia.length > 0 && (
+        <div className="mt-6">
+          <ChapterMedia media={galleryMedia} />
+        </div>
+      )}
+    </header>
+  );
+}
+
+/**
+ * Media gallery for chapter / story media.
+ *
+ * A lone photo or video is the story's picture, not a thumbnail — it spans
+ * the full width of the column. Two or more fall back to a compact grid.
+ */
 function ChapterMedia({ media, small = false }) {
+  const items = media || [];
+  if (items.length === 0) return null;
+
+  const [only] = items;
+  if (items.length === 1 && only.type !== "audio") {
+    return only.type === "video" ? (
+      <video
+        src={only.url}
+        controls
+        className="w-full max-h-[28rem] rounded-xl bg-black"
+      />
+    ) : (
+      <img
+        src={only.url}
+        alt={only.caption || "Story media"}
+        className="w-full max-h-[28rem] rounded-xl object-cover"
+      />
+    );
+  }
+
   return (
     <div
       className={`grid gap-2 ${

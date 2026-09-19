@@ -21,13 +21,9 @@ export default function CommentSection({ storyId, commentTrigger }) {
   const [showComments, setShowComments] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [commentPage, setCommentPage] = useState(1);
-  const [replyFor, setReplyFor] = useState(null); // comment id being replied to
-  const [replyText, setReplyText] = useState("");
-  const [replying, setReplying] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const inputRef = useRef(null);
-  const replyInputRef = useRef(null);
 
   // Focus input & expand drawer when commentTrigger fires
   useEffect(() => {
@@ -131,43 +127,6 @@ export default function CommentSection({ storyId, commentTrigger }) {
     }
   }
 
-  function startReply(comment) {
-    setReplyFor(comment.id || comment._id);
-    setReplyText("");
-    setTimeout(() => replyInputRef.current?.focus(), 100);
-  }
-
-  async function submitReply(comment, e) {
-    e?.preventDefault();
-    if (!replyText.trim() || replying) return;
-    const id = comment.id || comment._id;
-    setReplying(true);
-    try {
-      const res = await api.post(`/stories/comments/${id}/reply`, {
-        content: replyText.trim(),
-      });
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === id || c._id === id
-            ? {
-                ...c,
-                replies: [...(c.replies || []), res.data.data],
-              }
-            : c,
-        ),
-      );
-      setReplyFor(null);
-      setReplyText("");
-      toast.success("Reply posted");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.error?.message || "Failed to post reply";
-      toast.error(msg);
-    } finally {
-      setReplying(false);
-    }
-  }
-
   const commentCount = comments.length;
 
   return (
@@ -263,7 +222,6 @@ export default function CommentSection({ storyId, commentTrigger }) {
               <div className="space-y-2.5 mb-2">
                 {comments.map((comment) => {
                   const cid = comment.id || comment._id;
-                  const isReplying = replyFor === cid;
 
                   return (
                     <div
@@ -290,7 +248,8 @@ export default function CommentSection({ storyId, commentTrigger }) {
                             {comment.content}
                           </p>
 
-                          {/* Like + Reply actions */}
+                          {/* Like — replies themselves stay read-only here:
+                              only a story's author may write them. */}
                           <div className="flex items-center gap-4 mt-2">
                             <button
                               type="button"
@@ -307,15 +266,6 @@ export default function CommentSection({ storyId, commentTrigger }) {
                                 <Icons.heartRegular className="h-3.5 w-3.5" />
                               )}
                               {(comment.likeCount || 0) > 0 && comment.likeCount}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                isReplying ? setReplyFor(null) : startReply(comment)
-                              }
-                              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              Reply
                             </button>
                           </div>
 
@@ -351,41 +301,6 @@ export default function CommentSection({ storyId, commentTrigger }) {
                             </div>
                           )}
 
-                          {/* Reply input (author only) */}
-                          {isReplying && isAuthenticated && (
-                            <form
-                              onSubmit={(e) => submitReply(comment, e)}
-                              className="flex items-center gap-2 mt-2.5"
-                            >
-                              <input
-                                ref={replyInputRef}
-                                type="text"
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                placeholder="Reply as the author"
-                                className="flex-1 rounded-lg border border-border/70 bg-background px-2.5 py-1.5 text-xs focus:border-accent/80 focus:outline-none focus:ring-1 focus:ring-accent/30"
-                              />
-                              <button
-                                type="submit"
-                                disabled={!replyText.trim() || replying}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 transition-all"
-                              >
-                                {replying ? "..." : "Reply"}
-                              </button>
-                            </form>
-                          )}
-                          {isReplying && !isAuthenticated && (
-                            <p className="mt-2 text-[11px] text-muted-foreground">
-                              Only the story's author can reply.{" "}
-                              <button
-                                type="button"
-                                onClick={() => navigate("/login")}
-                                className="font-semibold text-primary hover:underline"
-                              >
-                                Sign in
-                              </button>
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>

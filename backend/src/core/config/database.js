@@ -19,3 +19,6 @@ export async function connectDatabase() {
     process.exit(1);
   }
 }
+
+
+

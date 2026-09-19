@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import api from "../config/api";
+import { resetSettingsCache } from "../hooks/useSettings";
 
 const TOKEN_KEY = "token";
 
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const restoreSession = async () => {
+      resetSettingsCache();
       // No token means there is no session to restore — skip the request so a
       // signed-out visitor never sends an unauthenticated call (and logs a 401).
       if (!getStoredToken()) {
@@ -50,14 +52,34 @@ export function AuthProvider({ children }) {
     restoreSession();
   }, []);
 
+  /**
+   * Signs in. Two-step accounts get `{ twoStepRequired, challengeId, email }`
+   * back instead of a session — call `completeTwoStepLogin` with the code.
+   */
   const login = useCallback(async (payload) => {
     const res = await api.post("/authors/login", payload);
+    const data = res.data.data;
+
+    if (data?.twoStepRequired) return data;
+
+    resetSettingsCache();
+    setStoredToken(data.token);
+    setAuthor(data.author);
+    return data;
+  }, []);
+
+  /** Second step of a two-step sign-in: exchange the emailed code for a session. */
+  const completeTwoStepLogin = useCallback(async ({ challengeId, otp }) => {
+    const res = await api.post("/authors/login/verify", { challengeId, otp });
+    resetSettingsCache();
     setStoredToken(res.data.data.token);
     setAuthor(res.data.data.author);
+    return res.data.data;
   }, []);
 
   const register = useCallback(async (payload) => {
     const res = await api.post("/authors/register", payload);
+    resetSettingsCache();
     setStoredToken(res.data.data.token);
     setAuthor(res.data.data.author);
   }, []);
@@ -66,6 +88,7 @@ export function AuthProvider({ children }) {
     try {
       await api.post("/authors/logout");
     } catch { /* token is cleared client-side */ }
+    resetSettingsCache();
     setStoredToken(null);
     setAuthor(null);
   }, []);
@@ -84,11 +107,20 @@ export function AuthProvider({ children }) {
       isAuthenticated: author !== null,
       isLoading,
       login,
+      completeTwoStepLogin,
       register,
       logout,
       updateProfile,
     }),
-    [author, isLoading, login, register, logout, updateProfile],
+    [
+      author,
+      isLoading,
+      login,
+      completeTwoStepLogin,
+      register,
+      logout,
+      updateProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

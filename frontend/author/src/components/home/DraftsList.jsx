@@ -2,9 +2,20 @@ import { useNavigate } from "react-router-dom";
 import { Icons } from "../../icons";
 
 /** Unpublished lifebooks with edit + delete. */
-export default function DraftsList({ books, onDelete, deletingId }) {
+export default function DraftsList({ books, onDelete, deletingId, loading = false }) {
   const navigate = useNavigate();
   const drafts = books.filter((b) => b.status !== "published");
+
+  if (loading) {
+    return (
+      <div className="mb-10" aria-busy="true">
+        <div className="h-4 w-24 rounded bg-muted" />
+        <div className="mt-3 space-y-2.5">
+          <div className="h-[68px] animate-pulse rounded-2xl border border-border/60 bg-card" />
+        </div>
+      </div>
+    );
+  }
 
   if (drafts.length === 0) return null;
 

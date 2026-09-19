@@ -9,11 +9,22 @@ const likeSchema = new mongoose.Schema(
       index: true,
     },
 
+    /**
+     * The account that liked the story. `userModel` names its collection and
+     * drives `refPath`, so readers, authors and experts can all like a story
+     * and the liker's details are populated on read rather than copied here.
+     */
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
       required: true,
       index: true,
+      refPath: "userModel",
+    },
+
+    userModel: {
+      type: String,
+      enum: ["User", "Author", "Expert"],
+      default: "User",
     },
   },
   {

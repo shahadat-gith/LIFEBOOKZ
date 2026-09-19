@@ -27,6 +27,7 @@ export default function LifebookTab({
   chapterRows,
   onAddChapter,
   onEditStory,
+  onDeleteStory,
   onChapterVisibility,
 }) {
   const [openIdx, setOpenIdx] = useState(null);
@@ -38,12 +39,9 @@ export default function LifebookTab({
         index={openIdx}
         onBack={() => setOpenIdx(null)}
         onEditStory={onEditStory}
+        onDeleteStory={onDeleteStory}
         onChangeVisibility={(vis) =>
-          onChapterVisibility(
-            chapterRows[openIdx].book.id || chapterRows[openIdx].book._id,
-            chapterRows[openIdx]._id || chapterRows[openIdx].id,
-            vis,
-          )
+          onChapterVisibility(chapterRows[openIdx].book, chapterRows[openIdx], vis)
         }
       />
     );
@@ -119,10 +117,31 @@ export default function LifebookTab({
 
 /* ───────────────── Chapter reader ───────────────── */
 
-function ChapterStoriesView({ chapter, index, onBack, onEditStory, onChangeVisibility }) {
+function ChapterStoriesView({
+  chapter,
+  index,
+  onBack,
+  onEditStory,
+  onDeleteStory,
+  onChangeVisibility,
+}) {
   const stories = chapter.stories || [];
   const [visOpen, setVisOpen] = useState(false);
+  // Removing a story asks for confirmation inline, so nothing is lost to a
+  // stray tap.
+  const [confirmId, setConfirmId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const visRef = useRef(null);
+
+  async function handleRemove(storyId) {
+    setDeletingId(storyId);
+    try {
+      await onDeleteStory(chapter.book, chapter, storyId);
+    } finally {
+      setDeletingId(null);
+      setConfirmId(null);
+    }
+  }
 
   useEffect(() => {
     function onDocClick(e) {
@@ -218,22 +237,7 @@ function ChapterStoriesView({ chapter, index, onBack, onEditStory, onChangeVisib
         </div>
       </div>
 
-      {chapter.media?.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-6">
-          {chapter.media.map((m, i) =>
-            m.type === "video" ? (
-              <video
-                key={i}
-                src={m.url}
-                controls
-                className="w-full h-28 rounded-xl object-cover bg-black"
-              />
-            ) : (
-              <img key={i} src={m.url} alt="" className="w-full h-28 rounded-xl object-cover" />
-            ),
-          )}
-        </div>
-      )}
+      <MediaGallery media={chapter.media} className="mb-6" heightClass="h-28" />
 
       {stories.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
@@ -242,9 +246,14 @@ function ChapterStoriesView({ chapter, index, onBack, onEditStory, onChangeVisib
         </div>
       ) : (
         <div className="space-y-4">
-          {stories.map((s, i) => (
+          {stories.map((s, i) => {
+            const storyId = s._id || s.id;
+            const confirming = confirmId === storyId;
+            const deleting = deletingId === storyId;
+
+            return (
             <article
-              key={s._id || s.id || i}
+              key={storyId || i}
               className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs"
             >
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -283,36 +292,111 @@ function ChapterStoriesView({ chapter, index, onBack, onEditStory, onChangeVisib
                 className="mt-2 text-sm text-foreground/90 leading-relaxed"
               />
 
-              {s.media?.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
-                  {s.media.map((m, mi) =>
-                    m.type === "video" ? (
-                      <video
-                        key={mi}
-                        src={m.url}
-                        controls
-                        className="w-full h-24 rounded-xl object-cover bg-black"
-                      />
-                    ) : (
-                      <img key={mi} src={m.url} alt="" className="w-full h-24 rounded-xl object-cover" />
-                    ),
-                  )}
-                </div>
-              )}
+              <MediaGallery media={s.media} className="mt-4" heightClass="h-24" />
 
-              <div className="mt-4 pt-4 border-t border-border/40">
+              <div className="mt-4 pt-4 border-t border-border/40 flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => onEditStory(chapter.book.id || chapter.book._id, s._id || s.id)}
+                  onClick={() => onEditStory(chapter.book, storyId)}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-accent transition-colors"
                 >
                   <Icons.edit className="h-3.5 w-3.5" />
                   Edit Story
                 </button>
+
+                {confirming ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-destructive">
+                      Remove this story?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(storyId)}
+                      disabled={deleting}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-destructive px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    >
+                      {deleting ? (
+                        <Icons.spinner className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Icons.trash className="h-3.5 w-3.5" />
+                      )}
+                      {deleting ? "Removing…" : "Yes, remove"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmId(null)}
+                      disabled={deleting}
+                      className="rounded-full border border-border/70 px-3.5 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+                    >
+                      Keep it
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(storyId)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive/80 hover:text-destructive transition-colors"
+                    title="Remove this story from the chapter"
+                  >
+                    <Icons.trash className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
+                )}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Chapter / story media.
+ *
+ * One photo or video spans the full width — it's the story's picture, not a
+ * thumbnail. Several fall back to a compact grid.
+ */
+function MediaGallery({ media, className = "", heightClass = "h-28" }) {
+  const items = media || [];
+  if (items.length === 0) return null;
+
+  const [only] = items;
+  if (items.length === 1) {
+    return only.type === "video" ? (
+      <video
+        src={only.url}
+        controls
+        className={`w-full max-h-[26rem] rounded-xl bg-black ${className}`}
+      />
+    ) : (
+      <img
+        src={only.url}
+        alt={only.caption || "Story media"}
+        className={`w-full max-h-[26rem] rounded-xl object-cover ${className}`}
+      />
+    );
+  }
+
+  return (
+    <div className={`grid grid-cols-3 sm:grid-cols-4 gap-2 ${className}`}>
+      {items.map((m, i) =>
+        m.type === "video" ? (
+          <video
+            key={i}
+            src={m.url}
+            controls
+            className={`w-full ${heightClass} rounded-xl object-cover bg-black`}
+          />
+        ) : (
+          <img
+            key={i}
+            src={m.url}
+            alt={m.caption || "Story media"}
+            className={`w-full ${heightClass} rounded-xl object-cover`}
+          />
+        ),
       )}
     </div>
   );

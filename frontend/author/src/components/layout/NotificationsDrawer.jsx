@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import toast from "react-hot-toast";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import { useNotifications, timeAgo } from "../../hooks/useNotifications";
@@ -43,6 +44,43 @@ export default function NotificationsDrawer({ open, onClose }) {
   // the drawer is open (everything gets marked read on open, like Facebook).
   const [badgeAtOpen, setBadgeAtOpen] = useState(0);
   const markedRef = useRef(false);
+
+  // Replying to a comment straight from its notification. Starts empty — the
+  // author writes the reply, nothing is pre-filled for them.
+  const [replyFor, setReplyFor] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
+  const [replied, setReplied] = useState({});
+  const replyInputRef = useRef(null);
+
+  function toggleReply(notification) {
+    const opening = replyFor !== notification.id;
+    setReplyFor(opening ? notification.id : null);
+    setReplyText("");
+    if (opening) setTimeout(() => replyInputRef.current?.focus(), 50);
+  }
+
+  async function submitReply(notification, event) {
+    event.preventDefault();
+    if (!replyText.trim() || replying) return;
+
+    setReplying(true);
+    try {
+      await api.post(`/stories/comments/${notification.commentId}/reply`, {
+        content: replyText.trim(),
+      });
+      setReplied((prev) => ({ ...prev, [notification.id]: true }));
+      setReplyFor(null);
+      setReplyText("");
+      toast.success("Reply posted");
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error?.message || "Couldn't post that reply.",
+      );
+    } finally {
+      setReplying(false);
+    }
+  }
 
   // Load (or reload) the list each time the drawer opens, then mark all read.
   useEffect(() => {
@@ -156,12 +194,13 @@ export default function NotificationsDrawer({ open, onClose }) {
                     return (
                       <div
                         key={n.id}
-                        className={`group relative flex w-full items-start gap-3.5 px-5 py-4 transition-colors ${
+                        className={`group relative flex w-full flex-col px-5 py-4 transition-colors ${
                           n.read
                             ? "hover:bg-muted/40"
                             : "bg-accent/[0.04] hover:bg-accent/[0.07]"
                         }`}
                       >
+                        <div className="flex w-full items-start gap-3.5">
                         <button
                           type="button"
                           onClick={() => handleClick(n)}
@@ -216,6 +255,58 @@ export default function NotificationsDrawer({ open, onClose }) {
                         >
                           <Icons.close className="h-3.5 w-3.5" />
                         </button>
+                        </div>
+
+                        {/*
+                          Comment notifications carry the comment they are
+                          about, so the story's author can reply without
+                          leaving the drawer. Only the story's owner ever
+                          receives these, and the API rejects anyone else.
+                        */}
+                        {n.type === "comment" && n.commentId && (
+                          <div className="mt-2 pl-[3.375rem]">
+                            {replied[n.id] ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-success">
+                                <Icons.check className="h-3.5 w-3.5" />
+                                Reply sent
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => toggleReply(n)}
+                                aria-expanded={replyFor === n.id}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border/70 px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
+                              >
+                                <Icons.chat className="h-3.5 w-3.5" />
+                                {replyFor === n.id ? "Cancel reply" : "Reply"}
+                              </button>
+                            )}
+
+                            {replyFor === n.id && (
+                              <form
+                                onSubmit={(e) => submitReply(n, e)}
+                                className="mt-2 flex items-center gap-2"
+                              >
+                                <input
+                                  ref={replyInputRef}
+                                  type="text"
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                  aria-label="Write a reply to this comment"
+                                  placeholder="Write a reply"
+                                  className="min-w-0 flex-1 rounded-lg border border-border/70 bg-background px-2.5 py-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={!replyText.trim() || replying}
+                                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
+                                >
+                                  {replying ? "Sending…" : "Send"}
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

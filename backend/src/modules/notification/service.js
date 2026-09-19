@@ -1,5 +1,6 @@
 import Notification from "./model.js";
 import mongoose from "mongoose";
+import { isNotificationAllowed } from "../author/settings.service.js";
 
 const isValidId = (v) => mongoose.isValidObjectId(v);
 
@@ -21,6 +22,7 @@ function normalizeRecipient(recipient) {
  * @param {String} [params.title]
  * @param {String} [params.preview]
  * @param {String} [params.link]      in-app route
+ * @param {String} [params.commentId] the comment this is about (comment type)
  */
 export async function createNotification({
   recipient,
@@ -29,9 +31,20 @@ export async function createNotification({
   title = "",
   preview = "",
   link = "",
+  commentId = null,
 }) {
   const rec = normalizeRecipient(recipient || {});
   if (!rec.id || !rec.model) return null;
+
+  // Respect the recipient's preferences — an author who turned off a
+  // category simply never gets a row created for it.
+  const allowed = await isNotificationAllowed({
+    recipientModel: rec.model,
+    recipientId: rec.id,
+    type,
+  });
+
+  if (!allowed) return null;
 
   const actorModel =
     actor?.id && ["User", "Author", "Expert"].includes(actor?.model)
@@ -51,6 +64,7 @@ export async function createNotification({
     title: String(title).slice(0, 120),
     preview: String(preview || "").slice(0, 300),
     link: String(link || ""),
+    commentId: isValidId(commentId) ? commentId : null,
   });
 
   return doc;

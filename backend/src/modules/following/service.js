@@ -1,18 +1,71 @@
 import Follow from "./model.js";
 import User from "../user/model.js";
 import Author from "../author/model.js";
+import Expert from "../expert/model.js";
 import { createNotification } from "../notification/service.js";
 import { NotFoundError, ValidationError } from "../../core/utils/errors.js";
 
 const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
+
+// Anyone with a LifeBookz account can follow an author.
+const FOLLOWER_MODELS = { User, Author, Expert };
+const FOLLOWER_ROLES = ["user", "author", "expert"];
+
+const ROLE_TO_MODEL = { user: "User", author: "Author", expert: "Expert" };
+
+// Rows created before `whoModel` existed were always readers.
+const followerModelOf = (follow) => follow?.whoModel || "User";
+
+/**
+ * Replaces each follow's `who` id with the actual account document, looking
+ * the ids up per collection (a plain populate cannot span several models).
+ */
+async function withFollowerAccounts(follows) {
+  const idsByModel = new Map();
+
+  for (const follow of follows) {
+    const model = followerModelOf(follow);
+    if (!idsByModel.has(model)) idsByModel.set(model, new Set());
+    idsByModel.get(model).add(String(follow.who));
+  }
+
+  const accounts = new Map();
+
+  await Promise.all(
+    [...idsByModel.entries()].map(async ([model, ids]) => {
+      const Model = FOLLOWER_MODELS[model];
+      if (!Model) return;
+
+      const people = await Model.find({ _id: { $in: [...ids] } })
+        .select("fullName username avatar profession")
+        .lean();
+
+      people.forEach((person) => {
+        accounts.set(`${model}:${person._id}`, person);
+      });
+    }),
+  );
+
+  return follows.map((follow) => {
+    const model = followerModelOf(follow);
+
+    return {
+      ...follow,
+      whoModel: model,
+      who: accounts.get(`${model}:${follow.who}`) || null,
+    };
+  });
+}
 
 /**
  * A reader (User) or another author (Author) follows an author; both
  * counters are bumped together on the follower's own model.
  */
 export async function followAuthor({ userId, role, authorId }) {
-  if (!role || !["user", "author"].includes(role)) {
-    throw new ValidationError("Only signed-in users and authors can follow authors.");
+  if (!role || !FOLLOWER_ROLES.includes(role)) {
+    throw new ValidationError(
+      "Only signed-in readers, authors and experts can follow authors.",
+    );
   }
   if (role === "author" && String(userId) === String(authorId)) {
     throw new ValidationError("You cannot follow yourself.");
@@ -28,10 +81,11 @@ export async function followAuthor({ userId, role, authorId }) {
     throw new ValidationError("Already following this author.");
   }
 
-  const followerModel = role === "author" ? Author : User;
+  const whoModel = ROLE_TO_MODEL[role] || "User";
+  const followerModel = FOLLOWER_MODELS[whoModel];
 
   await Promise.all([
-    Follow.create({ who: userId, whom: authorId }),
+    Follow.create({ who: userId, whoModel, whom: authorId }),
     followerModel.findByIdAndUpdate(userId, { $inc: { "stats.following": 1 } }),
     Author.findByIdAndUpdate(authorId, { $inc: { "stats.followers": 1 } }),
   ]);
@@ -46,7 +100,7 @@ export async function followAuthor({ userId, role, authorId }) {
     type: "follow",
     actor: {
       id: userId,
-      model: followerModel.modelName,
+      model: whoModel,
       name: follower?.fullName || "A reader",
     },
     preview: "started following you",
@@ -58,8 +112,10 @@ export async function followAuthor({ userId, role, authorId }) {
  * counters are decremented together on the follower's own model.
  */
 export async function unfollowAuthor({ userId, role, authorId }) {
-  if (!role || !["user", "author"].includes(role)) {
-    throw new ValidationError("Only signed-in users and authors can unfollow authors.");
+  if (!role || !FOLLOWER_ROLES.includes(role)) {
+    throw new ValidationError(
+      "Only signed-in readers, authors and experts can unfollow authors.",
+    );
   }
 
   const follow = await Follow.findOneAndDelete({ who: userId, whom: authorId });
@@ -68,7 +124,7 @@ export async function unfollowAuthor({ userId, role, authorId }) {
     throw new NotFoundError("You are not following this author.");
   }
 
-  const followerModel = role === "author" ? Author : User;
+  const followerModel = FOLLOWER_MODELS[ROLE_TO_MODEL[role] || "User"];
 
   await Promise.all([
     followerModel.findByIdAndUpdate(userId, { $inc: { "stats.following": -1 } }),
@@ -90,10 +146,11 @@ export async function isFollowing({ userId, authorId }) {
  * Everyone following an author.
  */
 export async function getFollowers({ authorId }) {
-  return Follow.find({ whom: authorId })
-    .populate("who", "fullName avatar")
+  const follows = await Follow.find({ whom: authorId })
     .sort({ createdAt: -1 })
     .lean();
+
+  return withFollowerAccounts(follows);
 }
 
 /**

@@ -4,6 +4,9 @@ import mongoose from "mongoose";
  * A reply written by the story's author. Replies are embedded on the
  * comment; only the owning story's author may create them (enforced in
  * the service layer).
+ *
+ * Only a reference is stored — the author's name and avatar are populated
+ * on read, so a reply never shows a stale profile picture.
  */
 const replySchema = new mongoose.Schema(
   {
@@ -12,10 +15,6 @@ const replySchema = new mongoose.Schema(
       ref: "Author",
       required: true,
     },
-
-    // Denormalized for cheap rendering.
-    fullName: { type: String, default: "", trim: true },
-    avatar: { type: String, default: "", trim: true },
 
     content: {
       type: String,
@@ -36,11 +35,22 @@ const commentSchema = new mongoose.Schema(
       index: true,
     },
 
+    /**
+     * The account that wrote the comment. `userModel` names its collection
+     * (readers, authors and experts can all comment) and drives `refPath`,
+     * so a plain populate returns the account's *current* name and avatar.
+     */
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
       required: true,
       index: true,
+      refPath: "userModel",
+    },
+
+    userModel: {
+      type: String,
+      enum: ["User", "Author", "Expert"],
+      default: "User",
     },
 
     content: {
@@ -58,7 +68,8 @@ const commentSchema = new mongoose.Schema(
     /**
      * Anyone signed in (user, author or expert) can like a comment.
      * `whoModel` distinguishes the account type; `who` alone drives the
-     * liked/not-liked check for the viewer.
+     * liked/not-liked check for the viewer. Names are never copied here —
+     * only the count is shown.
      */
     likes: [
       {

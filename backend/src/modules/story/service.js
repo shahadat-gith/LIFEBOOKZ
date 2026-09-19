@@ -3,11 +3,11 @@ import Like from "./models/Like.js";
 import Comment from "./models/Comment.js";
 import Follow from "../following/model.js";
 import Author from "../author/model.js";
-import User from "../user/model.js";
 import { createNotification, createNotificationsForMany } from "../notification/service.js";
 
 import { uploadStoryImage } from "../../core/services/upload.js";
 import { sanitizeHtml } from "../../core/utils/sanitizeHtml.js";
+import { getSettings } from "../author/settings.service.js";
 import {
   NotFoundError,
   ValidationError,
@@ -18,6 +18,8 @@ const AUTHOR_POPULATE =
   "fullName username avatar profession verification.status";
 
 const PUBLIC_VISIBILITIES = ["public"];
+
+const VISIBILITY_LEVELS = ["public", "followers", "private"];
 
 /** Upper bound on sanitized rich-text story content, in characters. */
 const MAX_CONTENT_LENGTH = 200000;
@@ -99,12 +101,15 @@ export async function createStory({ authorId, body, file }) {
   let chapters = parseMaybeJson(body.chapters) ?? [];
   if (!Array.isArray(chapters)) chapters = [];
 
-  const {
-    title = "",
-    visibility = "public",
-    language = "English",
-  } = body;
+  const { title = "", language = "English" } = body;
   const cleanTitle = title?.trim() || "";
+
+  // An explicit, valid visibility wins; otherwise the lifebook opens with the
+  // author's default (a preference they set in settings).
+  const authorSettings = await getSettings(authorId);
+  const visibility = VISIBILITY_LEVELS.includes(body.visibility)
+    ? body.visibility
+    : authorSettings.defaultVisibility;
 
   let coverImage = null;
   if (file) {
@@ -121,18 +126,20 @@ export async function createStory({ authorId, body, file }) {
     description: ch.description || "",
     coverImage: ch.coverImage || null,
     media: sanitizeMediaList(ch.media),
-    visibility: ["public", "followers", "private"].includes(ch.visibility)
+    visibility: VISIBILITY_LEVELS.includes(ch.visibility)
       ? ch.visibility
       : "private",
     stories: Array.isArray(ch.stories)
       ? ch.stories.map((s) => ({
           title: s.title || "",
           storyType: s.storyType || "experience",
-          content: s.content || "",
+          content: sanitizeHtml(s.content || ""),
           dateLabel: s.dateLabel || "",
           location: s.location || "",
           media: sanitizeMediaList(s.media),
-          visibility: s.visibility || null,
+          visibility: VISIBILITY_LEVELS.includes(s.visibility)
+            ? s.visibility
+            : null,
           status: s.status === "published" ? "published" : "draft",
         }))
       : [],
@@ -171,7 +178,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
         description: ch.description || "",
         coverImage: ch.coverImage || null,
         media: sanitizeMediaList(ch.media),
-        visibility: ["public", "followers", "private"].includes(ch.visibility)
+        visibility: VISIBILITY_LEVELS.includes(ch.visibility)
           ? ch.visibility
           : "private",
         stories: Array.isArray(ch.stories)
@@ -188,7 +195,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
               // "Inherit chapter visibility" is expressed as an empty value
               // by the client; the schema only accepts the three levels or
               // null, so anything else becomes null.
-              visibility: ["public", "followers", "private"].includes(
+              visibility: VISIBILITY_LEVELS.includes(
                 s.visibility,
               )
                 ? s.visibility
@@ -316,13 +323,13 @@ export async function getStoryDetail({ storyId, viewer }) {
     });
     likedByUser = Boolean(existingLike);
 
-    if (viewer.role === "user") {
-      const followExists = await Follow.findOne({
-        who: viewer.id,
-        whom: story.author?._id || story.author,
-      });
-      followingAuthor = Boolean(followExists);
-    }
+    // Anyone signed in can follow an author, so the follow state is checked
+    // for readers, authors and experts alike.
+    const followExists = await Follow.findOne({
+      who: viewer.id,
+      whom: story.author?._id || story.author,
+    });
+    followingAuthor = Boolean(followExists);
   }
 
   return { ...story, likedByUser, followingAuthor };
@@ -436,7 +443,7 @@ export async function listStories({ query: queryParams, viewer }) {
   const followingMap = {};
   const likedMap = {};
 
-  if (viewer?.id && viewer.role === "user" && stories.length) {
+  if (viewer?.id && stories.length) {
     const storyIds = stories.map((story) => story._id);
     const authorIds = stories
       .map((story) => story.author?._id)
@@ -494,7 +501,7 @@ export async function addChapter({ authorId, storyId, body }) {
     description: description || "",
     coverImage: coverImage || null,
     media: Array.isArray(media) ? media : [],
-    visibility: ["public", "followers", "private"].includes(visibility)
+    visibility: VISIBILITY_LEVELS.includes(visibility)
       ? visibility
       : "private",
     stories: [],
@@ -521,7 +528,7 @@ export async function updateChapter({ authorId, storyId, chapterId, body }) {
   if (coverImage !== undefined) chapter.coverImage = coverImage;
   if (media !== undefined) chapter.media = media;
   if (visibility !== undefined) {
-    if (!["public", "followers", "private"].includes(visibility)) {
+    if (!VISIBILITY_LEVELS.includes(visibility)) {
       throw new ValidationError("Invalid visibility value.");
     }
     chapter.visibility = visibility;
@@ -621,7 +628,7 @@ function sanitizeStoryInput(body = {}) {
     dateLabel: body.dateLabel || "",
     location: body.location || "",
     media: sanitizeMediaList(body.media),
-    visibility: ["public", "followers", "private"].includes(body.visibility)
+    visibility: VISIBILITY_LEVELS.includes(body.visibility)
       ? body.visibility
       : null,
   };
@@ -754,7 +761,7 @@ export async function publishStory({ authorId, storyId, body }) {
 
   // Optional visibility change at publish time
   if (body?.visibility) {
-    if (!["public", "followers", "private"].includes(body.visibility)) {
+    if (!VISIBILITY_LEVELS.includes(body.visibility)) {
       throw new ValidationError("Invalid visibility value.");
     }
     story.visibility = body.visibility;
@@ -776,12 +783,14 @@ export async function publishStory({ authorId, storyId, body }) {
   try {
     const [authorDoc, followers] = await Promise.all([
       Author.findById(story.author).select("fullName").lean(),
-      Follow.find({ whom: story.author }).select("who").lean(),
+      Follow.find({ whom: story.author }).select("who whoModel").lean(),
     ]);
 
     const authorName = authorDoc?.fullName || "An author";
+    // Followers can be readers, other authors or experts — notify each one
+    // through their own account model.
     const followersToNotify = (body?.visibility === "public" ? followers : [])
-      .map((f) => ({ id: f.who, model: "User" }));
+      .map((f) => ({ id: f.who, model: f.whoModel || "User" }));
 
     await createNotificationsForMany(followersToNotify, {
       type: "publish",
@@ -820,7 +829,17 @@ export async function unpublishStory({ authorId, storyId }) {
 
 /* ---------- Likes ---------- */
 
-export async function toggleLike({ storyId, userId }) {
+/**
+ * Like / unlike a story. Any signed-in account can like — the caller's
+ * collection and display name are recorded so the like renders correctly
+ * whatever kind of account it came from.
+ */
+export async function toggleLike({
+  storyId,
+  userId,
+  userModel = "User",
+  fullName = "A reader",
+}) {
   const story = await Story.findOne({
     _id: storyId,
     status: "published",
@@ -848,15 +867,13 @@ export async function toggleLike({ storyId, userId }) {
     return { liked: false };
   }
 
-  const userDoc = await User.findById(userId).select("fullName").lean();
-
   await Promise.all([
-    Like.create({ story: storyId, user: userId }),
+    Like.create({ story: storyId, user: userId, userModel }),
     Story.findByIdAndUpdate(storyId, {
       $inc: { "stats.likes": 1 },
       $push: {
         recentLikers: {
-          $each: [{ user: userId, fullName: userDoc?.fullName || "User" }],
+          $each: [{ user: userId, fullName }],
           $position: 0,
           $slice: 3,
         },
@@ -871,7 +888,7 @@ export async function toggleLike({ storyId, userId }) {
   createNotification({
     recipient: { id: story.author, model: "Author" },
     type: "like",
-    actor: { id: userId, model: "User", name: userDoc?.fullName || "A reader" },
+    actor: { id: userId, model: userModel, name: fullName },
     preview: "liked your lifebook",
     link: story.slug ? `/feed/story/${story.slug}` : "",
   });
@@ -888,7 +905,54 @@ export async function listLikes({ storyId }) {
 
 /* ---------- Comments ---------- */
 
-export async function createComment({ storyId, userId, content }) {
+/**
+ * Flatten a populated reply for rendering.
+ *
+ * Replies store only the author's id; the name and avatar are populated on
+ * every read, so a reply always carries the author's current profile — and
+ * the clients keep reading the same `fullName` / `avatar` fields.
+ */
+function shapeReply(reply) {
+  const author = reply.author && typeof reply.author === "object" ? reply.author : null;
+
+  return {
+    ...reply,
+    author: author?._id || reply.author,
+    fullName: author?.fullName || "Author",
+    avatar: author?.avatar?.url || "",
+  };
+}
+
+/** Populate every account reference on a comment, then flatten its replies. */
+function commentPopulate(query) {
+  return query
+    .populate("user", "fullName avatar")
+    .populate("replies.author", "fullName avatar");
+}
+
+/** Shape one comment (and its replies) for the clients. */
+function shapeComment(comment) {
+  return {
+    ...comment,
+    // Populate resolves through `refPath` for every account type; a guard
+    // keeps a malformed row from breaking the whole comment list.
+    user: comment.user || { _id: null, fullName: "A reader", avatar: { url: "" } },
+    replies: (comment.replies || []).map(shapeReply),
+  };
+}
+
+/**
+ * Comment on a story. Readers, authors and experts can all comment — the
+ * account type and a copy of the display name travel with the row.
+ */
+export async function createComment({
+  storyId,
+  userId,
+  userModel = "User",
+  // Used for the notification only — the comment itself stores just the id.
+  fullName = "A reader",
+  content,
+}) {
   if (!content?.trim()) {
     throw new ValidationError("Comment cannot be empty.");
   }
@@ -906,36 +970,41 @@ export async function createComment({ storyId, userId, content }) {
   const comment = await Comment.create({
     story: storyId,
     user: userId,
+    userModel,
     content: content.trim(),
   });
 
   // Notify the story's author (best-effort)
-  const [userDoc, storyAuthor] = await Promise.all([
-    User.findById(userId).select("fullName").lean(),
-    Story.findById(storyId).select("author slug").lean(),
-  ]);
+  const storyAuthor = await Story.findById(storyId).select("author slug").lean();
 
   createNotification({
     recipient: { id: storyAuthor?.author, model: "Author" },
     type: "comment",
-    actor: { id: userId, model: "User", name: userDoc?.fullName || "A reader" },
+    actor: { id: userId, model: userModel, name: fullName },
     preview: content.trim().slice(0, 200),
     link: storyAuthor?.slug ? `/feed/story/${storyAuthor.slug}` : "",
+    // Lets the author reply to this comment from the notification drawer.
+    commentId: comment._id,
   });
 
   await Story.findByIdAndUpdate(storyId, { $inc: { "stats.comments": 1 } });
 
-  return Comment.findById(comment.id)
-    .populate("user", "fullName avatar")
-    .lean();
+  const saved = await commentPopulate(Comment.findById(comment.id)).lean();
+
+  return shapeComment(saved);
 }
 
-export async function updateComment({ commentId, userId, content }) {
+export async function updateComment({
+  commentId,
+  userId,
+  userModel = "User",
+  content,
+}) {
   if (!content?.trim()) {
     throw new ValidationError("Comment cannot be empty.");
   }
 
-  const comment = await Comment.findOne({ _id: commentId, user: userId });
+  const comment = await Comment.findOne({ _id: commentId, user: userId, userModel });
 
   if (!comment) {
     throw new NotFoundError("Comment not found.");
@@ -949,8 +1018,8 @@ export async function updateComment({ commentId, userId, content }) {
   return comment;
 }
 
-export async function deleteComment({ commentId, userId }) {
-  const comment = await Comment.findOne({ _id: commentId, user: userId });
+export async function deleteComment({ commentId, userId, userModel = "User" }) {
+  const comment = await Comment.findOne({ _id: commentId, user: userId, userModel });
 
   if (!comment) {
     throw new NotFoundError("Comment not found.");
@@ -967,8 +1036,7 @@ export async function listComments({ storyId, page, limit, viewerId, viewerModel
   const safeLimit = Math.min(Number(limit) || 20, 50);
 
   const [comments, total] = await Promise.all([
-    Comment.find({ story: storyId })
-      .populate("user", "fullName avatar")
+    commentPopulate(Comment.find({ story: storyId }))
       .sort({ createdAt: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit)
@@ -981,7 +1049,7 @@ export async function listComments({ storyId, page, limit, viewerId, viewerModel
 
   return {
     comments: comments.map((c) => ({
-      ...c,
+      ...shapeComment(c),
       likeCount: c.likes?.length || 0,
       likedByMe:
         viewerIdStr && c.likes
@@ -1030,7 +1098,7 @@ export async function toggleCommentLike({ commentId, whoId, whoModel }) {
 /**
  * Reply to a comment — story author only (route + ownership both enforced).
  */
-export async function replyToComment({ commentId, authorId, fullName, avatar, content }) {
+export async function replyToComment({ commentId, authorId, content }) {
   if (!content?.trim()) {
     throw new ValidationError("Reply cannot be empty.");
   }
@@ -1050,17 +1118,17 @@ export async function replyToComment({ commentId, authorId, fullName, avatar, co
     );
   }
 
-  comment.replies.push({
-    author: authorId,
-    fullName: fullName || "Author",
-    avatar: avatar || "",
-    content: content.trim(),
-  });
+  comment.replies.push({ author: authorId, content: content.trim() });
 
   await comment.save();
 
-  const reply = comment.replies[comment.replies.length - 1];
-  return reply;
+  // Re-read so the reply carries the author's current name and avatar.
+  const saved = await commentPopulate(
+    Comment.findById(commentId).select("replies"),
+  ).lean();
+
+  const replies = saved?.replies || [];
+  return shapeReply(replies[replies.length - 1]);
 }
 
 /* ---------- Search helpers (used by the search module) ---------- */

@@ -30,6 +30,7 @@ function extractToken(req) {
   return null;
 }
 
+
 function verifyToken(token) {
   try {
     return jwt.verify(token, config.jwt.secret);
@@ -129,6 +130,33 @@ export async function authenticate(req, _res, next) {
   } catch (error) {
     return next(error);
   }
+}
+
+/**
+ * Optional authentication for public read routes.
+ *
+ * Reading a story is public, but a signed-in caller must still be
+ * personalised: did I already like this story, do I follow this author, have
+ * I liked this comment. A missing, expired or invalid token is not an error
+ * here — the request simply continues as an anonymous reader.
+ */
+export async function optionalAuthenticate(req, _res, next) {
+  const token = extractToken(req);
+
+  if (!token) return next();
+
+  try {
+    const decoded = verifyToken(token);
+
+    if (ACCOUNT_ROLES[decoded.role]) {
+      req.user = await loadAccount(decoded.role, decoded);
+      req.role = decoded.role;
+    }
+  } catch {
+    // Treated as an anonymous reader.
+  }
+
+  return next();
 }
 
 /**

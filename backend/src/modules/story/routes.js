@@ -4,6 +4,7 @@ import upload from "../../core/middlewares/multer.js";
 import {
   authenticate,
   authorize,
+  optionalAuthenticate,
   requireProfileComplete,
 } from "../../core/middlewares/auth.js";
 import * as story from "./controller.js";
@@ -15,7 +16,9 @@ const router = Router();
 // authors can write, upload media and manage drafts while pending; only
 // publishing is gated further (profile completion).
 const authorOnly = [authenticate, authorize("author")];
-const userOnly = [authenticate, authorize("user")];
+// Any signed-in account can read along: liking, commenting and sharing a
+// story are reader actions, and authors read each other's lifebooks too.
+const anyAccount = [authenticate, authorize("user", "author", "expert")];
 
 /* ---------- Stories ---------- */
 
@@ -36,11 +39,13 @@ router.post("/media/presign", authorOnly, media.presignMediaUpload);
 router.delete("/media", authorOnly, media.deleteMedia);
 
 // Reading is public — anyone can browse the feed and read published stories.
-router.get("/", story.list);
+// Optional auth personalises them for a signed-in caller (liked, following)
+// without ever blocking an anonymous one.
+router.get("/", optionalAuthenticate, story.list);
 
 router.get("/drafts", authorOnly, story.getDrafts);
 
-router.get("/:storyId", story.getStory);
+router.get("/:storyId", optionalAuthenticate, story.getStory);
 router.patch(
   "/:storyId",
   authorOnly,
@@ -95,14 +100,15 @@ router.delete(
 
 /* ---------- Likes ---------- */
 
-router.post("/:storyId/like", userOnly, story.toggleLike);
+router.post("/:storyId/like", anyAccount, story.toggleLike);
 
 /* ---------- Comments ---------- */
 
-// Comments are publicly readable
-router.get("/:storyId/comments", story.getComments);
+// Comments are publicly readable (optionally personalised for signed-in
+// callers: likedByMe, own comments)
+router.get("/:storyId/comments", optionalAuthenticate, story.getComments);
 
-router.post("/:storyId/comments", userOnly, story.createComment);
+router.post("/:storyId/comments", anyAccount, story.createComment);
 
 // Comment likes — any signed-in account (user, author or expert)
 router.post(
@@ -120,8 +126,8 @@ router.post(
   story.replyToComment,
 );
 
-router.patch("/comments/:commentId", userOnly, story.updateComment);
+router.patch("/comments/:commentId", anyAccount, story.updateComment);
 
-router.delete("/comments/:commentId", userOnly, story.deleteComment);
+router.delete("/comments/:commentId", anyAccount, story.deleteComment);
 
 export default router;

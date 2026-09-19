@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import useSettings, { SETTINGS_DEFAULTS } from "../hooks/useSettings";
 import * as storyApi from "../utils/client";
 import LoadingScreen from "../components/common/LoadingScreen";
 import { WizardShell, PrimaryButton } from "../components/story/WizardShell";
@@ -34,13 +35,13 @@ function emptyStory() {
   };
 }
 
-function emptyChapter(idx = 0) {
+function emptyChapter(defaultVisibility = "public") {
   return {
     title: "",
     description: "",
     coverImage: null,
     media: [],
-    visibility: "public",
+    visibility: defaultVisibility,
     stories: [],
   };
 }
@@ -57,6 +58,9 @@ export default function StoryEditorPage() {
   // ?publish=1 → returned from completing the profile; resume publishing
   const wantsPublish = searchParams.get("publish") === "1";
   const { author, isLoading: authLoading } = useAuth();
+  // Preferences load on demand and fall back to the defaults while they do.
+  const { settings: storedSettings } = useSettings();
+  const settings = storedSettings || SETTINGS_DEFAULTS;
   const navigate = useNavigate();
 
   const isEditMode = Boolean(storyId);
@@ -67,7 +71,9 @@ export default function StoryEditorPage() {
   // Lifebook-level state
   const [lifebookId, setLifebookId] = useState(storyId || null);
   const [lifebookTitle, setLifebookTitle] = useState("");
-  const [lifebookVisibility, setLifebookVisibility] = useState("public");
+  const [lifebookVisibility, setLifebookVisibility] = useState(
+    settings?.defaultVisibility || "public",
+  );
   const [coverImage, setCoverImage] = useState(null);
   // Whether we've already tried adopting the author's existing lifebook
   // when starting /stories/new (so every story lands in ONE lifebook,
@@ -180,6 +186,37 @@ export default function StoryEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [author, adoptTried, isEditMode]);
 
+  // New stories start with the author's preferred visibility (settings page).
+  // Edit mode keeps whatever the lifebook already has.
+  useEffect(() => {
+    if (isEditMode || !settings?.defaultVisibility) return;
+
+    setLifebookVisibility(settings.defaultVisibility);
+    setDraft((d) => (d.visibility ? d : { ...d, visibility: settings.defaultVisibility }));
+  }, [isEditMode, settings?.defaultVisibility]);
+
+  // Autosave (settings.autosave): saves the draft a couple of seconds after
+  // typing stops, so a closed tab never loses work. Skipped when the feature
+  // is off, before the author has written anything, and once published.
+  const lastAutosaveRef = useRef("");
+
+  useEffect(() => {
+    if (!settings?.autosave || phase < 3) return;
+    if (!draft.title?.trim() && !draft.content?.trim()) return;
+    if (draft.status === "published") return;
+
+    const signature = `${draft.id || ""}|${draft.title || ""}|${draft.content || ""}`;
+    if (lastAutosaveRef.current === signature) return;
+
+    const timer = setTimeout(() => {
+      lastAutosaveRef.current = signature;
+      handleSaveDraft();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.autosave, phase, draft.id, draft.title, draft.content, draft.status]);
+
   const activeChapter = useMemo(
     () => chapters[selectedChapterIdx] || null,
     [chapters, selectedChapterIdx],
@@ -190,7 +227,8 @@ export default function StoryEditorPage() {
    * title + description; custom chapters get a generic title.
    */
   function makeChapter(title, hint) {
-    const ch = emptyChapter();
+    // New chapters start with the author's preferred visibility (Settings).
+    const ch = emptyChapter(settings?.defaultVisibility || "public");
     ch.title = title || `Chapter ${(chapters?.length || 0) + 1}`;
     ch.description = hint || "";
     return ch;
@@ -448,6 +486,7 @@ export default function StoryEditorPage() {
         <WriteStoryStep
           story={draft}
           onChange={setDraft}
+          showWordCount={settings?.showWordCount !== false}
           onContinue={() => setPhase(5)}
           onBack={() => setPhase(3)}
         />
