@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Icons } from "../../icons";
+import RichText from "../common/RichText";
 
 const TYPE_BADGE = {
   memory: "bg-rose-500/10 text-rose-600",
@@ -277,9 +278,10 @@ function ChapterStoriesView({ chapter, index, onBack, onEditStory, onChangeVisib
                 {s.title || "Untitled"}
               </h3>
 
-              <p className="mt-2 text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-                {s.content}
-              </p>
+              <RichText
+                content={s.content}
+                className="mt-2 text-sm text-foreground/90 leading-relaxed"
+              />
 
               {s.media?.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">

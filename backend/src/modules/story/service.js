@@ -7,6 +7,7 @@ import User from "../user/model.js";
 import { createNotification, createNotificationsForMany } from "../notification/service.js";
 
 import { uploadStoryImage } from "../../core/services/upload.js";
+import { sanitizeHtml } from "../../core/utils/sanitizeHtml.js";
 import {
   NotFoundError,
   ValidationError,
@@ -17,6 +18,9 @@ const AUTHOR_POPULATE =
   "fullName username avatar profession verification.status";
 
 const PUBLIC_VISIBILITIES = ["public"];
+
+/** Upper bound on sanitized rich-text story content, in characters. */
+const MAX_CONTENT_LENGTH = 200000;
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&");
@@ -175,11 +179,20 @@ export async function updateStory({ authorId, storyId, body, file }) {
               ...(s._id ? { _id: s._id } : {}),
               title: s.title || "",
               storyType: s.storyType || "experience",
-              content: s.content || "",
+              // Rich-text content is sanitized on this path too — the
+              // wizard saves the whole lifebook in one PATCH.
+              content: sanitizeHtml(s.content || ""),
               dateLabel: s.dateLabel || "",
               location: s.location || "",
               media: sanitizeMediaList(s.media),
-              visibility: s.visibility ?? null,
+              // "Inherit chapter visibility" is expressed as an empty value
+              // by the client; the schema only accepts the three levels or
+              // null, so anything else becomes null.
+              visibility: ["public", "followers", "private"].includes(
+                s.visibility,
+              )
+                ? s.visibility
+                : null,
               status: s.status === "published" ? "published" : "draft",
             }))
           : [],
@@ -595,10 +608,16 @@ function sanitizeStoryInput(body = {}) {
     throw new ValidationError(errors.join(" "));
   }
 
+  // Story content is authored rich text — sanitize before it is stored.
+  const content = sanitizeHtml(body.content || "");
+  if (content.length > MAX_CONTENT_LENGTH) {
+    throw new ValidationError("Story content is too long.");
+  }
+
   return {
     title: String(body.title).trim(),
     storyType,
-    content: body.content || "",
+    content,
     dateLabel: body.dateLabel || "",
     location: body.location || "",
     media: sanitizeMediaList(body.media),

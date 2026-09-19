@@ -1,4 +1,5 @@
 import { Icons } from "../../icons";
+import { richTextToPlain } from "../../utils/richText";
 
 const TYPE_BADGE = {
   memory: "bg-rose-500/10 text-rose-600",
@@ -38,7 +39,7 @@ export default function StoriesTab({ chapterRows, empty }) {
           </div>
           <h3 className="font-semibold text-foreground">{s.title || "Untitled"}</h3>
           <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-            {s.content || "No content yet."}
+            {richTextToPlain(s.content) || "No content yet."}
           </p>
         </div>
       ))}

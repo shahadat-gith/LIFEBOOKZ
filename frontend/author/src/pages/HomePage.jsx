@@ -99,7 +99,7 @@ export default function HomePage() {
       label: "Add Memories",
       icon: Icons.camera,
       tint: "bg-green-50 text-success",
-      onClick: () => navigate("/my-lifebook"),
+      onClick: () => navigate("/profile"),
     },
     {
       label: "Create Chapter",

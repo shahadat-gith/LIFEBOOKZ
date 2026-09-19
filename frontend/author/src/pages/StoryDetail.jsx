@@ -5,6 +5,7 @@ import api from "../config/api";
 import Avatar from "../components/ui/Avatar";
 import CommentSection from "../components/story/CommentSection";
 import FollowAuthorButton from "../components/story/FollowAuthorButton";
+import RichText from "../components/common/RichText";
 import { Icons } from "../icons";
 
 /**
@@ -240,9 +241,10 @@ export default function StoryDetail() {
                       {entry.title}
                     </h3>
 
-                    <p className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-line">
-                      {entry.content}
-                    </p>
+                    <RichText
+                      content={entry.content}
+                      className="text-[15px] leading-relaxed text-foreground/90"
+                    />
 
                     {entry.media?.length > 0 && (
                       <div className="mt-4">

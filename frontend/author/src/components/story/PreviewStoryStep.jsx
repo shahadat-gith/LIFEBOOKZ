@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Icons } from "../../icons";
 import { WizardShell } from "./WizardShell";
 import Avatar from "../ui/Avatar";
+import RichText from "../common/RichText";
+import { richTextToPlain } from "../../utils/richText";
 import { useAuth } from "../../context/AuthContext";
 
 const TYPE_LABELS = {
@@ -23,10 +25,7 @@ export default function PreviewStoryStep({
   const { author } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
-  const content = story.content || "";
-  const excerpt = content.length > 320 && !expanded
-    ? content.slice(0, 320)
-    : content;
+  const isLong = richTextToPlain(story.content).length > 320;
   const images = (story.media || []).filter((m) => m.type === "image");
   const cover =
     images[0]?.url ||
@@ -102,11 +101,13 @@ export default function PreviewStoryStep({
           </span>
 
           {/* Content */}
-          <p className="mt-3 text-[15px] leading-relaxed text-foreground whitespace-pre-line">
-            {excerpt}
-            {!expanded && content.length > 320 && "…"}
-          </p>
-          {content.length > 320 && (
+          <RichText
+            content={story.content}
+            className={`mt-3 text-[15px] leading-relaxed text-foreground ${
+              !expanded && isLong ? "line-clamp-6" : ""
+            }`}
+          />
+          {isLong && (
             <button
               type="button"
               onClick={() => setExpanded((e) => !e)}

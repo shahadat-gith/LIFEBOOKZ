@@ -4,13 +4,13 @@ import { Icons } from "../../icons";
 const TABS = [
   { to: "/", end: true, label: "Home", Icon: Icons.home },
   { to: "/feed", label: "Feed", Icon: Icons.document },
-  { to: "/my-lifebook", label: "My Lifebook", Icon: Icons.book },
+  { to: "/settings", label: "Settings", Icon: Icons.settings },
   { to: "/profile", label: "Profile", Icon: Icons.user },
 ];
 
 /**
  * Mobile-only bottom tab bar:
- *  Home · Feed · (+) · My Lifebook · Profile
+ *  Home · Feed · (+) · Settings · Profile
  * Built on a strict 5-column grid so the center + button sits exactly
  * in the middle; it floats above the bar as the primary write action.
  */

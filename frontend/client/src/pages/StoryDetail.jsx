@@ -7,6 +7,7 @@ import Avatar from "../components/ui/Avatar";
 import CommentSection from "../components/story/CommentSection";
 import FollowButton from "../components/story/FollowButton";
 import StoryDetailSkeleton from "../components/skeletons/StoryDetailSkeleton";
+import RichText from "../components/common/RichText";
 import { Icons } from "../icons";
 import { getTimeAgo, formatLikesCaption } from "../utils/helpers";
 import toast from "react-hot-toast";
@@ -333,9 +334,10 @@ export default function StoryDetailPage() {
                         {entry.title}
                       </h3>
 
-                      <p className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-line">
-                        {entry.content}
-                      </p>
+                      <RichText
+                        content={entry.content}
+                        className="text-[15px] leading-relaxed text-foreground/90"
+                      />
 
                       {entry.media?.length > 0 && (
                         <div className="mt-4">

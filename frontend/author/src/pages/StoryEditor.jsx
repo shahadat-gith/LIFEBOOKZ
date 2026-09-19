@@ -27,7 +27,9 @@ function emptyStory() {
     dateLabel: "",
     location: "",
     media: [],
-    visibility: "",
+    // null = inherit the chapter's visibility. Never an empty string:
+    // the API only accepts the three levels or null.
+    visibility: null,
     status: "draft",
   };
 }
@@ -416,7 +418,7 @@ export default function StoryEditorPage() {
           onCreateNew={createNewChapter}
           onBack={() => {
             handleSaveDraft();
-            navigate("/my-lifebook");
+            navigate("/profile");
           }}
         />
       );
@@ -505,8 +507,8 @@ export default function StoryEditorPage() {
             setDraft(emptyStory());
             setPhase(1);
           }}
-          onGoLifebook={() => navigate("/my-lifebook")}
-          onBack={() => navigate("/my-lifebook")}
+          onGoLifebook={() => navigate("/profile")}
+          onBack={() => navigate("/profile")}
         />
       );
 

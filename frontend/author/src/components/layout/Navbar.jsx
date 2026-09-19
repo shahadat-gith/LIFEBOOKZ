@@ -26,7 +26,7 @@ export function Navbar() {
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
     { to: "/feed", label: "Feed", icon: <Icons.document className="h-4 w-4" /> },
-    { to: "/my-lifebook", label: "My Lifebook", icon: <Icons.book className="h-4 w-4" /> },
+    { to: "/settings", label: "Settings", icon: <Icons.settings className="h-4 w-4" /> },
     ...(canWrite
       ? [
           {
@@ -148,8 +148,8 @@ export function Navbar() {
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       >
-                        <Icons.settings className="h-4 w-4 text-muted-foreground" />
-                        Account Settings
+                        <Icons.user className="h-4 w-4 text-muted-foreground" />
+                        My Profile
                       </Link>
 
                       <button
