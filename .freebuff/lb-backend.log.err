@@ -1,0 +1,12 @@
+[WARN] GET /api/v1/authors/me/settings → 404 (NOT_FOUND) {
+  method: 'GET',
+  path: '/api/v1/authors/me/settings',
+  statusCode: 404,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'NOT_FOUND',
+  message: 'Route not found.'
+}

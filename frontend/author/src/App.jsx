@@ -8,13 +8,13 @@ import LoadingScreen from './components/common/LoadingScreen';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const Feed = lazy(() => import('./pages/Feed'));
+const StoryDashboard = lazy(() => import('./pages/StoryDashboard'));
 const StoryDetail = lazy(() => import('./pages/StoryDetail'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
-const Settings = lazy(() => import('./pages/Settings'));
 const StoryEditor = lazy(() => import('./pages/StoryEditor'));
 
 function LazyFallback() { return <LoadingScreen message="Loading..." />; }
@@ -43,11 +43,11 @@ export default function App() {
        {/* legacy alias */}
        <Route path="/dashboard" element={<Navigate to="/" replace />} />
        <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+       <Route path="/my-stories" element={<ProtectedRoute><StoryDashboard /></ProtectedRoute>} />
        <Route path="/feed/story/:slug" element={<ProtectedRoute><StoryDetail /></ProtectedRoute>} />
        <Route path="/stories/new" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/stories/:storyId/edit" element={<ProtectedRoute><StoryEditor /></ProtectedRoute>} />
        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
        {/* Profile edit / completion is a full page (cropping needs the room) */}
        <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
       </Route>

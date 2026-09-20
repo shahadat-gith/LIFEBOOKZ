@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 
 import { Icons } from "../../icons";
-import { useAuth } from "../../context/AuthContext";
 import {
   CONTRIBUTOR_PORTALS,
   STAFF_PORTALS,
@@ -51,12 +49,9 @@ function GroupLabel({ children }) {
  * Account / workspace switcher.
  *
  * Sits in the navbar's top-right action cluster (where "Join as Author" used
- * to be) and links out to the other LifeBookz portals plus account settings.
+ * to be) and links out to the other LifeBookz portals.
  */
 export function PortalMenu() {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -87,7 +82,7 @@ export function PortalMenu() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        aria-label="Portals and account settings"
+        aria-label="Other LifeBookz portals"
         className="flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 text-muted-foreground shadow-xs transition-all duration-200 hover:border-primary/25 hover:text-primary active:scale-95 sm:h-10 sm:px-3"
       >
         <Icons.globe className="h-[18px] w-[18px]" />
@@ -111,27 +106,6 @@ export function PortalMenu() {
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-border/80 bg-card p-1.5 shadow-xl backdrop-blur-xl"
           >
-            {isAuthenticated && (
-              <>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setIsOpen(false);
-                    navigate("/settings");
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground/80 transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  {Icons.settings && (
-                    <Icons.settings className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span>Settings</span>
-                </button>
-
-                <div className="my-1 border-t border-border/40" />
-              </>
-            )}
-
             <GroupLabel>Contribute</GroupLabel>
             {CONTRIBUTOR_PORTALS.map((portal) => (
               <PortalRow

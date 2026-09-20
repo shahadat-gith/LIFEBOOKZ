@@ -20,22 +20,16 @@ export function Navbar() {
 
   const isA = (p) => loc.pathname === p;
 
-  // Writing requires a completed profile (the API enforces the same rule).
-  const canWrite = !!author?.isProfileCompleted;
-
+  // No "Write" entry here on purpose — starting a story is already offered on
+  // Home, My Stories and Profile, plus the bottom bar's + action.
   const links = [
     { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
     { to: "/feed", label: "Feed", icon: <Icons.document className="h-4 w-4" /> },
-    { to: "/settings", label: "Settings", icon: <Icons.settings className="h-4 w-4" /> },
-    ...(canWrite
-      ? [
-          {
-            to: "/stories/new",
-            label: "Write",
-            icon: <Icons.edit className="h-4 w-4" />,
-          },
-        ]
-      : []),
+    {
+      to: "/my-stories",
+      label: "My Stories",
+      icon: <Icons.book className="h-4 w-4" />,
+    },
   ];
 
   // Close dropdown on outside click
@@ -53,14 +47,18 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between md:h-[4.5rem]">
-          {/* Brand Logo + tagline */}
-          <Link to={isAuthenticated ? "/" : "/login"} className="group flex flex-col">
-            <span className="font-display text-xl md:text-2xl font-bold tracking-tight text-foreground leading-none">
-              LIFEBOOK<span className="text-accent">Z</span>
-            </span>
-            <span className="hidden sm:block text-[11px] text-muted-foreground mt-0.5">
-              The Story of My Life.
-            </span>
+          {/* Brand — the logo lockup already carries the name, so the tagline
+              is the only text left beside it. */}
+          <Link
+            to={isAuthenticated ? "/" : "/login"}
+            className="group flex shrink-0 items-center gap-3"
+            aria-label="LifeBookz — Home"
+          >
+            <img
+              src="/logo.png"
+              alt="LifeBookz"
+              className="h-10 w-auto shrink-0 sm:h-11"
+            />
           </Link>
 
           {/* Desktop: navigation lives in the profile dropdown; mobile:
@@ -151,18 +149,6 @@ export function Navbar() {
                         <Icons.user className="h-4 w-4 text-muted-foreground" />
                         My Profile
                       </Link>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          setNotifOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                      >
-                        <Icons.bell className="h-4 w-4 text-muted-foreground" />
-                        Notifications
-                      </button>
 
                       <hr className="my-1 border-border/50" />
 

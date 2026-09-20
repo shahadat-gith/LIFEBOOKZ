@@ -1,6 +1,5 @@
 import Notification from "./model.js";
 import mongoose from "mongoose";
-import { isNotificationAllowed } from "../author/settings.service.js";
 
 const isValidId = (v) => mongoose.isValidObjectId(v);
 
@@ -18,7 +17,7 @@ function normalizeRecipient(recipient) {
  * @param {Object} params
  * @param {Object} params.recipient   { id, model: "User"|"Author"|"Expert" }
  * @param {String} params.type        one of NOTIFICATION_TYPES
- * @param {Object} [params.actor]     { id, model, name, avatar } — optional for system
+ * @param {Object} [params.actor]     { id, model } — optional for system
  * @param {String} [params.title]
  * @param {String} [params.preview]
  * @param {String} [params.link]      in-app route
@@ -36,16 +35,6 @@ export async function createNotification({
   const rec = normalizeRecipient(recipient || {});
   if (!rec.id || !rec.model) return null;
 
-  // Respect the recipient's preferences — an author who turned off a
-  // category simply never gets a row created for it.
-  const allowed = await isNotificationAllowed({
-    recipientModel: rec.model,
-    recipientId: rec.id,
-    type,
-  });
-
-  if (!allowed) return null;
-
   const actorModel =
     actor?.id && ["User", "Author", "Expert"].includes(actor?.model)
       ? actor.model
@@ -59,8 +48,6 @@ export async function createNotification({
     type,
     actor: actor?.id && actor?.model ? actor.id : null,
     actorModel: actor?.id && actor?.model ? actorModel : "System",
-    actorName: actor?.name?.trim() || "",
-    actorAvatar: actor?.avatar || "",
     title: String(title).slice(0, 120),
     preview: String(preview || "").slice(0, 300),
     link: String(link || ""),
@@ -117,6 +104,9 @@ export async function listNotifications({
   }
 
   const items = await Notification.find(query)
+    // The actor's name and picture come straight from the account that
+    // triggered this, so a changed profile picture shows up on old rows too.
+    .populate("actor", "fullName avatar")
     .sort({ createdAt: -1 })
     .limit(Math.min(Number(limit) || 20, 50))
     .lean();
@@ -127,13 +117,34 @@ export async function listNotifications({
       : null;
 
   return {
-    items: items.map((n) => ({
-      ...n,
-      id: n._id,
-      actor: n.actor
-        ? { id: n.actor, name: n.actorName, avatar: n.actorAvatar }
-        : null,
-    })),
+    items: items.map((n) => {
+      // `actor` is populated from its own collection (User, Author or
+      // Expert). A reference whose account was deleted stays an ObjectId, so
+      // it is only treated as an actor when it actually resolved.
+      const actor =
+        n.actor && typeof n.actor === "object" && n.actor.fullName !== undefined
+          ? n.actor
+          : null;
+
+      // Rows written before the actor was populated still carry the
+      // denormalized copies; drop them so the API only ever reports the
+      // actor resolved from its own account.
+      const rest = { ...n };
+      delete rest.actorName;
+      delete rest.actorAvatar;
+
+      return {
+        ...rest,
+        id: n._id,
+        actor: actor
+          ? {
+              id: actor._id,
+              name: actor.fullName || "",
+              avatar: actor.avatar?.url ? { url: actor.avatar.url } : null,
+            }
+          : null,
+      };
+    }),
     nextBefore,
   };
 }

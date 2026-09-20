@@ -145,7 +145,7 @@ export default function NotificationsDrawer({ open, onClose }) {
                   {items.map((n) => {
                     const style = TYPE_STYLES[n.type] || TYPE_STYLES.system;
                     const Icon = style.icon;
-                    const actorName = n.actor?.name || n.actorName || "Lifebookz";
+                    const actorName = n.actor?.name || "Lifebookz";
 
                     return (
                       <div
@@ -161,9 +161,9 @@ export default function NotificationsDrawer({ open, onClose }) {
                           onClick={() => handleClick(n)}
                           className="flex min-w-0 flex-1 items-start gap-3.5 text-left"
                         >
-                          {n.actor?.avatar?.url || n.actorAvatar ? (
+                          {n.actor?.avatar?.url ? (
                             <Avatar
-                              src={n.actor?.avatar?.url || n.actorAvatar}
+                              src={n.actor.avatar.url}
                               name={actorName}
                               size="sm"
                               className="mt-0.5 shrink-0 ring-2 ring-border/50"

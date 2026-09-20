@@ -4,7 +4,6 @@ import upload from "../../core/middlewares/multer.js";
 import { authenticate, authorize } from "../../core/middlewares/auth.js";
 
 import * as author from "./controller.js";
-import * as settings from "./settings.controller.js";
 
 const router = Router();
 
@@ -13,9 +12,6 @@ const router = Router();
 router.post("/register", upload.single("avatar"), author.register);
 
 router.post("/login", author.login);
-
-// Second step of a two-step sign-in (only when the author enabled it).
-router.post("/login/verify", author.verifyLoginOtp);
 
 /* ---------- Self-service (author role — pending authors included) ---------- */
 
@@ -40,12 +36,6 @@ router.get("/me/stats", authenticate, authorize("author"), author.getMyStats);ro
   authorize("author"),
   author.getMyStory,
 );
-
-/* ---------- Preferences ---------- */
-
-router.get("/me/settings", authenticate, authorize("author"), settings.getMe);
-
-router.patch("/me/settings", authenticate, authorize("author"), settings.updateMe);
 
 /* ---------- Password Reset ---------- */
 

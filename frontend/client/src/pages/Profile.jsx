@@ -386,15 +386,6 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="shrink-0 pb-1">
-              <Link
-                to="/settings"
-                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-              >
-                <Icons.settings className="h-3.5 w-3.5" />
-                Settings
-              </Link>
-            </div>
           </div>
         </section>
 
@@ -655,12 +646,6 @@ export default function Profile() {
               icon={Icons.search}
               label="Find an Expert"
               description="Get matched with the right consultant."
-            />
-            <QuickLink
-              to="/settings"
-              icon={Icons.settings}
-              label="Settings"
-              description="Account, password and portal access."
             />
           </section>
         </div>

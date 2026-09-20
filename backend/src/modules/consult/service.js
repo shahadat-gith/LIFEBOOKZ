@@ -133,7 +133,7 @@ export async function createBooking({ user, input }) {
   createNotification({
     recipient: { id: expert._id, model: "Expert" },
     type: "booking",
-    actor: { id: user.id, model: "User", name: user.fullName || "A client" },
+    actor: { id: user.id, model: "User" },
     title: "New consultation request",
     preview: `${user.fullName || "A client"} requested a ${sessionType || "video"} session.`,
   });

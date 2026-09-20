@@ -7,7 +7,6 @@ import { createNotification, createNotificationsForMany } from "../notification/
 
 import { uploadStoryImage } from "../../core/services/upload.js";
 import { sanitizeHtml } from "../../core/utils/sanitizeHtml.js";
-import { getSettings } from "../author/settings.service.js";
 import {
   NotFoundError,
   ValidationError,
@@ -104,12 +103,10 @@ export async function createStory({ authorId, body, file }) {
   const { title = "", language = "English" } = body;
   const cleanTitle = title?.trim() || "";
 
-  // An explicit, valid visibility wins; otherwise the lifebook opens with the
-  // author's default (a preference they set in settings).
-  const authorSettings = await getSettings(authorId);
+  // An explicit, valid visibility wins; otherwise the lifebook opens public.
   const visibility = VISIBILITY_LEVELS.includes(body.visibility)
     ? body.visibility
-    : authorSettings.defaultVisibility;
+    : "public";
 
   let coverImage = null;
   if (file) {
@@ -794,7 +791,7 @@ export async function publishStory({ authorId, storyId, body }) {
 
     await createNotificationsForMany(followersToNotify, {
       type: "publish",
-      actor: { id: story.author, model: "Author", name: authorName },
+      actor: { id: story.author, model: "Author" },
       title: "New story published",
       preview: `${authorName} published a new lifebook: "${story.title}"`,
     });
@@ -888,7 +885,7 @@ export async function toggleLike({
   createNotification({
     recipient: { id: story.author, model: "Author" },
     type: "like",
-    actor: { id: userId, model: userModel, name: fullName },
+    actor: { id: userId, model: userModel },
     preview: "liked your lifebook",
     link: story.slug ? `/feed/story/${story.slug}` : "",
   });
@@ -980,7 +977,7 @@ export async function createComment({
   createNotification({
     recipient: { id: storyAuthor?.author, model: "Author" },
     type: "comment",
-    actor: { id: userId, model: userModel, name: fullName },
+    actor: { id: userId, model: userModel },
     preview: content.trim().slice(0, 200),
     link: storyAuthor?.slug ? `/feed/story/${storyAuthor.slug}` : "",
     // Lets the author reply to this comment from the notification drawer.

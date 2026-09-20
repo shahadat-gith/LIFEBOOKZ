@@ -6,7 +6,9 @@ import mongoose from "mongoose";
  *  recipient     — the User, Author, or Expert being notified
  *  type          — what happened (like, comment, follow, publish,
  *                  booking, testimonial, system)
- *  actor         — who triggered it (any account type, or null for system)
+ *  actor         — who triggered it (any account type, or null for system).
+ *                  Read back with `populate`, so the actor's name and
+ *                  picture are always the account's current ones.
  *  link          — in-app path the notification opens when clicked
  */
 export const NOTIFICATION_TYPES = [
@@ -53,19 +55,6 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       refPath: "actorModel",
       default: null,
-    },
-
-    // Denormalized for cheap rendering
-    actorName: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    actorAvatar: {
-      type: String,
-      trim: true,
-      default: "",
     },
 
     // Optional headline (e.g. "New consultation request")

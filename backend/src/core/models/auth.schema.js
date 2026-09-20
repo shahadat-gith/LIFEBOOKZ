@@ -41,24 +41,6 @@ export const authSchema = new mongoose.Schema(
       select: false,
     },
 
-    // One-time code for accounts that switched on two-step sign-in.
-    twoStepOTP: {
-      type: String,
-      default: "",
-      select: false,
-    },
-
-    twoStepOTPExpires: {
-      type: Date,
-      select: false,
-    },
-
-    twoStepAttempts: {
-      type: Number,
-      default: 0,
-      select: false,
-    },
-
     lastLoginAt: {
       type: Date,
       select: false,

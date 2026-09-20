@@ -11,23 +11,22 @@ import NotificationsDrawer from "./NotificationsDrawer";
 import useNotifications from "../../hooks/useNotifications";
 import api from "../../config/axios";
 
+/**
+ * Brand — the logo lockup already spells out "LifeBookz", so no text is
+ * needed beside it. The subtle scale on hover keeps the link feeling alive.
+ */
 function BrandWordmark() {
   return (
     <Link
       to="/"
-      className="group flex items-center gap-2 shrink-0 select-none"
-      aria-label="Lifebookz - Home"
+      className="group flex shrink-0 select-none items-center"
+      aria-label="LifeBookz - Home"
     >
-      <span className="font-display text-lg font-extrabold tracking-tight text-primary sm:text-[22px]">
-        LIFEBOOK
-        <span className="relative ml-px inline-block">
-          Z
-          <span
-            aria-hidden="true"
-            className="absolute -top-[3px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-accent transition-transform duration-200 group-hover:scale-125 sm:-top-1 sm:h-2 sm:w-2"
-          />
-        </span>
-      </span>
+      <img
+        src="/logo.png"
+        alt="LifeBookz"
+        className="h-10 w-auto transition-transform duration-200 group-hover:scale-[1.03] sm:h-11"
+      />
     </Link>
   );
 }

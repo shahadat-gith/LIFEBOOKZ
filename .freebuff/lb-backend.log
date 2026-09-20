@@ -1,0 +1,88 @@
+✅ MongoDB connected
+[INFO] LifeBookz API running on port 5000 { env: 'dev' }
+[WARN] GET /api/v1/authors/me/settings → 404 (NOT_FOUND) {
+  method: 'GET',
+  path: '/api/v1/authors/me/settings',
+  statusCode: 404,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'NOT_FOUND',
+  message: 'Route not found.'
+}
+[WARN] PATCH /api/v1/authors/me/settings → 404 (NOT_FOUND) {
+  method: 'PATCH',
+  path: '/api/v1/authors/me/settings',
+  statusCode: 404,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'NOT_FOUND',
+  message: 'Route not found.'
+}
+[WARN] POST /api/v1/authors/login/verify → 404 (NOT_FOUND) {
+  method: 'POST',
+  path: '/api/v1/authors/login/verify',
+  statusCode: 404,
+  durationMs: 0,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'NOT_FOUND',
+  message: 'Route not found.'
+}
+[WARN] GET /api/v1/authors/me → 401 (AUTHENTICATION_ERROR) {
+  method: 'GET',
+  path: '/api/v1/authors/me',
+  statusCode: 401,
+  durationMs: 2,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.127 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'Invalid or expired token.'
+}
+[WARN] GET /api/v1/authors/me → 401 (AUTHENTICATION_ERROR) {
+  method: 'GET',
+  path: '/api/v1/authors/me',
+  statusCode: 401,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.127 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'Invalid or expired token.'
+}
+[WARN] PATCH /api/v1/stories/6aa63e1a752fda31cf950055 → 400 (VALIDATION_ERROR) {
+  method: 'PATCH',
+  path: '/api/v1/stories/6aa63e1a752fda31cf950055',
+  statusCode: 400,
+  durationMs: 176,
+  ip: '::1',
+  role: 'author',
+  accountId: '6a70587e607842bb70836ace',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.127 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'VALIDATION_ERROR',
+  message: 'Validation failed. Check the fields for details.',
+  fields: { 'chapters.0.stories.2.title': 'Path `title` is required.' }
+}
+[WARN] PATCH /api/v1/stories/6aa63e1a752fda31cf950055 → 400 (VALIDATION_ERROR) {
+  method: 'PATCH',
+  path: '/api/v1/stories/6aa63e1a752fda31cf950055',
+  statusCode: 400,
+  durationMs: 146,
+  ip: '::1',
+  role: 'author',
+  accountId: '6a70587e607842bb70836ace',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.127 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'VALIDATION_ERROR',
+  message: 'Validation failed. Check the fields for details.',
+  fields: { 'chapters.0.stories.2.title': 'Path `title` is required.' }
+}

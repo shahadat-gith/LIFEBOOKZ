@@ -28,7 +28,6 @@ import ConsultSearch from './pages/ConsultSearch';
 import Consultation from './pages/Consultation';
 import MyBookings from './pages/MyBookings';
 import Profile from './pages/Profile';
-import Settings from './pages/Settings';
 
 function LazyFallback() { return <LoadingScreen message="Loading page..." />; }
 
@@ -56,7 +55,7 @@ export function App() {
        {/*
          Reading is public — guests can browse the feed and read published
          stories. Interactive actions (like, comment, follow) prompt sign-in.
-         Personal pages (profile, settings, bookings) stay gated.
+         Personal pages (profile, bookings) stay gated.
        */}
        <Route path="/stories" element={<StoryList />} />
        {/* Feed is the single source of truth - story detail is shown directly in the feed */}
@@ -70,7 +69,6 @@ export function App() {
        <Route path="/consult/book/:expertId" element={<BookExpert />} />
        <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
        <Route path="/about" element={<About />} />
        <Route path="/privacy" element={<PrivacyPolicy />} />
        <Route path="/terms" element={<TermsOfService />} />

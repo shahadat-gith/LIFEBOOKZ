@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import useMyStories from "../hooks/useMyStories";
 import useSocialStats from "../hooks/useSocialStats";
-import useSettings from "../hooks/useSettings";
 import * as storyApi from "../utils/client";
 import { Icons } from "../icons";
 
@@ -24,7 +23,6 @@ import ActivityTab from "../components/profile/ActivityTab";
 const TABS = [
   { key: "lifebook", label: "Lifebook", icon: Icons.book },
   { key: "stories", label: "Stories", icon: Icons.document },
-  { key: "memories", label: "Memories", icon: Icons.camera },
   { key: "likes", label: "Likes", icon: Icons.heartRegular },
   { key: "activity", label: "Activity", icon: Icons.sparkles },
 ];
@@ -64,7 +62,6 @@ export default function AuthorProfilePage() {
     enabled: Boolean(author),
   });
   const social = useSocialStats({ enabled: Boolean(author) });
-  const { settings } = useSettings({ enabled: Boolean(author) });
 
   const [activeTab, setActiveTab] = useState("lifebook");
 
@@ -224,24 +221,6 @@ export default function AuthorProfilePage() {
         onShare={handleShare}
         onEdit={() => navigate("/profile/edit")}
       />
-
-      {/* Directory visibility comes from Settings → Privacy */}
-      {settings?.inDirectory === false && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-4">
-          <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-muted/40 px-4 py-3">
-            <Icons.eye className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="flex-1 text-sm text-muted-foreground">
-              Your profile is hidden from the author directory.
-            </span>
-            <Link
-              to="/settings"
-              className="text-xs font-semibold text-primary transition-colors hover:underline"
-            >
-              Change
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Prompt for authors who still need to finish their profile */}
       {!author.isProfileCompleted && (

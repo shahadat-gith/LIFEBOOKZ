@@ -26,10 +26,5 @@ export function getDropdownItems(navigate) {
       icon: Icons.book,
       onClick: () => navigate("/bookings"),
     },
-    {
-      label: "Settings",
-      icon: Icons.settings,
-      onClick: () => navigate("/settings"),
-    },
   ];
 }

@@ -90,19 +90,12 @@ export async function followAuthor({ userId, role, authorId }) {
     Author.findByIdAndUpdate(authorId, { $inc: { "stats.followers": 1 } }),
   ]);
 
-  // Notify the author (best-effort)
-  const follower = await followerModel
-    .findById(userId)
-    .select("fullName avatar")
-    .lean();
+  // Notify the author (best-effort). The actor's name and picture are read
+  // from their account when the notification is listed.
   createNotification({
     recipient: { id: authorId, model: "Author" },
     type: "follow",
-    actor: {
-      id: userId,
-      model: whoModel,
-      name: follower?.fullName || "A reader",
-    },
+    actor: { id: userId, model: whoModel },
     preview: "started following you",
   });
 }

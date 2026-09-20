@@ -5,9 +5,17 @@ import Button from '../ui/Button';
 
 function Brand() {
   return (
-    <Link to="/logs" className="flex items-center gap-2.5">
-      <img src="/logo.png" alt="LifeBookz" className="h-8 w-8 rounded-lg" />
-      <span className="text-sm font-bold text-foreground">LifeBookz</span>
+    <Link
+      to="/logs"
+      className="flex shrink-0 items-center gap-3"
+      aria-label="LifeBookz — Developer Portal"
+    >
+      {/* The logo lockup already spells out "LifeBookz" — no text needed. */}
+      <img
+        src="/logo.png"
+        alt="LifeBookz"
+        className="h-10 w-auto shrink-0 sm:h-11"
+      />
       <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
         Developer
       </span>
@@ -59,10 +67,15 @@ export function AuthLayout() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b border-border bg-background/85 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="LifeBookz" className="h-8 w-8 rounded-lg" />
-            <span className="text-sm font-semibold text-foreground">LifeBookz</span>
-            <span className="ml-1.5 text-xs text-muted-foreground">Developer Portal</span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="LifeBookz"
+              className="h-10 w-auto shrink-0"
+            />
+            <span className="text-xs text-muted-foreground">
+              Developer Portal
+            </span>
           </div>
         </div>
       </header>

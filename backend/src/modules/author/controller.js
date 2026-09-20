@@ -20,38 +20,10 @@ export async function register(req, res, next) {
 
 export async function login(req, res, next) {
   try {
-    const result = await authorService.loginAuthor({
+    const { author, token } = await authorService.loginAuthor({
       email: req.body.email,
       password: req.body.password,
       ip: req.ip,
-    });
-
-    // Two-step sign-in returns a challenge instead of a session token; the
-    // client then posts the emailed code to /login/verify.
-    if (result.twoStepRequired) {
-      return res.json({ success: true, data: result });
-    }
-
-    const { author, token } = result;
-
-    return res.json({
-      success: true,
-      data: { author, token },
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-/**
- * POST /authors/login/verify
- * Second step of a two-step sign-in.
- */
-export async function verifyLoginOtp(req, res, next) {
-  try {
-    const { author, token } = await authorService.verifyLoginOtp({
-      challengeId: req.body.challengeId || req.body.authorId,
-      otp: req.body.otp || req.body.code,
     });
 
     return res.json({

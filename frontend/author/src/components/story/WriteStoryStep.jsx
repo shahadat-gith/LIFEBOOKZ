@@ -172,7 +172,6 @@ export default function WriteStoryStep({
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border/60 px-4 py-2.5">
           <span className="text-xs text-muted-foreground">
-            {/* The counter is a preference — see Settings → Writing. */}
             {showWordCount ? `${words} ${words === 1 ? "word" : "words"}` : ""}
           </span>
           <span className="hidden sm:block text-xs text-muted-foreground/70">

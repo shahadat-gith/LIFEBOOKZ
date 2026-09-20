@@ -49,19 +49,25 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between md:h-20">
-          {/* Brand */}
-          <Link to="/" className="group flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card p-1.5 border border-border/80 shadow-xs">
-              <img
-                src="/logo.png"
-                alt="LifeBookz logo"
-                className="h-full w-full object-contain"
-              />
-            </div>
+          {/* Brand — the logo lockup already carries the name, so the text
+              beside it is only the signed-in expert and the portal label. */}
+          <Link
+            to="/"
+            className="group flex shrink-0 items-center gap-3"
+            aria-label="LifeBookz — Home"
+          >
+            <img
+              src="/logo.png"
+              alt="LifeBookz"
+              className="h-10 w-auto shrink-0 sm:h-11"
+            />
+
             <div className="hidden sm:block">
-              <span className="font-display text-base font-semibold tracking-tight text-foreground">
-                {expert?.fullName || "LifeBookz"}
-              </span>
+              {expert?.fullName && (
+                <span className="block font-display text-base font-semibold tracking-tight text-foreground">
+                  {expert.fullName}
+                </span>
+              )}
               <span className="block text-[10px] font-semibold uppercase tracking-wider text-accent">
                 Expert Portal
               </span>
