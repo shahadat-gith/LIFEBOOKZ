@@ -1,4 +1,4 @@
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
 /** Total likes received. */
 export default function LikesTab({ total, empty }) {

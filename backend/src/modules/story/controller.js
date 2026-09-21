@@ -153,20 +153,6 @@ export async function deleteChapter(req, res, next) {
   }
 }
 
-export async function reorderChapters(req, res, next) {
-  try {
-    const story = await storyService.reorderChapters({
-      authorId: req.user.id,
-      storyId: req.params.storyId,
-      chapterIds: req.body.chapterIds,
-    });
-
-    res.json({ success: true, data: story });
-  } catch (error) {
-    next(error);
-  }
-}
-
 /* ---------- Chapter stories (individual stories inside a chapter) ---------- */
 
 export async function addChapterStory(req, res, next) {

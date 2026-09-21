@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
 const STEPS_GUIDE = [
   {

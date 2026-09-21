@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
 /** "Why write" checklist + "Writing tips" cards side by side. */
 export default function InfoCards() {

@@ -58,6 +58,7 @@ import {
  HiOutlineDeviceMobile,
  HiOutlineDesktopComputer,
  HiOutlineUpload,
+ HiOutlineFilter,
 } from 'react-icons/hi';
 
 import {
@@ -83,6 +84,7 @@ import {
 export const Icons = {
  // Navigation
  home: HiOutlineHome,
+ filter: HiOutlineFilter,
  menu: HiOutlineMenu,
  close: HiOutlineX,
  chevronDown: HiOutlineChevronDown,

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import api from "../../config/api";
-import { Avatar } from "../ui/Avatar";
-import { Spinner } from "../ui/Spinner";
-import { Icons } from "../../icons";
+import api from "../../../config/api";
+import { Avatar } from "../../../components/ui/Avatar";
+import { Spinner } from "../../../components/ui/Spinner";
+import { Icons } from "../../../icons";
 
 function Stars({ rating }) {
   return (

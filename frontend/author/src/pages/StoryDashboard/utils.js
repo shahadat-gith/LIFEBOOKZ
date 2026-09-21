@@ -1,4 +1,7 @@
-import { countWords, richTextToPlain } from "./richText";
+import { countWords, richTextToPlain } from "../../utils/richText";
+import { sortChapters } from "../../utils/chapters";
+import { bookId, storyEntryId } from "../../utils/helpers";
+import { storyThumbnail } from "../../utils/media";
 
 /**
  * Derivations behind the story dashboard.
@@ -7,21 +10,6 @@ import { countWords, richTextToPlain } from "./richText";
  * numbers on the dashboard can never disagree with the lists beside them.
  */
 
-export const bookId = (book) => book?._id || book?.id || null;
-export const chapterId = (chapter) => chapter?._id || chapter?.id || null;
-export const entryId = (story) => story?._id || story?.id || null;
-
-/** First image for a story: its own, then its chapter's, then the lifebook's. */
-export function storyThumbnail(story, chapter, book) {
-  const own = (story?.media || []).find((m) => m.type === "image");
-  if (own?.url) return own.url;
-
-  const fromChapter = (chapter?.media || []).find((m) => m.type === "image");
-  if (fromChapter?.url) return fromChapter.url;
-
-  return chapter?.coverImage?.url || book?.coverImage?.url || null;
-}
-
 /**
  * Every story entry across every lifebook, newest first, with the chapter and
  * lifebook it belongs to attached.
@@ -29,20 +17,18 @@ export function storyThumbnail(story, chapter, book) {
 export function flattenStories(books = []) {
   return books
     .flatMap((book) =>
-      [...(book.chapters || [])]
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((chapter) => ({ book, chapter })),
+      sortChapters(book.chapters).map((chapter) => ({ book, chapter })),
     )
     .flatMap(({ book, chapter }) =>
       (chapter.stories || []).map((story) => ({
-        id: entryId(story),
+        id: storyEntryId(story),
         story,
         chapter,
         book,
         status: story.status === "published" ? "published" : "draft",
         words: countWords(story.content),
         preview: richTextToPlain(story.content).replace(/\s+/g, " ").trim(),
-        thumb: storyThumbnail(story, chapter, book),
+        thumb: storyThumbnail(story, book),
         mediaCount: (story.media || []).length,
       })),
     )
@@ -57,13 +43,6 @@ export function flattenStories(books = []) {
 export function dashboardTotals(books = []) {
   const rows = flattenStories(books);
 
-  const chapterMedia = books.reduce(
-    (sum, book) =>
-      sum +
-      (book.chapters || []).reduce((n, ch) => n + (ch.media?.length || 0), 0),
-    0,
-  );
-
   return {
     lifebooks: books.length,
     published: rows.filter((r) => r.status === "published").length,
@@ -72,8 +51,7 @@ export function dashboardTotals(books = []) {
     stories: rows.length,
     likes: books.reduce((n, book) => n + (book.stats?.likes || 0), 0),
     comments: books.reduce((n, book) => n + (book.stats?.comments || 0), 0),
-    media:
-      chapterMedia + rows.reduce((n, row) => n + (row.mediaCount || 0), 0),
+    media: rows.reduce((n, row) => n + (row.mediaCount || 0), 0),
   };
 }
 

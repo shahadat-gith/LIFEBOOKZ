@@ -1,7 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Avatar from "../ui/Avatar";
-import { Icons } from "../../icons";
+import Avatar from "../../../components/ui/Avatar";
+import { Icons } from "../../../icons";
+import { isVerifiedAuthor } from "../../../utils/authors";
+import { chapterLabel, sortChapters } from "../../../utils/chapters";
+import { apiErrorMessage } from "../../../utils/helpers";
+import { lifebookCover } from "../../../utils/media";
 
 /** Horizontal scroll of published stories from other authors. */
 export default function StoriesForYou({ stories, loading = false, error = null, onRetry }) {
@@ -44,7 +48,7 @@ export default function StoriesForYou({ stories, loading = false, error = null, 
         <div className="rounded-2xl border border-border/60 bg-card p-8 text-center">
           <Icons.exclamationCircle className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
-            {error?.response?.data?.error?.message || "We couldn't load stories right now."}
+            {apiErrorMessage(error, "We couldn't load stories right now.")}
           </p>
           {onRetry && (
             <button
@@ -67,15 +71,8 @@ export default function StoriesForYou({ stories, loading = false, error = null, 
         <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 snap-x">
           {stories.map((s, i) => {
             const a = s.author || {};
-            const firstChapter = [...(s.chapters || [])].sort(
-              (x, y) => (x.order ?? 0) - (y.order ?? 0),
-            )[0];
-            const cover =
-              s.coverImage?.url ||
-              firstChapter?.coverImage?.url ||
-              firstChapter?.media?.find((m) => m.type === "image")?.url ||
-              firstChapter?.stories?.find((st) => st.media?.some((m) => m.type === "image"))
-                ?.media.find((m) => m.type === "image")?.url;
+            const firstChapter = sortChapters(s.chapters)[0];
+            const cover = lifebookCover(s);
 
             return (
               <motion.div
@@ -105,12 +102,12 @@ export default function StoriesForYou({ stories, loading = false, error = null, 
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-foreground truncate flex items-center gap-1">
                         {a.fullName}
-                        {a.verification?.status === "approved" && (
+                        {isVerifiedAuthor(a) && (
                           <Icons.verified className="h-3.5 w-3.5 text-info flex-shrink-0" />
                         )}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        Chapter: {firstChapter?.title || "Life"}
+                        {firstChapter ? chapterLabel(firstChapter) : "Life"}
                       </p>
                     </div>
                   </div>

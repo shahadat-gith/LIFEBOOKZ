@@ -1,9 +1,9 @@
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
-/** Photo grid from chapter + story media. */
+/** Photo grid from the photos attached to each story. */
 export default function MemoriesTab({ chapterRows, empty }) {
   const media = chapterRows
-    .flatMap((ch) => [...(ch.media || []), ...(ch.stories || []).flatMap((s) => s.media || [])])
+    .flatMap((ch) => (ch.stories || []).flatMap((s) => s.media || []))
     .filter((m) => m.type === "image");
 
   if (media.length === 0) {

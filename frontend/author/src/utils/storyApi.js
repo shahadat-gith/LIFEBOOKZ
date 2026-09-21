@@ -31,9 +31,10 @@ export async function remove(storyId) {
   return res.data;
 }
 
-// Chapter API methods
-export async function addChapter(storyId, data) {
-  const res = await api.post(`/stories/${storyId}/chapters`, data);
+// Shows a chapter in the lifebook. A chapter is a slot in the life story
+// structure, so the only thing a caller can say about it is where it goes.
+export async function addChapter(storyId, order) {
+  const res = await api.post(`/stories/${storyId}/chapters`, { order });
   return res.data.data;
 }
 
@@ -47,17 +48,7 @@ export async function deleteChapter(storyId, chapterId) {
   return res.data.data;
 }
 
-export async function reorderChapters(storyId, chapterIds) {
-  const res = await api.patch(`/stories/${storyId}/chapters/reorder`, { chapterIds });
-  return res.data.data;
-}
-
-// Stories inside chapters
-export async function addChapterStory(storyId, chapterId, data) {
-  const res = await api.post(`/stories/${storyId}/chapters/${chapterId}/stories`, data);
-  return res.data.data;
-}
-
+// Stories inside chapters — the text, media and visibility of a lifebook
 export async function updateChapterStory(storyId, chapterId, storyEntryId, data) {
   const res = await api.patch(
     `/stories/${storyId}/chapters/${chapterId}/stories/${storyEntryId}`,

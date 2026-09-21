@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
-import { useNotifications, timeAgo } from "../../hooks/useNotifications";
+import { useNotifications } from "../../hooks/useNotifications";
+import { getTimeAgo } from "../../utils/helpers";
 import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -237,7 +238,7 @@ export default function NotificationsDrawer({ open, onClose }) {
                               </span>
                             </span>
                             <span className="mt-1 block text-[11px] font-medium text-muted-foreground/80">
-                              {timeAgo(n.createdAt)}
+                              {getTimeAgo(n.createdAt)}
                             </span>
                           </span>
 

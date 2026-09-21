@@ -12,7 +12,7 @@ import {
   MdRedo,
 } from "react-icons/md";
 import { WizardShell, PrimaryButton } from "./WizardShell";
-import { countWords, plainTextToHtml } from "../../utils/richText";
+import { countWords, plainTextToHtml } from "../../../utils/richText";
 
 /**
  * Toolbar actions. Each one checks `editor.can()` so buttons disable

@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import upload from "../../core/middlewares/multer.js";
-import { authenticate, authorize } from "../../core/middlewares/auth.js";
+import { authenticate, authorize, optionalAuthenticate } from "../../core/middlewares/auth.js";
 
 import * as author from "./controller.js";
 
@@ -53,6 +53,8 @@ router.post("/logout", author.logout);
 
 router.get("/approved", author.listApproved);
 
-router.get("/:authorId", author.getProfile);
+// Public profile. Optional auth personalises it for a signed-in reader or
+// author (do I follow this author?) without blocking an anonymous visitor.
+router.get("/:authorId", optionalAuthenticate, author.getProfile);
 
 export default router;

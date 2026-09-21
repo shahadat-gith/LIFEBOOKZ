@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import Avatar from "../ui/Avatar";
-import { Icons } from "../../icons";
+import { useAuth } from "../../../context/AuthContext";
+import Avatar from "../../../components/ui/Avatar";
+import { Icons } from "../../../icons";
+import { isVerifiedAuthor } from "../../../utils/authors";
 
 /**
  * Gradient cover header: cover image (or navy horizon gradient),
@@ -23,7 +24,7 @@ export default function ProfileHeader({ author, bio, onShare, onEdit }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  const isApproved = author.verification?.status === "approved";
+  const isApproved = isVerifiedAuthor(author);
   const joined = author.createdAt
     ? new Date(author.createdAt).toLocaleDateString(undefined, {
         month: "short",

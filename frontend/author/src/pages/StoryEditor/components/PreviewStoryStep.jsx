@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
+import { isVerifiedAuthor } from "../../../utils/authors";
 import { WizardShell } from "./WizardShell";
-import Avatar from "../ui/Avatar";
-import RichText from "../common/RichText";
-import { richTextToPlain } from "../../utils/richText";
-import { useAuth } from "../../context/AuthContext";
+import Avatar from "../../../components/ui/Avatar";
+import RichText from "../../../components/common/RichText";
+import { richTextToPlain } from "../../../utils/richText";
+import { useAuth } from "../../../context/AuthContext";
+import { chapterLabel } from "../../../utils/chapters";
 
 const TYPE_LABELS = {
   experience: "Experience",
@@ -18,7 +20,7 @@ const TYPE_LABELS = {
 export default function PreviewStoryStep({
   story,
   chapter,
-  chapterIndex,
+  chapterOrder,
   onPublish,
   onBack,
 }) {
@@ -26,11 +28,9 @@ export default function PreviewStoryStep({
   const [expanded, setExpanded] = useState(false);
 
   const isLong = richTextToPlain(story.content).length > 320;
+  // A chapter holds no pictures of its own — the story's first photo leads.
   const images = (story.media || []).filter((m) => m.type === "image");
-  const cover =
-    images[0]?.url ||
-    chapter?.coverImage?.url ||
-    chapter?.media?.find((m) => m.type === "image")?.url;
+  const cover = images[0]?.url;
 
   return (
     <WizardShell step={7} totalSteps={9} title="Preview Story" onBack={onBack}>
@@ -39,7 +39,7 @@ export default function PreviewStoryStep({
         <div className="px-4 pt-4">
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">
             <Icons.book className="h-3.5 w-3.5 text-accent" />
-            Chapter: {chapter?.title || `Chapter ${chapterIndex + 1}`}
+            {chapterLabel(chapter || chapterOrder)}
           </span>
         </div>
 
@@ -66,7 +66,7 @@ export default function PreviewStoryStep({
               <span className="text-sm font-semibold text-foreground">
                 {author?.fullName || "You"}
               </span>
-              {author?.verification?.status === "approved" && (
+              {isVerifiedAuthor(author) && (
                 <Icons.verified className="h-3.5 w-3.5 text-info" />
               )}
             </div>

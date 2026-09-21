@@ -1,101 +1,104 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import { useAuth } from "../context/AuthContext";
-import { sanitizeUsername } from "../utils/helpers";
+import { useAuth } from "../../context/AuthContext";
+import { apiErrorMessage, sanitizeUsername } from "../../utils/helpers";
+import AuthShell from "../../components/auth/AuthShell";
+import AuthFooter from "../../components/auth/AuthFooter";
+import AuthHeading from "../../components/auth/AuthHeading";
+import FormError from "../../components/common/FormError";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import { Icons } from "../../icons";
 
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
-import AuthShell from "../components/auth/AuthShell";
-import { Icons } from "../icons";
+const MIN_PASSWORD = 8;
+const MIN_USERNAME = 3;
+const EMAIL_RE = /\S+@\S+\.\S+/;
+const USERNAME_RE = /^[a-z0-9_.-]+$/;
+
+const EMPTY = { fullName: "", email: "", password: "", username: "" };
 
 /**
- * Lightweight signup: only name, email, password, and username.
+ * Lightweight signup: only name, email, password and username.
+ *
  * The full profile (profession, bio, phone, DOB, gender, address) is
- * completed later — it's required before publishing a story.
+ * completed later — it is required before publishing a story, not before
+ * writing one.
  */
-export default function Register() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    username: "",
-  });
+  const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const update = (field, value) => {
+  /** Field updates clear that field's error as the author fixes it. */
+  function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => {
+      if (!prev[field]) return prev;
       const next = { ...prev };
       delete next[field];
       return next;
     });
-  };
+  }
 
-  const validate = () => {
-    const next = {};
+  function validate() {
+    const found = {};
 
-    if (!form.fullName?.trim()) next.fullName = "Full name is required.";
-    if (!form.email?.trim()) next.email = "Email is required.";
-    if (!/\S+@\S+\.\S+/.test(form.email)) next.email = "Invalid email address.";
-    if ((form.password || "").length < 8)
-      next.password = "Password must be at least 8 characters.";
+    if (!form.fullName.trim()) found.fullName = "Full name is required.";
+    if (!form.email.trim()) found.email = "Email is required.";
+    else if (!EMAIL_RE.test(form.email)) found.email = "Invalid email address.";
 
-    const clean = sanitizeUsername(form.username || form.fullName || "");
-    if (clean.length < 3) {
-      next.username = "Username must be at least 3 characters.";
-    } else if (!/^[a-z0-9_.-]+$/.test(clean)) {
-      next.username = "Use only letters, numbers, dots, hyphens, underscores.";
+    if (form.password.length < MIN_PASSWORD) {
+      found.password = `Password must be at least ${MIN_PASSWORD} characters.`;
     }
 
-    setErrors(next);
-    return next;
-  };
+    const username = sanitizeUsername(form.username || form.fullName || "");
+    if (username.length < MIN_USERNAME) {
+      found.username = `Username must be at least ${MIN_USERNAME} characters.`;
+    } else if (!USERNAME_RE.test(username)) {
+      found.username = "Use only letters, numbers, dots, hyphens, underscores.";
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    setErrors(found);
+    return found;
+  }
 
-    const errs = validate();
-    if (Object.keys(errs).length > 0) return;
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
 
+    if (Object.keys(validate()).length > 0) return;
+
+    setLoading(true);
     try {
-      setLoading(true);
+      const body = new FormData();
+      body.append("fullName", form.fullName.trim());
+      body.append("email", form.email.trim().toLowerCase());
+      body.append("password", form.password);
+      body.append("username", sanitizeUsername(form.username || form.fullName));
 
-      const fd = new FormData();
-      fd.append("fullName", form.fullName.trim());
-      fd.append("email", form.email.trim().toLowerCase());
-      fd.append("password", form.password);
-      fd.append("username", sanitizeUsername(form.username || form.fullName));
-
-      await register(fd);
+      await register(body);
 
       toast.success("Welcome to Lifebookz! Let's set up your lifebook.");
       navigate("/");
-    } catch (error) {
-      toast.error(
-        error.response?.data?.error?.message ||
-          "Registration failed. Please try again.",
-      );
+    } catch (err) {
+      setError(apiErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <AuthShell>
-      <div className="text-center mb-8">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-          Create your account
-        </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Start writing in under a minute — complete your profile later.
-        </p>
-      </div>
+      <AuthHeading
+        title="Create your account"
+        subtitle="Start writing in under a minute — complete your profile later."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -146,6 +149,8 @@ export default function Register() {
           error={errors.username}
         />
 
+        <FormError>{error}</FormError>
+
         <Button
           type="submit"
           fullWidth
@@ -163,17 +168,7 @@ export default function Register() {
         Policy.
       </p>
 
-      <div className="mt-5 pt-6 border-t border-border/40 text-center">
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-primary font-semibold hover:underline transition-colors"
-          >
-            Sign in
-          </Link>
-        </p>
-      </div>
+      <AuthFooter prompt="Already have an account?" />
     </AuthShell>
   );
 }

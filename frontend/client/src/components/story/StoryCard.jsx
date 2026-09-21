@@ -2,9 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar";
-import FollowButton from "./FollowButton";
 import { Icons } from "../../icons";
 import { getTimeAgo, formatLikesCaption } from "../../utils/helpers";
+import { isVerifiedAuthor } from "../../utils/authors";
 import api from "../../config/axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
@@ -22,7 +22,7 @@ export default function StoryCard({
 
   const author = story.author || {};
   const authorName = author.fullName || "Anonymous Author";
-  const isVerified = author.verification?.status === "approved";
+  const isVerified = isVerifiedAuthor(author);
   const timeAgo = getTimeAgo(new Date(story.publishedAt || story.createdAt));
   const storyTitle = story.title || "Untitled Story";
   const storySlug = story.slug || story._id;
@@ -103,9 +103,9 @@ export default function StoryCard({
       {/* Cover Image */}
       <Link to={`/feed/story/${storySlug}`} className="block">
         <div className="relative w-full h-48 sm:h-56 overflow-hidden bg-muted">
-          {story.coverImage?.url ? (
+          {story.bannerImage?.url ? (
             <img
-              src={story.coverImage.url}
+              src={story.bannerImage.url}
               alt={storyTitle}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               loading="lazy"
@@ -118,22 +118,20 @@ export default function StoryCard({
         </div>
       </Link>
 
-      {/* Header: Author Info & Follow Button */}
-      <div className="flex items-center justify-between gap-4 p-5 pb-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link to={`/authors/${author._id}`}>
-            <Avatar
-              src={author.avatar?.url}
-              name={authorName}
-              size="md"
-              className="ring-1 ring-border/60 transition-opacity hover:opacity-80 shrink-0"
-            />
-          </Link>
+      {/* Author — the whole row opens their profile, where following lives */}
+      <div className="p-5 pb-3">
+        <Link
+          to={`/authors/${author._id}`}
+          className="group/author flex items-center gap-3 min-w-0"
+        >
+          <Avatar
+            src={author.avatar?.url}
+            name={authorName}
+            size="md"
+            className="ring-1 ring-border/60 transition-opacity shrink-0 group-hover/author:opacity-80"
+          />
           <div className="min-w-0 flex-1">
-            <Link
-              to={`/authors/${author._id}`}
-              className="flex items-center gap-1 text-sm font-semibold text-foreground tracking-tight truncate hover:underline transition-all"
-            >
+            <p className="flex items-center gap-1 text-sm font-semibold text-foreground tracking-tight truncate group-hover/author:underline transition-all">
               <span className="truncate">{authorName}</span>
               {isVerified && (
                 <Icons.verified
@@ -142,14 +140,14 @@ export default function StoryCard({
                   className="h-4 w-4 shrink-0 text-blue-500"
                 />
               )}
-            </Link>
+            </p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
               <span className="truncate">{authorMeta}</span>
             </div>
           </div>
-        </div>
 
-        <FollowButton authorId={author._id} size="sm" iconOnly />
+          <Icons.chevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform group-hover/author:translate-x-0.5" />
+        </Link>
       </div>
 
       {/* Story Title */}

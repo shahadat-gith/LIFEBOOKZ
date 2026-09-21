@@ -3,24 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-import { useAuth } from "../context/AuthContext";
-import useMyStories from "../hooks/useMyStories";
-import useMyActivity from "../hooks/useMyActivity";
-import * as storyApi from "../utils/client";
-import { Icons } from "../icons";
+import { useAuth } from "../../context/AuthContext";
+import useMyStories from "../../hooks/useMyStories";
+import useMyActivity from "../../hooks/useMyActivity";
+import * as storyApi from "../../utils/storyApi";
+import { apiErrorMessage, bookId, chapterId } from "../../utils/helpers";
+import ErrorBanner from "../../components/common/ErrorBanner";
+import { Icons } from "../../icons";
 import {
-  bookId,
-  chapterId,
   dashboardTotals,
   flattenStories,
   recentLikers as collectLikers,
-} from "../utils/dashboard";
+} from "./utils";
 
-import DashboardStats from "../components/dashboard/DashboardStats";
-import LifebookCard from "../components/dashboard/LifebookCard";
-import StoryList from "../components/dashboard/StoryList";
-import ActivityFeed from "../components/dashboard/ActivityFeed";
-import RecentLikers from "../components/dashboard/RecentLikers";
+import DashboardStats from "./components/DashboardStats";
+import LifebookCard from "./components/LifebookCard";
+import StoryList from "./components/StoryList";
+import ActivityFeed from "./components/ActivityFeed";
+import RecentLikers from "./components/RecentLikers";
 
 /**
  * My Stories — one place for everything the author has written.
@@ -137,19 +137,12 @@ export default function StoryDashboardPage() {
 
       {/* ═══════════ Load failure ═══════════ */}
       {error && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <Icons.exclamationCircle className="h-4 w-4 shrink-0 text-destructive" />
-          <span className="flex-1 text-sm text-muted-foreground">
-            We couldn&apos;t load your stories.
-          </span>
-          <button
-            type="button"
-            onClick={reload}
-            className="text-xs font-semibold text-primary hover:underline"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorBanner
+          className="mt-4"
+          error={error}
+          message={apiErrorMessage(error, "We couldn't load your stories.")}
+          onRetry={reload}
+        />
       )}
 
       {/* ═══════════ Your lifebooks ═══════════ */}

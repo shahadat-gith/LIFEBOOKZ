@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import * as storyClient from "../utils/client";
+import * as storyClient from "../utils/storyApi";
 
 /**
  * Social counters for the author's profile (followers / following / likes).

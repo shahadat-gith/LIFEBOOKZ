@@ -6,56 +6,77 @@ import { Icons } from "../../icons";
 
 /**
  * Follow / unfollow a fellow author from the author portal.
- * Uses the author role's own following endpoints.
+ *
+ * Three ways to use it:
+ *  - plain: the button looks up its own state (`/following/:id/check`);
+ *  - `initialFollowing`: the caller already knows the state because it
+ *    arrived with the page payload, so no check is sent;
+ *  - controlled (`following` + `onToggle`): the caller owns the state
+ *    outright — how the author profile page drives it.
  */
 export default function FollowAuthorButton({
   authorId,
   size = "sm",
   iconOnly = false,
+  following: controlledFollowing,
+  initialFollowing,
+  onToggle,
+  isSelf: isSelfProp,
 }) {
   const [loading, setLoading] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const [following, setFollowing] = useState(false);
+  const [ownFollowing, setOwnFollowing] = useState(Boolean(initialFollowing));
   const { author } = useAuth();
 
-  const isSelf = String(author?.id || author?._id || "") === String(authorId);
+  const isControlled = controlledFollowing !== undefined;
+  const following = isControlled ? controlledFollowing : ownFollowing;
+  // When the caller supplied the state we never ask the API for it.
+  const knowsState = isControlled || initialFollowing !== undefined;
+
+  const isSelf =
+    isSelfProp ??
+    String(author?.id || author?._id || "") === String(authorId);
 
   useEffect(() => {
     let cancelled = false;
-    if (!author || isSelf) return;
+    if (!author || isSelf || knowsState) return undefined;
     api
       .get(`/following/${authorId}/check`)
       .then((res) => {
-        if (!cancelled) setFollowing(Boolean(res.data?.data?.following));
+        if (!cancelled) setOwnFollowing(Boolean(res.data?.data?.following));
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [authorId, author, isSelf]);
+  }, [authorId, author, isSelf, knowsState]);
+
+  /** The next state, applied optimistically and rolled back on failure. */
+  function applyFollow(value) {
+    if (onToggle) onToggle(value);
+    else setOwnFollowing(value);
+  }
 
   async function handleClick(e) {
     e.preventDefault();
     e.stopPropagation();
     if (loading || isSelf) return;
 
+    const next = !following;
     setLoading(true);
+    applyFollow(next);
+
     try {
-      if (following) {
-        await api.delete(`/following/${authorId}/follow`);
-        setFollowing(false);
-      } else {
-        await api.post(`/following/${authorId}/follow`);
-        setFollowing(true);
-      }
+      if (next) await api.post(`/following/${authorId}/follow`);
+      else await api.delete(`/following/${authorId}/follow`);
     } catch {
-      // non-blocking — state stays as-is
+      applyFollow(!next);
     } finally {
       setLoading(false);
     }
   }
 
-  // Hide on own cards
+  // Hide on your own profile
   if (isSelf) return null;
 
   if (iconOnly) {

@@ -1,4 +1,4 @@
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
 /** Timeline of recent publishes/edits. */
 export default function ActivityTab({ chapterRows, empty }) {
@@ -7,7 +7,7 @@ export default function ActivityTab({ chapterRows, empty }) {
       (ch.stories || []).map((s) => ({
         id: s._id || s.id,
         title: s.title,
-        chapter: ch.title,
+        chapter: ch.label,
         date: s.updatedAt || s.createdAt,
         published: s.status === "published",
       })),

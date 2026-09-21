@@ -1,23 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
-import { useFollowing } from "../../context/FollowingContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+
+import api from "../../config/axios";
+import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 
+/**
+ * Follow / unfollow an author.
+ *
+ * Three ways to use it:
+ *  - plain: the button looks up its own state (`/following/:id/check`);
+ *  - `initialFollowing`: the caller already knows the state because it
+ *    arrived with the page payload, so no check is sent;
+ *  - controlled (`following` + `onToggle`): the caller owns the state
+ *    outright — how the author profile page drives it.
+ *
+ * Readers, authors and experts all follow through the same endpoints.
+ */
 export default function FollowButton({
   authorId,
   size = "sm",
   iconOnly = false,
+  following: controlledFollowing,
+  initialFollowing,
+  onToggle,
+  isSelf: isSelfProp,
 }) {
   const [loading, setLoading] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const { isFollowing, follow, unfollow } = useFollowing();
+  const [ownFollowing, setOwnFollowing] = useState(Boolean(initialFollowing));
+
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const following = isFollowing(authorId);
+  const isControlled = controlledFollowing !== undefined;
+  const following = isControlled ? controlledFollowing : ownFollowing;
+  const knowsState = isControlled || initialFollowing !== undefined;
+
+  const isSelf =
+    isSelfProp ??
+    (Boolean(user) && String(user.id || user._id || "") === String(authorId));
+
+  // Only ask the API for the state when nobody has told us already.
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated || isSelf || knowsState) return undefined;
+
+    api
+      .get(`/following/${authorId}/check`)
+      .then((res) => {
+        if (!cancelled) setOwnFollowing(Boolean(res.data?.data?.following));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authorId, isAuthenticated, isSelf, knowsState]);
 
   async function handleClick(e) {
     e.preventDefault();
@@ -29,22 +70,32 @@ export default function FollowButton({
       return;
     }
 
-    if (loading) return;
+    if (loading || isSelf) return;
 
+    const next = !following;
     setLoading(true);
+    applyFollow(next);
 
     try {
-      if (following) {
-        await unfollow(authorId);
-      } else {
-        await follow(authorId);
-      }
-    } catch {
-      toast.error("Failed to update follow status");
+      if (next) await api.post(`/following/${authorId}/follow`);
+      else await api.delete(`/following/${authorId}/follow`);
+    } catch (err) {
+      applyFollow(!next);
+      toast.error(
+        err?.response?.data?.error?.message || "Couldn't update follow.",
+      );
     } finally {
       setLoading(false);
     }
   }
+
+  /** The next state, applied optimistically and rolled back on failure. */
+  function applyFollow(value) {
+    if (onToggle) onToggle(value);
+    else setOwnFollowing(value);
+  }
+
+  if (isSelf) return null;
 
   if (iconOnly) {
     const circleSize = {

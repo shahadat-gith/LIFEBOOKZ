@@ -1,26 +1,9 @@
 import { motion } from "framer-motion";
-import { Icons } from "../../icons";
+import { STORY_TYPES } from "../../../utils/storyTypes";
 import { WizardShell } from "./WizardShell";
 import { PrimaryButton } from "./WizardShell";
 
-export const STORY_TYPES = [
-  { value: "experience", label: "Experience", hint: "Something I lived through", color: "text-info" },
-  { value: "achievement", label: "Achievement", hint: "Something I'm proud of", color: "text-warning" },
-  { value: "challenge", label: "Challenge", hint: "Something I overcame", color: "text-destructive" },
-  { value: "memory", label: "Memory", hint: "A moment I want to remember", color: "text-success" },
-  { value: "lesson", label: "Lesson", hint: "Something I learned", color: "text-accent" },
-  { value: "other", label: "Other", hint: "Something else important", color: "text-primary" },
-];
-
-const TYPE_ICONS = {
-  experience: Icons.globe,
-  achievement: Icons.starSolid,
-  challenge: Icons.shieldCheck,
-  memory: Icons.heartRegular,
-  lesson: Icons.book,
-  other: Icons.tag,
-};
-
+/** Step 2 — the kind of story being written, from the shared type list. */
 export default function ChooseStoryTypeStep({
   storyType,
   onPick,
@@ -42,7 +25,7 @@ export default function ChooseStoryTypeStep({
 
       <div className="grid grid-cols-3 gap-2.5">
         {STORY_TYPES.map((t) => {
-          const Icon = TYPE_ICONS[t.value];
+          const Icon = t.icon;
           const selected = storyType === t.value;
           return (
             <motion.button

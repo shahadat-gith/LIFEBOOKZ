@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 
 /**
  * Professional wizard chrome:

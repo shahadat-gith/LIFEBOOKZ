@@ -1,5 +1,5 @@
-import { Icons } from "../../icons";
-import Avatar from "../ui/Avatar";
+import { Icons } from "../../../icons";
+import Avatar from "../../../components/ui/Avatar";
 
 /** The people behind the like counter, newest first. */
 export default function RecentLikers({ likers = [] }) {

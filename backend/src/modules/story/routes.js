@@ -25,7 +25,7 @@ const anyAccount = [authenticate, authorize("user", "author", "expert")];
 router.post(
   "/",
   authorOnly,
-  upload.single("coverImage"),
+  upload.single("bannerImage"),
   story.create,
 );
 
@@ -49,7 +49,7 @@ router.get("/:storyId", optionalAuthenticate, story.getStory);
 router.patch(
   "/:storyId",
   authorOnly,
-  upload.single("coverImage"),
+  upload.single("bannerImage"),
   story.update,
 );
 
@@ -72,8 +72,7 @@ router.post("/:storyId/unpublish", authorOnly, story.unpublish);
 
 router.post("/:storyId/chapters", authorOnly, story.addChapter);
 
-router.patch("/:storyId/chapters/reorder", authorOnly, story.reorderChapters);
-
+// Rename a chapter — the title is the author's own
 router.patch("/:storyId/chapters/:chapterId", authorOnly, story.updateChapter);
 
 router.delete("/:storyId/chapters/:chapterId", authorOnly, story.deleteChapter);

@@ -1,4 +1,5 @@
 import Story from "./models/Story.js";
+import { chapterName } from "./chapters.js";
 import Like from "./models/Like.js";
 import Comment from "./models/Comment.js";
 import Follow from "../following/model.js";
@@ -44,8 +45,6 @@ function textMatches(story, query) {
   const q = query.toLowerCase();
   if (story.title?.toLowerCase().includes(q)) return true;
   if (story.chapters?.some((ch) =>
-    ch.title?.toLowerCase().includes(q) ||
-    ch.description?.toLowerCase().includes(q) ||
     ch.stories?.some(
       (s) =>
         s.title?.toLowerCase().includes(q) ||
@@ -68,8 +67,8 @@ async function findOwnedStory({ authorId, storyId }) {
 /* ---------- Media ---------- */
 
 /**
- * Media descriptors stored on chapters and story entries. Photos and videos
- * only — media is uploaded by the client straight to R2 via presigned URLs
+ * Media descriptors stored on story entries. Photos and videos only — media
+ * is uploaded by the client straight to R2 via presigned URLs
  * (modules/story/media.controller.js); the server only ever stores the
  * resulting URL + key.
  */
@@ -91,6 +90,47 @@ export function sanitizeMediaList(media) {
     }));
 }
 
+/**
+ * Normalize one story entry. Everything a chapter holds is written here:
+ * the text, the media and who may read it.
+ */
+function sanitizeStoryEntry(entry = {}) {
+  return {
+    ...(entry._id ? { _id: entry._id } : {}),
+    title: entry.title || "",
+    storyType: entry.storyType || "experience",
+    // Rich-text content is sanitized on every write path — the wizard saves
+    // the whole lifebook in one PATCH.
+    content: sanitizeHtml(entry.content || ""),
+    dateLabel: entry.dateLabel || "",
+    location: entry.location || "",
+    media: sanitizeMediaList(entry.media),
+    visibility: VISIBILITY_LEVELS.includes(entry.visibility)
+      ? entry.visibility
+      : "public",
+    status: entry.status === "published" ? "published" : "draft",
+  };
+}
+
+/**
+ * Normalize one chapter: its title, its slot, and the stories inside it.
+ * A chapter has no description, media or visibility of its own.
+ */
+function sanitizeChapter(chapter = {}, fallbackOrder = 0) {
+  const order = Number.isFinite(Number(chapter.order))
+    ? Number(chapter.order)
+    : fallbackOrder;
+
+  return {
+    ...(chapter._id ? { _id: chapter._id } : {}),
+    order,
+    title: chapter.title?.trim() || chapterName(order),
+    stories: (Array.isArray(chapter.stories) ? chapter.stories : []).map(
+      sanitizeStoryEntry,
+    ),
+  };
+}
+
 /* ---------- Stories (lifebooks) ---------- */
 
 /**
@@ -108,40 +148,17 @@ export async function createStory({ authorId, body, file }) {
     ? body.visibility
     : "public";
 
-  let coverImage = null;
+  let bannerImage = null;
   if (file) {
     const uploaded = await uploadStoryImage(file.buffer, file.mimetype);
-    coverImage = { url: uploaded.url, key: uploaded.key };
+    bannerImage = { url: uploaded.url, key: uploaded.key };
   }
 
   const authorDoc = await Author.findById(authorId)
     .select("profession")
     .lean();
 
-  const finalChapters = chapters.map((ch, idx) => ({
-    title: ch.title || `Chapter ${idx + 1}`,
-    description: ch.description || "",
-    coverImage: ch.coverImage || null,
-    media: sanitizeMediaList(ch.media),
-    visibility: VISIBILITY_LEVELS.includes(ch.visibility)
-      ? ch.visibility
-      : "private",
-    stories: Array.isArray(ch.stories)
-      ? ch.stories.map((s) => ({
-          title: s.title || "",
-          storyType: s.storyType || "experience",
-          content: sanitizeHtml(s.content || ""),
-          dateLabel: s.dateLabel || "",
-          location: s.location || "",
-          media: sanitizeMediaList(s.media),
-          visibility: VISIBILITY_LEVELS.includes(s.visibility)
-            ? s.visibility
-            : null,
-          status: s.status === "published" ? "published" : "draft",
-        }))
-      : [],
-    order: idx,
-  }));
+  const finalChapters = chapters.map(sanitizeChapter);
 
   return Story.create({
     author: authorId,
@@ -152,7 +169,7 @@ export async function createStory({ authorId, body, file }) {
     visibility,
     language,
     chapters: finalChapters,
-    coverImage,
+    bannerImage,
     status: "draft",
   });
 }
@@ -169,39 +186,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
   if (body.chapters !== undefined) {
     const chaptersUpdate = parseMaybeJson(body.chapters) ?? [];
     story.chapters = (Array.isArray(chaptersUpdate) ? chaptersUpdate : []).map(
-      (ch, idx) => ({
-        ...(ch._id ? { _id: ch._id } : {}),
-        title: ch.title || `Chapter ${idx + 1}`,
-        description: ch.description || "",
-        coverImage: ch.coverImage || null,
-        media: sanitizeMediaList(ch.media),
-        visibility: VISIBILITY_LEVELS.includes(ch.visibility)
-          ? ch.visibility
-          : "private",
-        stories: Array.isArray(ch.stories)
-          ? ch.stories.map((s) => ({
-              ...(s._id ? { _id: s._id } : {}),
-              title: s.title || "",
-              storyType: s.storyType || "experience",
-              // Rich-text content is sanitized on this path too — the
-              // wizard saves the whole lifebook in one PATCH.
-              content: sanitizeHtml(s.content || ""),
-              dateLabel: s.dateLabel || "",
-              location: s.location || "",
-              media: sanitizeMediaList(s.media),
-              // "Inherit chapter visibility" is expressed as an empty value
-              // by the client; the schema only accepts the three levels or
-              // null, so anything else becomes null.
-              visibility: VISIBILITY_LEVELS.includes(
-                s.visibility,
-              )
-                ? s.visibility
-                : null,
-              status: s.status === "published" ? "published" : "draft",
-            }))
-          : [],
-        order: idx,
-      }),
+      sanitizeChapter,
     );
   }
 
@@ -214,7 +199,7 @@ export async function updateStory({ authorId, storyId, body, file }) {
 
   if (file) {
     const uploaded = await uploadStoryImage(file.buffer, file.mimetype);
-    story.coverImage = { url: uploaded.url, key: uploaded.key };
+    story.bannerImage = { url: uploaded.url, key: uploaded.key };
   }
 
   await story.save();
@@ -289,29 +274,23 @@ export async function getStoryDetail({ storyId, viewer }) {
     }
   }
 
-  // Filter chapters and stories by visibility for non-owners
-  if (!isOwner) {
-    const allowedVis = PUBLIC_VISIBILITIES;
-
-    if (story.chapters) {
-      story.chapters = story.chapters
-        .filter((ch) => allowedVis.includes(ch.visibility))
-        .map((ch) => {
-          if (ch.stories) {
-            ch.stories = ch.stories.filter(
-              (s) =>
-                s.status === "published" &&
-                (!s.visibility || allowedVis.includes(s.visibility)),
-            );
-          }
-          return ch;
-        })
-        .filter((ch) => (ch.stories?.length || 0) > 0 || ch.media?.length > 0);
-    }
+  // Visibility lives on each story, so a non-owner reads only the published,
+  // public stories — and only the chapters that still hold any.
+  if (!isOwner && story.chapters) {
+    story.chapters = story.chapters
+      .map((ch) => ({
+        ...ch,
+        stories: (ch.stories || []).filter(
+          (s) =>
+            s.status === "published" &&
+            PUBLIC_VISIBILITIES.includes(s.visibility),
+        ),
+      }))
+      .filter((ch) => ch.stories.length > 0);
   }
 
   let likedByUser = false;
-  let followingAuthor = false;
+  let isFollowedByLoggedInUser = false;
 
   if (viewer?.id) {
     const existingLike = await Like.findOne({
@@ -326,10 +305,12 @@ export async function getStoryDetail({ storyId, viewer }) {
       who: viewer.id,
       whom: story.author?._id || story.author,
     });
-    followingAuthor = Boolean(followExists);
+    isFollowedByLoggedInUser = Boolean(followExists);
   }
 
-  return { ...story, likedByUser, followingAuthor };
+  // `isFollowedByLoggedInUser` answers the same question as it does on the
+  // author profile: does the signed-in account follow this story's author?
+  return { ...story, likedByUser, isFollowedByLoggedInUser };
 }
 
 /**
@@ -396,12 +377,12 @@ export async function listStories({ query: queryParams, viewer }) {
       `
         title
         slug
+        bannerImage
         chapters.title
         chapters.order
-        chapters.visibility
         chapters.stories.title
         chapters.stories.storyType
-        coverImage
+        chapters.stories.media
         author
         authorProfession
         language
@@ -467,7 +448,7 @@ export async function listStories({ query: queryParams, viewer }) {
 
   const enrichedStories = stories.map((story) => ({
     ...story,
-    followingAuthor: followingMap[story.author?._id?.toString()] ?? false,
+    isFollowedByLoggedInUser: followingMap[story.author?._id?.toString()] ?? false,
     likedByUser: likedMap[story._id.toString()] ?? false,
   }));
 
@@ -484,25 +465,30 @@ export async function listStories({ query: queryParams, viewer }) {
 
 /* ---------- Chapters ---------- */
 
-export async function addChapter({ authorId, storyId, body }) {
+/**
+ * Adds a chapter — a slot in the life story structure (0 = Childhood,
+ * 1 = School Life, …) with its title. Callers name the slot with `order`;
+ * without one the next free slot is used.
+ */
+export async function addChapter({ authorId, storyId, body = {} }) {
   const story = await findOwnedStory({ authorId, storyId });
 
-  const { title, description, coverImage, media, visibility } = body;
+  const nextFree = story.chapters.reduce(
+    (max, ch) => Math.max(max, ch.order + 1),
+    0,
+  );
+  const order = Number.isFinite(Number(body.order))
+    ? Number(body.order)
+    : nextFree;
 
-  if (!title?.trim()) {
-    throw new ValidationError("Chapter title is required.");
+  if (story.chapters.some((ch) => ch.order === order)) {
+    throw new ValidationError("That chapter already exists.");
   }
 
   story.chapters.push({
-    title: title.trim(),
-    description: description || "",
-    coverImage: coverImage || null,
-    media: Array.isArray(media) ? media : [],
-    visibility: VISIBILITY_LEVELS.includes(visibility)
-      ? visibility
-      : "private",
+    title: body.title?.trim() || chapterName(order),
     stories: [],
-    order: story.chapters.length,
+    order,
   });
 
   await story.save();
@@ -510,7 +496,12 @@ export async function addChapter({ authorId, storyId, body }) {
   return story;
 }
 
-export async function updateChapter({ authorId, storyId, chapterId, body }) {
+/**
+ * Renames a chapter. The title is the author's own — the seven chapters of
+ * life start with the names from the life story structure, and a chapter of
+ * their own can be called anything.
+ */
+export async function updateChapter({ authorId, storyId, chapterId, body = {} }) {
   const story = await findOwnedStory({ authorId, storyId });
 
   const chapter = story.chapters.id(chapterId);
@@ -518,18 +509,12 @@ export async function updateChapter({ authorId, storyId, chapterId, body }) {
     throw new NotFoundError("Chapter not found.");
   }
 
-  const { title, description, coverImage, media, visibility } = body;
-
-  if (title !== undefined) chapter.title = title.trim();
-  if (description !== undefined) chapter.description = description;
-  if (coverImage !== undefined) chapter.coverImage = coverImage;
-  if (media !== undefined) chapter.media = media;
-  if (visibility !== undefined) {
-    if (!VISIBILITY_LEVELS.includes(visibility)) {
-      throw new ValidationError("Invalid visibility value.");
-    }
-    chapter.visibility = visibility;
+  const title = body.title?.trim();
+  if (!title) {
+    throw new ValidationError("Chapter title is required.");
   }
+
+  chapter.title = title;
 
   await story.save();
 
@@ -539,49 +524,15 @@ export async function updateChapter({ authorId, storyId, chapterId, body }) {
 export async function deleteChapter({ authorId, storyId, chapterId }) {
   const story = await findOwnedStory({ authorId, storyId });
 
-  if (story.chapters.length <= 1) {
-    throw new ValidationError(
-      "Cannot delete the last chapter. Stories must have at least one chapter.",
-    );
-  }
-
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
     throw new NotFoundError("Chapter not found.");
   }
 
+  // Removing a chapter does not renumber the rest: `order` is the phase of
+  // life it stands for, not its position in the list.
   story.chapters.pull(chapterId);
-  story.chapters.forEach((ch, idx) => {
-    ch.order = idx;
-  });
 
-  await story.save();
-
-  return story;
-}
-
-export async function reorderChapters({ authorId, storyId, chapterIds }) {
-  if (!Array.isArray(chapterIds) || chapterIds.length === 0) {
-    throw new ValidationError("chapterIds array is required.");
-  }
-
-  const story = await findOwnedStory({ authorId, storyId });
-
-  const storyChapterIds = story.chapters.map((ch) => ch._id.toString());
-  const allExist = chapterIds.every((id) => storyChapterIds.includes(id));
-  if (!allExist || chapterIds.length !== storyChapterIds.length) {
-    throw new ValidationError(
-      "Invalid chapter order — all chapters must be included.",
-    );
-  }
-
-  const reordered = chapterIds.map((id, idx) => {
-    const chapter = story.chapters.id(id);
-    chapter.order = idx;
-    return chapter;
-  });
-
-  story.chapters = reordered;
   await story.save();
 
   return story;
@@ -627,7 +578,7 @@ function sanitizeStoryInput(body = {}) {
     media: sanitizeMediaList(body.media),
     visibility: VISIBILITY_LEVELS.includes(body.visibility)
       ? body.visibility
-      : null,
+      : "public",
   };
 }
 
@@ -688,7 +639,11 @@ export async function updateChapterStory({
   entry.dateLabel = input.dateLabel;
   entry.location = input.location;
   entry.media = input.media;
-  entry.visibility = input.visibility;
+  // Visibility is the story's own; an update that doesn't mention it keeps
+  // the level the author already chose.
+  if (body.visibility !== undefined) {
+    entry.visibility = input.visibility;
+  }
 
   const publish = body.publish === true || body.status === "published";
   const unpublish = body.status === "draft";
@@ -1147,8 +1102,6 @@ export async function searchStories({ q, limit = 20 }) {
     visibility: "public",
     $or: [
       { title: rx },
-      { "chapters.title": rx },
-      { "chapters.description": rx },
       { "chapters.stories.title": rx },
       { "chapters.stories.content": rx },
     ],
@@ -1157,12 +1110,12 @@ export async function searchStories({ q, limit = 20 }) {
       `
         title
         slug
+        bannerImage
         chapters.title
         chapters.order
-        chapters.visibility
         chapters.stories.title
         chapters.stories.storyType
-        coverImage
+        chapters.stories.media
         author
         authorProfession
         stats

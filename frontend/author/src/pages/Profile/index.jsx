@@ -1,63 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-import { useAuth } from "../context/AuthContext";
-import useMyStories from "../hooks/useMyStories";
-import useSocialStats from "../hooks/useSocialStats";
-import * as storyApi from "../utils/client";
-import { Icons } from "../icons";
+import { useAuth } from "../../context/AuthContext";
+import useMyStories from "../../hooks/useMyStories";
+import useSocialStats from "../../hooks/useSocialStats";
+import * as storyApi from "../../utils/storyApi";
+import { apiErrorMessage, bookId, chapterId, storyEntryId } from "../../utils/helpers";
+import { visibilitySavedMessage } from "../../utils/visibility";
+import ErrorBanner from "../../components/common/ErrorBanner";
+import NoDataState from "../../components/common/NoDataState";
+import { Icons } from "../../icons";
 
-import ProfileHeader from "../components/profile/ProfileHeader";
-import StatsRow from "../components/profile/StatsRow";
-import ProfileTabs from "../components/profile/ProfileTabs";
-import LifebookTab from "../components/profile/LifebookTab";
-import StoriesTab from "../components/profile/StoriesTab";
-import MemoriesTab from "../components/profile/MemoriesTab";
-import LikesTab from "../components/profile/LikesTab";
-import ActivityTab from "../components/profile/ActivityTab";
+import ProfileHeader from "./components/ProfileHeader";
+import StatsRow from "./components/StatsRow";
+import ProfileTabs from "./components/ProfileTabs";
+import LifebookTab from "./components/LifebookTab";
+import StoriesTab from "./components/StoriesTab";
+import MemoriesTab from "./components/MemoriesTab";
+import LikesTab from "./components/LikesTab";
+import ActivityTab from "./components/ActivityTab";
+import { PROFILE_TABS, chapterRows, profileStats } from "./utils";
 
-/* ---------- Constants ---------- */
-
-const TABS = [
-  { key: "lifebook", label: "Lifebook", icon: Icons.book },
-  { key: "stories", label: "Stories", icon: Icons.document },
-  { key: "likes", label: "Likes", icon: Icons.heartRegular },
-  { key: "activity", label: "Activity", icon: Icons.sparkles },
-];
-
-/** Pastel tint per chapter index (matches the mockup's colored cards). */
-const CHAPTER_TINTS = [
-  "bg-blue-50/70 border-blue-100",
-  "bg-green-50/70 border-green-100",
-  "bg-rose-50/70 border-rose-100",
-  "bg-amber-50/70 border-amber-100",
-  "bg-violet-50/70 border-violet-100",
-  "bg-cyan-50/70 border-cyan-100",
-];
-
-const CHAPTER_NUM_COLORS = [
-  "text-info",
-  "text-success",
-  "text-destructive",
-  "text-warning",
-  "text-accent",
-  "text-info",
-];
-
-const chapterId = (ch) => ch._id || ch.id;
-const bookId = (b) => b._id || b.id;
-
-/* ---------- Page ---------- */
-
-export default function AuthorProfilePage() {
+/**
+ * The author's own profile: their header, their numbers, and their lifebook
+ * chapter by chapter.
+ *
+ * The lifebooks are loaded once here and every tab renders from that, so the
+ * counts and the lists can never drift apart. Each edit is optimistic and
+ * rolled back if the API rejects it.
+ */
+export default function ProfilePage() {
   const { author } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Everything the page shows is loaded here, on demand — the shell above
-  // renders from the session alone.
   const { stories, setStories, loading, error, reload } = useMyStories({
     enabled: Boolean(author),
   });
@@ -77,84 +55,67 @@ export default function AuthorProfilePage() {
     );
   }, [searchParams, navigate]);
 
+  const rows = useMemo(() => chapterRows(stories), [stories]);
+  const stats = useMemo(() => profileStats(rows, social.stats), [rows, social.stats]);
+
   if (!author) return <Navigate to="/login" replace />;
-
-  /* ---------- Derived data ---------- */
-
-  // Chapters and their stories come from the same loaded lifebooks the tabs
-  // render, so the counters can never disagree with the lists below them.
-  const chapterRows = useMemo(
-    () =>
-      stories
-        .flatMap((book) =>
-          [...(book.chapters || [])]
-            .sort((a, b) => a.order - b.order)
-            .map((ch) => ({ ...ch, book })),
-        )
-        .map((ch, i) => {
-          const firstImage =
-            ch.coverImage?.url ||
-            ch.media?.find((m) => m.type === "image")?.url ||
-            ch.stories
-              ?.find((s) => s.media?.some((m) => m.type === "image"))
-              ?.media.find((m) => m.type === "image")?.url;
-
-          return {
-            ...ch,
-            storyCount: ch.stories?.length || 0,
-            tint: CHAPTER_TINTS[i % CHAPTER_TINTS.length],
-            numColor: CHAPTER_NUM_COLORS[i % CHAPTER_NUM_COLORS.length],
-            cover: firstImage,
-          };
-        }),
-    [stories],
-  );
-
-  const storyTotal = chapterRows.reduce((sum, ch) => sum + ch.storyCount, 0);
-
-  const statRow = [
-    { value: social.stats?.followers ?? 0, label: "Followers" },
-    { value: social.stats?.following ?? 0, label: "Following" },
-    { value: chapterRows.length, label: "Chapters" },
-    { value: storyTotal, label: "Stories" },
-  ];
-
-  const renderEmpty = (Icon, label, hint) => (
-    <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
-      <Icon className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-      <p className="font-display font-semibold text-foreground">{label}</p>
-      <p className="text-sm text-muted-foreground mt-1">{hint}</p>
-    </div>
-  );
 
   /* ---------- Actions ---------- */
 
-  /** Change a chapter's visibility (who can read it). */
-  async function handleChapterVisibility(book, chapter, visibility) {
+  /** Apply a change to one chapter of one lifebook, optimistically. */
+  function updateChapterIn(book, chapter, updater) {
     setStories((prev) =>
-      prev.map((b) =>
-        bookId(b) !== bookId(book)
-          ? b
+      prev.map((candidate) =>
+        bookId(candidate) !== bookId(book)
+          ? candidate
           : {
-              ...b,
-              chapters: (b.chapters || []).map((ch) =>
-                chapterId(ch) === chapterId(chapter) ? { ...ch, visibility } : ch,
+              ...candidate,
+              chapters: (candidate.chapters || []).map((entry) =>
+                chapterId(entry) === chapterId(chapter) ? updater(entry) : entry,
               ),
             },
       ),
     );
+  }
+
+  /** Rename a chapter — the title is the author's own. */
+  async function handleRenameChapter(book, chapter, title) {
+    const clean = title.trim();
+    if (!clean || clean === chapter.title) return;
+
+    const previous = stories;
+    updateChapterIn(book, chapter, (entry) => ({ ...entry, title: clean }));
 
     try {
-      await storyApi.updateChapter(bookId(book), chapterId(chapter), { visibility });
-      toast.success(
-        visibility === "public"
-          ? "Chapter is now visible to everyone"
-          : visibility === "followers"
-            ? "Chapter is now visible to followers only"
-            : "Chapter is now private — only you can see it",
-      );
+      await storyApi.updateChapter(bookId(book), chapterId(chapter), {
+        title: clean,
+      });
+      toast.success("Chapter renamed");
     } catch {
-      toast.error("Failed to update chapter visibility");
+      setStories(previous);
+      toast.error("Failed to rename chapter");
+    }
+  }
+
+  /**
+   * Change one story's visibility — visibility is a story's own choice, so
+   * each entry in a chapter can be shared with a different audience.
+   */
+  async function handleStoryVisibility(book, chapter, id, visibility) {
+    updateChapterIn(book, chapter, (entry) => ({
+      ...entry,
+      stories: (entry.stories || []).map((story) =>
+        storyEntryId(story) === id ? { ...story, visibility } : story,
+      ),
+    }));
+
+    try {
+      await storyApi.updateChapterStory(bookId(book), chapterId(chapter), id, {
+        visibility,
+      });
+      toast.success(visibilitySavedMessage(visibility));
+    } catch {
+      toast.error("Failed to update story visibility");
       reload();
     }
   }
@@ -163,39 +124,26 @@ export default function AuthorProfilePage() {
    * Permanently remove one story from a chapter. Drafts and published stories
    * alike — authors keep full control of their lifebook.
    */
-  async function handleDeleteStory(book, chapter, storyEntryId) {
+  async function handleDeleteStory(book, chapter, id) {
     const previous = stories;
-    // Drop it from the list immediately so the count moves with the removal.
-    setStories((prev) =>
-      prev.map((b) =>
-        bookId(b) !== bookId(book)
-          ? b
-          : {
-              ...b,
-              chapters: (b.chapters || []).map((ch) =>
-                chapterId(ch) === chapterId(chapter)
-                  ? {
-                      ...ch,
-                      stories: (ch.stories || []).filter(
-                        (s) => (s._id || s.id) !== storyEntryId,
-                      ),
-                    }
-                  : ch,
-              ),
-            },
+    // Drop it immediately so the count moves with the removal.
+    updateChapterIn(book, chapter, (entry) => ({
+      ...entry,
+      stories: (entry.stories || []).filter(
+        (story) => storyEntryId(story) !== id,
       ),
-    );
+    }));
 
     try {
-      await storyApi.deleteChapterStory(bookId(book), chapterId(chapter), storyEntryId);
+      await storyApi.deleteChapterStory(bookId(book), chapterId(chapter), id);
       toast.success("Story removed");
     } catch (err) {
       setStories(previous);
-      toast.error(err?.response?.data?.error?.message || "Could not remove that story.");
+      toast.error(apiErrorMessage(err, "Could not remove that story."));
     }
   }
 
-  const handleShare = () => {
+  async function handleShare() {
     const url = `${window.location.origin}/authors/${author.id || author._id}`;
     if (navigator.share) {
       navigator.share({ title: author.fullName, url }).catch(() => {});
@@ -203,9 +151,14 @@ export default function AuthorProfilePage() {
       navigator.clipboard.writeText(url);
       toast.success("Profile link copied");
     }
-  };
+  }
 
-  /* ---------- Render ---------- */
+  /** The empty state each tab shows when it has nothing to list. */
+  const renderEmpty = (Icon, label, hint) => (
+    <NoDataState variant="panel" icon={Icon} title={label} description={hint} />
+  );
+
+  const showSkeleton = loading && rows.length === 0;
 
   return (
     <motion.div
@@ -214,7 +167,6 @@ export default function AuthorProfilePage() {
       transition={{ duration: 0.4 }}
       className="pb-24 md:pb-10"
     >
-      {/* ═══════════ Cover header ═══════════ */}
       <ProfileHeader
         author={author}
         bio={author.bio}
@@ -224,13 +176,13 @@ export default function AuthorProfilePage() {
 
       {/* Prompt for authors who still need to finish their profile */}
       {!author.isProfileCompleted && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-4">
+        <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
           <button
             type="button"
             onClick={() => navigate("/profile/edit?complete=1")}
-            className="w-full flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-left hover:bg-warning/15 transition-colors"
+            className="flex w-full items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-left transition-colors hover:bg-warning/15"
           >
-            <Icons.infoCircle className="h-4 w-4 text-warning flex-shrink-0" />
+            <Icons.infoCircle className="h-4 w-4 flex-shrink-0 text-warning" />
             <span className="flex-1 text-sm text-foreground">
               Complete your profile to publish stories.
             </span>
@@ -239,39 +191,29 @@ export default function AuthorProfilePage() {
         </div>
       )}
 
-      {/* ═══════════ Stats row ═══════════ */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
-        <StatsRow stats={statRow} loading={loading || social.loading} />
+      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+        <StatsRow stats={stats} loading={loading || social.loading} />
       </div>
 
-      {/* ═══════════ Load failure ═══════════ */}
       {error && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-4">
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-            <Icons.exclamationCircle className="h-4 w-4 shrink-0 text-destructive" />
-            <p className="mr-auto text-xs text-muted-foreground">
-              {error?.response?.data?.error?.message ||
-                "We couldn't load your lifebook. Please try again."}
-            </p>
-            <button
-              type="button"
-              onClick={reload}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Retry
-            </button>
-          </div>
+        <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+          <ErrorBanner
+            error={error}
+            message={apiErrorMessage(
+              error,
+              "We couldn't load your lifebook. Please try again.",
+            )}
+            onRetry={reload}
+          />
         </div>
       )}
 
-      {/* ═══════════ Tabs ═══════════ */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
-        <ProfileTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
+      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+        <ProfileTabs tabs={PROFILE_TABS} active={activeTab} onChange={setActiveTab} />
       </div>
 
-      {/* ═══════════ Tab content ═══════════ */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
-        {loading && chapterRows.length === 0 ? (
+      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+        {showSkeleton ? (
           <div className="space-y-3.5" aria-busy="true">
             {[0, 1, 2].map((i) => (
               <div
@@ -284,26 +226,27 @@ export default function AuthorProfilePage() {
           <>
             {activeTab === "lifebook" && (
               <LifebookTab
-                chapterRows={chapterRows}
+                chapterRows={rows}
                 onAddChapter={() => navigate("/stories/new")}
-                onEditStory={(book, storyId) =>
-                  navigate(`/stories/${bookId(book)}/edit?story=${storyId}`)
+                onEditStory={(book, id) =>
+                  navigate(`/stories/${bookId(book)}/edit?story=${id}`)
                 }
                 onDeleteStory={handleDeleteStory}
-                onChapterVisibility={handleChapterVisibility}
+                onStoryVisibility={handleStoryVisibility}
+                onRenameChapter={handleRenameChapter}
               />
             )}
             {activeTab === "stories" && (
-              <StoriesTab chapterRows={chapterRows} empty={renderEmpty} />
+              <StoriesTab chapterRows={rows} empty={renderEmpty} />
             )}
             {activeTab === "memories" && (
-              <MemoriesTab chapterRows={chapterRows} empty={renderEmpty} />
+              <MemoriesTab chapterRows={rows} empty={renderEmpty} />
             )}
             {activeTab === "likes" && (
               <LikesTab total={social.stats?.likes ?? 0} empty={renderEmpty} />
             )}
             {activeTab === "activity" && (
-              <ActivityTab chapterRows={chapterRows} empty={renderEmpty} />
+              <ActivityTab chapterRows={rows} empty={renderEmpty} />
             )}
           </>
         )}

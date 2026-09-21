@@ -1,47 +1,42 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Icons } from "../../icons";
-import RichText from "../common/RichText";
-
-const TYPE_BADGE = {
-  memory: "bg-rose-500/10 text-rose-600",
-  experience: "bg-blue-500/10 text-info",
-  achievement: "bg-amber-400/15 text-warning",
-  challenge: "bg-violet-500/10 text-violet-600",
-  lesson: "bg-emerald-500/10 text-success",
-  other: "bg-muted text-muted-foreground",
-};
-
-const VIS_OPTIONS = [
-  { value: "public", label: "Everyone", icon: Icons.globe },
-  { value: "followers", label: "Followers only", icon: Icons.user },
-  { value: "private", label: "Only me", icon: Icons.lock },
-];
+import { Icons } from "../../../icons";
+import RichText from "../../../components/common/RichText";
+import StoryTypeBadge from "../../../components/common/StoryTypeBadge";
+import NoDataState from "../../../components/common/NoDataState";
+import { VISIBILITY_OPTIONS, visibilityOption } from "../../../utils/visibility";
 
 /**
- * Lifebook tab — chapter list (default) or a chapter's stories reader
- * with a per-chapter visibility changer (top-right of the header).
+ * Lifebook tab — chapter list (default) or a chapter's stories reader.
+ *
+ * Visibility belongs to each story, so it is changed on the story itself
+ * rather than on the chapter it happens to sit in.
  */
 export default function LifebookTab({
   chapterRows,
   onAddChapter,
   onEditStory,
   onDeleteStory,
-  onChapterVisibility,
+  onStoryVisibility,
+  onRenameChapter,
 }) {
-  const [openIdx, setOpenIdx] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const openChapter = chapterRows.find(
+    (ch) => (ch._id || ch.id) === openId,
+  );
 
-  if (openIdx !== null && chapterRows[openIdx]) {
+  if (openChapter) {
     return (
       <ChapterStoriesView
-        chapter={chapterRows[openIdx]}
-        index={openIdx}
-        onBack={() => setOpenIdx(null)}
+        chapter={openChapter}
+        onBack={() => setOpenId(null)}
         onEditStory={onEditStory}
         onDeleteStory={onDeleteStory}
-        onChangeVisibility={(vis) =>
-          onChapterVisibility(chapterRows[openIdx].book, chapterRows[openIdx], vis)
+        onChangeStoryVisibility={(storyEntryId, vis) =>
+          onStoryVisibility(openChapter.book, openChapter, storyEntryId, vis)
+        }
+        onRename={(title) =>
+          onRenameChapter(openChapter.book, openChapter, title)
         }
       />
     );
@@ -55,12 +50,12 @@ export default function LifebookTab({
         <EmptyChapterState onAddChapter={onAddChapter} />
       ) : (
         <div className="space-y-3.5">
-          {chapterRows.map((ch, idx) => (
+          {chapterRows.map((ch) => (
             <motion.button
-              key={ch._id || idx}
+              key={ch._id || ch.id || ch.order}
               type="button"
               whileTap={{ scale: 0.995 }}
-              onClick={() => setOpenIdx(idx)}
+              onClick={() => setOpenId(ch._id || ch.id)}
               className={`w-full flex items-center gap-4 rounded-2xl border p-3 text-left shadow-xs hover:shadow-sm transition-all ${ch.tint}`}
             >
               {ch.cover ? (
@@ -78,15 +73,15 @@ export default function LifebookTab({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5">
                   <span className={`font-display text-lg font-bold ${ch.numColor}`}>
-                    {String(idx + 1).padStart(2, "0")}
+                    {String(ch.number).padStart(2, "0")}
                   </span>
                   <h3 className="font-display text-base sm:text-lg font-bold text-foreground truncate">
-                    {ch.title || "Untitled Chapter"}
+                    {ch.name}
                   </h3>
                 </div>
-                {ch.description && (
+                {ch.hint && (
                   <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
-                    {ch.description}
+                    {ch.hint}
                   </p>
                 )}
                 <p className="text-xs font-semibold text-foreground/80 mt-1">
@@ -119,19 +114,17 @@ export default function LifebookTab({
 
 function ChapterStoriesView({
   chapter,
-  index,
   onBack,
   onEditStory,
   onDeleteStory,
-  onChangeVisibility,
+  onChangeStoryVisibility,
+  onRename,
 }) {
   const stories = chapter.stories || [];
-  const [visOpen, setVisOpen] = useState(false);
   // Removing a story asks for confirmation inline, so nothing is lost to a
   // stray tap.
   const [confirmId, setConfirmId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const visRef = useRef(null);
 
   async function handleRemove(storyId) {
     setDeletingId(storyId);
@@ -142,17 +135,6 @@ function ChapterStoriesView({
       setConfirmId(null);
     }
   }
-
-  useEffect(() => {
-    function onDocClick(e) {
-      if (visRef.current && !visRef.current.contains(e.target)) setVisOpen(false);
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
-
-  const currentVis =
-    VIS_OPTIONS.find((v) => v.value === (chapter.visibility || "public")) || VIS_OPTIONS[0];
 
   return (
     <div>
@@ -181,63 +163,14 @@ function ChapterStoriesView({
         )}
         <div className="min-w-0 flex-1">
           <p className={`font-display text-sm font-bold ${chapter.numColor}`}>
-            Chapter {String(index + 1).padStart(2, "0")}
+            Chapter {String(chapter.number).padStart(2, "0")}
           </p>
-          <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-            {chapter.title || "Untitled Chapter"}
-          </h2>
-          {chapter.description && (
-            <p className="text-sm text-muted-foreground mt-1">{chapter.description}</p>
-          )}
-        </div>
-
-        {/* Visibility changer (top-right) */}
-        <div className="relative flex-shrink-0" ref={visRef}>
-          <button
-            type="button"
-            onClick={() => setVisOpen((o) => !o)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted transition-colors"
-            title="Change who can see this chapter"
-          >
-            <currentVis.icon className="h-3.5 w-3.5 text-primary" />
-            <span className="hidden sm:inline">{currentVis.label}</span>
-            <Icons.chevronDown className="h-3 w-3 text-muted-foreground" />
-          </button>
-
-          {visOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-border/80 bg-popover shadow-md p-1.5 z-20">
-              <p className="px-2.5 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Who can see this chapter
-              </p>
-              {VIS_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const active = opt.value === currentVis.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      setVisOpen(false);
-                      if (!active) onChangeVisibility(opt.value);
-                    }}
-                    className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active
-                        ? "bg-primary/5 text-primary font-semibold"
-                        : "text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    {opt.label}
-                    {active && <Icons.check className="h-3.5 w-3.5 ml-auto" />}
-                  </button>
-                );
-              })}
-            </div>
+          <ChapterTitle title={chapter.name} onRename={onRename} />
+          {chapter.hint && (
+            <p className="text-sm text-muted-foreground mt-1">{chapter.hint}</p>
           )}
         </div>
       </div>
-
-      <MediaGallery media={chapter.media} className="mb-6" heightClass="h-28" />
 
       {stories.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
@@ -257,13 +190,7 @@ function ChapterStoriesView({
               className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs"
             >
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${
-                    TYPE_BADGE[s.storyType] || TYPE_BADGE.other
-                  }`}
-                >
-                  {s.storyType || "story"}
-                </span>
+                <StoryTypeBadge type={s.storyType} />
                 {s.dateLabel && (
                   <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                     <Icons.clock className="h-3 w-3" />
@@ -295,14 +222,21 @@ function ChapterStoriesView({
               <MediaGallery media={s.media} className="mt-4" heightClass="h-24" />
 
               <div className="mt-4 pt-4 border-t border-border/40 flex flex-wrap items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => onEditStory(chapter.book, storyId)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-accent transition-colors"
-                >
-                  <Icons.edit className="h-3.5 w-3.5" />
-                  Edit Story
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onEditStory(chapter.book, storyId)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-accent transition-colors"
+                  >
+                    <Icons.edit className="h-3.5 w-3.5" />
+                    Edit Story
+                  </button>
+
+                  <StoryVisibility
+                    value={s.visibility || "public"}
+                    onChange={(next) => onChangeStoryVisibility(storyId, next)}
+                  />
+                </div>
 
                 {confirming ? (
                   <div className="flex flex-wrap items-center gap-2">
@@ -353,7 +287,141 @@ function ChapterStoriesView({
 }
 
 /**
- * Chapter / story media.
+ * The chapter's title, which the author can rename — a chapter carries its
+ * own name, apart from the slot it holds in the life story structure.
+ */
+function ChapterTitle({ title, onRename }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(title);
+
+  function save() {
+    setEditing(false);
+    onRename(value);
+  }
+
+  if (!editing) {
+    return (
+      <div className="group flex items-center gap-2">
+        <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+          {title}
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(title);
+            setEditing(true);
+          }}
+          title="Rename this chapter"
+          aria-label="Rename this chapter"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Icons.edit className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5">
+      <input
+        type="text"
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="w-full max-w-xs rounded-xl border border-primary/50 bg-card px-3 py-1.5 font-display text-lg font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+      />
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={save}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:brightness-110"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Who can read one story. Visibility is a story's own setting — every story
+ * in a chapter can be shared with a different audience.
+ */
+function StoryVisibility({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const current = visibilityOption(value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title="Change who can see this story"
+        aria-label="Change who can see this story"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted"
+      >
+        <current.icon className="h-3.5 w-3.5 text-primary" />
+        <span>{current.shortLabel}</span>
+        <Icons.chevronDown className="h-3 w-3 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-20 mt-2 w-48 rounded-xl border border-border/80 bg-popover p-1.5 shadow-md">
+          <p className="px-2.5 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Who can see this story
+          </p>
+          {VISIBILITY_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const active = opt.value === current.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  if (!active) onChange(opt.value);
+                }}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-primary/5 font-semibold text-primary"
+                    : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                {opt.label}
+                {active && <Icons.check className="ml-auto h-3.5 w-3.5" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Story media.
  *
  * One photo or video spans the full width — it's the story's picture, not a
  * thumbnail. Several fall back to a compact grid.
@@ -404,19 +472,15 @@ function MediaGallery({ media, className = "", heightClass = "h-28" }) {
 
 function EmptyChapterState({ onAddChapter }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
-      <Icons.book className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-      <p className="font-display font-semibold text-foreground">Your lifebook is empty</p>
-      <p className="text-sm text-muted-foreground mt-1">
-        Chapters hold the stories of your life. Create your first one.
-      </p>
-      <button
-        type="button"
-        onClick={onAddChapter}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:brightness-110 transition-all"
-      >
-        <Icons.plus className="h-4 w-4" /> Create First Chapter
-      </button>
-    </div>
+    <NoDataState variant="panel"
+      icon={Icons.book}
+      title="Your lifebook is empty"
+      description="Chapters hold the stories of your life. Create your first one."
+      action={{
+        label: "Create First Chapter",
+        icon: Icons.plus,
+        onClick: onAddChapter,
+      }}
+    />
   );
 }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../../config/api";
-import { useAuth } from "../../context/AuthContext";
-import { Icons } from "../../icons";
+import api from "../../../config/api";
+import { useAuth } from "../../../context/AuthContext";
+import { Icons } from "../../../icons";
 import toast from "react-hot-toast";
 
 /**

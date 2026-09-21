@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext";
-import useMyStories from "../hooks/useMyStories";
-import useStoryFeed from "../hooks/useStoryFeed";
-import * as storyClient from "../utils/client";
+import { useAuth } from "../../context/AuthContext";
+import useStoryFeed from "../../hooks/useStoryFeed";
 
-import TestimonialForm from "../components/home/TestimonialForm";
-import TestimonialsSection from "../components/home/TestimonialsSection";
-import GreetingHero from "../components/home/GreetingHero";
-import WritingGuide from "../components/home/WritingGuide";
-import StoriesForYou from "../components/home/StoriesForYou";
-import InfoCards from "../components/home/InfoCards";
-import toast from "react-hot-toast";
+import GreetingHero from "./components/GreetingHero";
+import WritingGuide from "./components/WritingGuide";
+import StoriesForYou from "./components/StoriesForYou";
+import InfoCards from "./components/InfoCards";
+import TestimonialForm from "./components/TestimonialForm";
+import TestimonialsSection from "./components/TestimonialsSection";
 
+/**
+ * Home — the author's landing page: a greeting, how to write a story,
+ * stories from other authors, why writing matters, and testimonials.
+ */
 export default function HomePage() {
   const navigate = useNavigate();
   const { author, isLoading: authLoading } = useAuth();
@@ -27,7 +28,6 @@ export default function HomePage() {
     }
   }, [author, authLoading, navigate]);
 
-
   if (authLoading || !author) return null;
 
   return (
@@ -37,7 +37,6 @@ export default function HomePage() {
 
       {/* ═══════════ How to write your story ═══════════ */}
       <WritingGuide onStart={() => navigate("/stories/new")} />
-
 
       {/* ═══════════ Stories For You (other authors only) ═══════════ */}
       <StoriesForYou

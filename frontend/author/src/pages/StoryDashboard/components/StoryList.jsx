@@ -1,15 +1,8 @@
 import { useMemo, useState } from "react";
-import { Icons } from "../../icons";
-import { getTimeAgo } from "../../utils/helpers";
-
-const TYPE_BADGE = {
-  memory: "bg-rose-500/10 text-rose-600",
-  experience: "bg-blue-500/10 text-info",
-  achievement: "bg-amber-400/15 text-warning",
-  challenge: "bg-violet-500/10 text-violet-600",
-  lesson: "bg-emerald-500/10 text-success",
-  other: "bg-muted text-muted-foreground",
-};
+import { Icons } from "../../../icons";
+import { getTimeAgo } from "../../../utils/helpers";
+import { chapterLabel } from "../../../utils/chapters";
+import StoryTypeBadge from "../../../components/common/StoryTypeBadge";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -124,13 +117,7 @@ export default function StoryList({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
-                        TYPE_BADGE[row.story.storyType] || TYPE_BADGE.other
-                      }`}
-                    >
-                      {row.story.storyType || "story"}
-                    </span>
+                    <StoryTypeBadge type={row.story.storyType} />
                     <span
                       className={`text-[10px] font-bold uppercase tracking-widest ${
                         published ? "text-success" : "text-warning"
@@ -151,7 +138,7 @@ export default function StoryList({
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <Icons.book className="h-3 w-3" />
-                      {row.chapter?.title || "Unnamed chapter"}
+                      {chapterLabel(row.chapter)}
                     </span>
                     {row.mediaCount > 0 && (
                       <span className="inline-flex items-center gap-1">

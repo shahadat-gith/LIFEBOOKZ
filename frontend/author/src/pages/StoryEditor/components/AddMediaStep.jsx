@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
 import { WizardShell } from "./WizardShell";
 import { PrimaryButton } from "./WizardShell";
-import api from "../../config/api";
+import api from "../../../config/api";
 import toast from "react-hot-toast";
 
 const TABS = [

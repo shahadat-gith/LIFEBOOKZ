@@ -107,7 +107,10 @@ export async function getMyStory(req, res, next) {
 
 export async function getProfile(req, res, next) {
   try {
-    const author = await authorService.getPublicAuthor(req.params.authorId);
+    const author = await authorService.getPublicAuthor({
+      authorId: req.params.authorId,
+      viewerId: req.user?.id,
+    });
 
     return res.json({ success: true, data: author });
   } catch (error) {

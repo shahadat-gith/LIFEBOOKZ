@@ -1,28 +1,9 @@
-import { Icons } from "../../icons";
+import { Icons } from "../../../icons";
+import { VISIBILITY_OPTIONS } from "../../../utils/visibility";
 import { WizardShell } from "./WizardShell";
 import { PrimaryButton } from "./WizardShell";
 
-const OPTIONS = [
-  {
-    value: "public",
-    label: "Everyone (Public)",
-    description: "Anyone on Lifebookz can see this story.",
-    icon: Icons.globe,
-  },
-  {
-    value: "followers",
-    label: "Followers",
-    description: "Only your followers can see this story.",
-    icon: Icons.user,
-  },
-  {
-    value: "private",
-    label: "Only Me (Private)",
-    description: "Only you can see this story.",
-    icon: Icons.lock,
-  },
-];
-
+/** Step 6 — who can read this story, from the shared visibility options. */
 export default function VisibilityStep({
   visibility,
   onChange,
@@ -38,7 +19,7 @@ export default function VisibilityStep({
       </div>
 
       <div className="space-y-3">
-        {OPTIONS.map((opt) => {
+        {VISIBILITY_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const selected = visibility === opt.value;
           return (

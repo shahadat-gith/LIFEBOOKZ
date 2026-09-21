@@ -1,6 +1,6 @@
-import { Icons } from "../../icons";
-import Avatar from "../ui/Avatar";
-import Badge from "../ui/Badge";
+import { Icons } from "../../../icons";
+import Avatar from "../../../components/ui/Avatar";
+import Badge from "../../../components/ui/Badge";
 
 const VISIBILITY = {
   public: { label: "Everyone", variant: "success", Icon: Icons.globe },
@@ -21,7 +21,13 @@ export default function LifebookCard({ book, onEdit, onView }) {
   );
   const stats = book.stats || {};
   const visibility = VISIBILITY[book.visibility] || VISIBILITY.public;
-  const cover = book.coverImage?.url || book.coverImageMobile?.url || null;
+  const cover =
+    book.bannerImage?.url ||
+    (book.chapters || [])
+      .flatMap((ch) => ch.stories || [])
+      .flatMap((s) => s.media || [])
+      .find((m) => m.type === "image")?.url ||
+    null;
   const published = book.status === "published";
 
   return (

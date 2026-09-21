@@ -1,3 +1,8 @@
+/** The message the API sent back for a failed request, or a fallback. */
+export function apiErrorMessage(error, fallback = "Something went wrong. Please try again.") {
+  return error?.response?.data?.error?.message || fallback;
+}
+
 export function getContentPreview(html, maxLength = 80) {
   const plain = html.replace(/<[^>]*>/g, "").trim();
   if (!plain) return "";

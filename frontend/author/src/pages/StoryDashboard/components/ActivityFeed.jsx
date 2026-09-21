@@ -1,6 +1,6 @@
-import { Icons } from "../../icons";
-import Avatar from "../ui/Avatar";
-import { getTimeAgo } from "../../utils/helpers";
+import { Icons } from "../../../icons";
+import Avatar from "../../../components/ui/Avatar";
+import { getTimeAgo } from "../../../utils/helpers";
 
 const ACTIONS = {
   like: { verb: "liked your lifebook", Icon: Icons.heartSolid, tone: "text-destructive" },

@@ -15,9 +15,9 @@ const statsSchema = new mongoose.Schema(
 );
 
 /**
- * Media attached to a chapter or a story. Files live in Cloudflare R2 —
- * `url` is the publicly accessible URL, `key` is the R2 object key
- * (used to delete the object later).
+ * Media attached to a story. Files live in Cloudflare R2 — `url` is the
+ * publicly accessible URL, `key` is the R2 object key (used to delete the
+ * object later).
  */
 const mediaSchema = new mongoose.Schema(
   {
@@ -48,8 +48,8 @@ const mediaSchema = new mongoose.Schema(
 
 /**
  * Story Schema (nested inside a chapter) — a single memory, lesson,
- * achievement, experience, etc. Content is plain text (Facebook-style),
- * not rich JSON.
+ * achievement, experience, etc. Every piece of text and every photo or
+ * video belongs here: the chapter above it is only an ordered container.
  */
 const storySchema = new mongoose.Schema(
   {
@@ -99,12 +99,11 @@ const storySchema = new mongoose.Schema(
       default: [],
     },
 
-    // Chapter-level override: a single story can be more private than
-    // its chapter ("public" | "followers" | "private")
+    // Who can read this story: "public" | "followers" | "private".
     visibility: {
       type: String,
       enum: ["public", "followers", "private"],
-      default: null,
+      default: "public",
     },
 
     status: {
@@ -121,11 +120,7 @@ const storySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/**
- * Chapter Schema — a phase of life (Childhood, School Life, College Life…).
- * Each chapter holds multiple stories and its own media gallery, and has
- * its own visibility setting.
- */
+
 const chapterSchema = new mongoose.Schema(
   {
     _id: {
@@ -138,31 +133,6 @@ const chapterSchema = new mongoose.Schema(
       required: true,
       trim: true,
       maxlength: 200,
-    },
-
-    description: {
-      type: String,
-      trim: true,
-      default: "",
-      maxlength: 2000,
-    },
-
-    coverImage: {
-      type: imageSchema,
-      default: null,
-    },
-
-    // Chapter-level media gallery (multiple photos / videos)
-    media: {
-      type: [mediaSchema],
-      default: [],
-    },
-
-    // Who can see this chapter: "public" | "followers" | "private"
-    visibility: {
-      type: String,
-      enum: ["public", "followers", "private"],
-      default: "private",
     },
 
     stories: {
@@ -195,7 +165,6 @@ const storyBookSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Title of the whole life story / lifebook
     title: {
       type: String,
       required: true,
@@ -210,7 +179,7 @@ const storyBookSchema = new mongoose.Schema(
       lowercase: true,
     },
 
-    coverImage: {
+    bannerImage: {
       type: imageSchema,
       default: null,
     },
@@ -227,19 +196,15 @@ const storyBookSchema = new mongoose.Schema(
       default: "English",
     },
 
-    /**
-     * Chapters — ordered phases of life. Each chapter contains multiple
-     * stories, its own media gallery, and its own visibility.
-     */
     chapters: {
       type: [chapterSchema],
       default: [],
       validate: {
         validator: function (chapters) {
-          // Ensure order values are sequential starting from 0
-          return chapters.every((ch, idx) => ch.order === idx);
+          const orders = chapters.map((chapter) => chapter.order);
+          return new Set(orders).size === orders.length;
         },
-        message: "Chapter orders must be sequential starting from 0.",
+        message: "Every chapter must sit in its own slot.",
       },
     },
 
@@ -316,6 +281,11 @@ storyBookSchema.index({ featured: 1, publishedAt: -1 });
 
 // Middleware
 storyBookSchema.pre("save", function () {
+  // Chapters read in slot order everywhere, so they are stored that way.
+  if (Array.isArray(this.chapters) && this.chapters.length > 1) {
+    this.chapters.sort((a, b) => a.order - b.order);
+  }
+
   // Generate slug only once when title exists
   if (this.title && (!this.slug || this.isModified("title"))) {
     const baseSlug = slugify(this.title, {

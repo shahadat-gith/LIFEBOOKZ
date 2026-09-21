@@ -1,14 +1,6 @@
-import { Icons } from "../../icons";
-import { richTextToPlain } from "../../utils/richText";
-
-const TYPE_BADGE = {
-  memory: "bg-rose-500/10 text-rose-600",
-  experience: "bg-blue-500/10 text-info",
-  achievement: "bg-amber-400/15 text-warning",
-  challenge: "bg-violet-500/10 text-violet-600",
-  lesson: "bg-emerald-500/10 text-success",
-  other: "bg-muted text-muted-foreground",
-};
+import { Icons } from "../../../icons";
+import { richTextToPlain } from "../../../utils/richText";
+import StoryTypeBadge from "../../../components/common/StoryTypeBadge";
 
 /** All stories across chapters, flat list with type + status badges. */
 export default function StoriesTab({ chapterRows, empty }) {
@@ -23,14 +15,10 @@ export default function StoriesTab({ chapterRows, empty }) {
       {rows.map((s, i) => (
         <div key={s._id || i} className="rounded-2xl border border-border/60 bg-card p-4 shadow-xs">
           <div className="flex items-center gap-2 mb-1.5">
-            <span
-              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                TYPE_BADGE[s.storyType] || TYPE_BADGE.other
-              }`}
-            >
-              {s.storyType || "story"}
+            <StoryTypeBadge type={s.storyType} />
+            <span className="text-[11px] text-muted-foreground">
+              {s.chapter?.label}
             </span>
-            <span className="text-[11px] text-muted-foreground">{s.chapter?.title}</span>
             {s.status === "published" ? (
               <span className="ml-auto text-[10px] font-semibold text-success">Published</span>
             ) : (

@@ -1,8 +1,6 @@
 import { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
-import { FollowingProvider } from './context/FollowingContext';
 import AppLayout, { AuthLayout, MinimalLayout } from './components/layout/AppLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoadingScreen from './components/common/LoadingScreen';
@@ -44,21 +42,13 @@ function ScrollToTop() {
 
 export function App() {
  return (
-  <BrowserRouter>
+  <>
    <ScrollToTop />
-   <AuthProvider>
-    <FollowingProvider>
     <Suspense fallback={<LazyFallback />}>
      <Routes>
       <Route element={<AppLayout />}>
        <Route path="/" element={<Home />} />
-       {/*
-         Reading is public — guests can browse the feed and read published
-         stories. Interactive actions (like, comment, follow) prompt sign-in.
-         Personal pages (profile, bookings) stay gated.
-       */}
        <Route path="/stories" element={<StoryList />} />
-       {/* Feed is the single source of truth - story detail is shown directly in the feed */}
        <Route path="/search" element={<SearchResults />} />
        <Route path="/feed" element={<Feed />} />
        <Route path="/feed/story/:slug" element={<StoryDetail />} />
@@ -85,9 +75,7 @@ export function App() {
      </Routes>
     </Suspense>
     <Toaster position="top-right" toastOptions={{ duration: 4000, style: { borderRadius: '12px', padding: '12px 16px', fontSize: '14px' }, success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } }, error: { iconTheme: { primary: '#dc2626', secondary: '#fff' } } }} />
-   </FollowingProvider>
-   </AuthProvider>
-  </BrowserRouter>
+  </>
  );
 }
 export default App;

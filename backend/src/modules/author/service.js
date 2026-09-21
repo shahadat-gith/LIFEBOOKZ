@@ -7,6 +7,7 @@ import Story from "../story/models/Story.js";
 import { generateToken } from "../../core/utils/helpers.js";
 import * as Errors from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
+import { isFollowing } from "../following/service.js";
 import { sendEmail } from "../../core/services/email.js";
 import { logger } from "../../core/services/logger.js";
 import {
@@ -291,7 +292,16 @@ export async function updateAuthor({
   return author;
 }
 
-export async function getPublicAuthor(authorId) {
+/**
+ * An author as any visitor sees them.
+ *
+ * A signed-in reader or author also learns whether they already follow this
+ * author, so the profile page can draw its follow button from the same
+ * request that loads the profile instead of asking a second time. The check
+ * spans every account type — readers, authors and experts all follow authors
+ * through the same `Follow` rows.
+ */
+export async function getPublicAuthor({ authorId, viewerId } = {}) {
   const author = await Author.findById(authorId)
     .select(PUBLIC_AUTHOR_SELECT)
     .lean();
@@ -300,7 +310,29 @@ export async function getPublicAuthor(authorId) {
     throw new Errors.NotFoundError("Author not found.");
   }
 
-  return { ...author, role: "author" };
+  const isSelf = Boolean(viewerId) && String(viewerId) === String(author._id);
+
+  // Nobody follows themselves, and an anonymous visitor never does. The
+  // published count is derived here rather than read from the stored
+  // counter, which only moves when a story is published or removed.
+  const [isFollowedByLoggedInUser, storyCount] = await Promise.all([
+    !viewerId || isSelf
+      ? false
+      : isFollowing({ userId: viewerId, authorId: author._id }),
+    Story.countDocuments({
+      author: author._id,
+      status: "published",
+      visibility: "public",
+    }),
+  ]);
+
+  return {
+    ...author,
+    stats: { ...author.stats, stories: storyCount },
+    role: "author",
+    isSelf,
+    isFollowedByLoggedInUser,
+  };
 }
 
 /* ---------- Stories owned by the author ---------- */

@@ -1,41 +1,41 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
-import AuthShell from "../components/auth/AuthShell";
-import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
-export default function AuthorLoginPage() {
+import { useAuth } from "../../context/AuthContext";
+import { apiErrorMessage } from "../../utils/helpers";
+import AuthShell from "../../components/auth/AuthShell";
+import AuthFooter from "../../components/auth/AuthFooter";
+import AuthHeading from "../../components/auth/AuthHeading";
+import FormError from "../../components/common/FormError";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import { Icons } from "../../icons";
+
+/** Sign in. `?redirect=<path>` lands the author where they were headed. */
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // ?redirect=<path> — land the author where they were headed
-  function finishSignIn() {
-    toast.success("Welcome back!");
-    const redirect = searchParams.get("redirect");
-    navigate(redirect && redirect.startsWith("/") ? redirect : "/");
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       await login({ email, password });
+      toast.success("Welcome back!");
 
-      finishSignIn();
+      const redirect = searchParams.get("redirect");
+      navigate(redirect && redirect.startsWith("/") ? redirect : "/");
     } catch (err) {
-      const msg =
-        err?.response?.data?.error?.message || "Invalid email or password";
-      setError(msg);
+      setError(apiErrorMessage(err, "Invalid email or password"));
     } finally {
       setLoading(false);
     }
@@ -43,14 +43,10 @@ export default function AuthorLoginPage() {
 
   return (
     <AuthShell>
-      <div className="text-center mb-8">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-          Welcome back
-        </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Sign in to continue writing your Lifebook.
-        </p>
-      </div>
+      <AuthHeading
+        title="Welcome back"
+        subtitle="Sign in to continue writing your Lifebook."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
@@ -64,11 +60,11 @@ export default function AuthorLoginPage() {
         />
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="mb-1.5 flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">Password</span>
             <Link
               to="/forgot-password"
-              className="text-xs text-primary font-medium hover:underline"
+              className="text-xs font-medium text-primary hover:underline"
             >
               Forgot password?
             </Link>
@@ -84,16 +80,7 @@ export default function AuthorLoginPage() {
           />
         </div>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs text-destructive flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20"
-          >
-            <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
-            <span>{error}</span>
-          </motion.div>
-        )}
+        <FormError>{error}</FormError>
 
         <Button
           type="submit"
@@ -107,17 +94,7 @@ export default function AuthorLoginPage() {
         </Button>
       </form>
 
-      <div className="mt-7 pt-6 border-t border-border/40 text-center">
-        <p className="text-sm text-muted-foreground">
-          New to Lifebookz?{" "}
-          <Link
-            to="/register"
-            className="text-primary font-semibold hover:underline transition-colors"
-          >
-            Create your account
-          </Link>
-        </p>
-      </div>
+      <AuthFooter prompt="New to Lifebookz?" linkLabel="Create your account" to="/register" />
     </AuthShell>
   );
 }

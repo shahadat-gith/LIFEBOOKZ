@@ -1,3 +1,26 @@
+/* ---------- Entity ids ---------- */
+
+/*
+ * Documents arrive with `_id` from Mongo and `id` from the API's own
+ * serializers, and different screens see different ones. These normalizers
+ * are the single way the portal reads an id, so no screen has to know which
+ * shape it was handed.
+ */
+
+export const bookId = (book) => book?._id || book?.id || null;
+export const chapterId = (chapter) => chapter?._id || chapter?.id || null;
+export const storyEntryId = (entry) => entry?._id || entry?.id || null;
+
+/**
+ * The API's own message for a failed request, or a human fallback.
+ *
+ * Error shapes vary (validation, network, plain 500), so every screen funnels
+ * them through here rather than reaching into `response.data.error` itself.
+ */
+export function apiErrorMessage(error, fallback = "Something went wrong. Please try again.") {
+  return error?.response?.data?.error?.message || fallback;
+}
+
 export function getContentPreview(text, maxLength = 80) {
   const plain = String(text || "").trim();
   if (!plain) return "Untitled Story";
@@ -12,7 +35,13 @@ export function countWords(text) {
   return trimmed.split(/\s+/).length;
 }
 
-/** "3h ago" style relative time — one label doesn't need a date library. */
+/**
+ * "3h ago" style relative time — one label doesn't need a date library.
+ *
+ * Past a month a relative label stops meaning much, so anything older is
+ * shown as a short date instead. This is the portal's only timestamp helper:
+ * feeds, activity, notifications and comments all read the same way.
+ */
 export function getTimeAgo(date) {
   const then = new Date(date).getTime();
   if (!then) return "";
@@ -21,8 +50,6 @@ export function getTimeAgo(date) {
   if (seconds < 60) return "just now";
 
   const units = [
-    [31536000, "y"],
-    [2592000, "mo"],
     [604800, "w"],
     [86400, "d"],
     [3600, "h"],
@@ -30,7 +57,17 @@ export function getTimeAgo(date) {
   ];
 
   for (const [size, label] of units) {
-    if (seconds >= size) return `${Math.floor(seconds / size)}${label} ago`;
+    if (seconds < size) continue;
+
+    const value = Math.floor(seconds / size);
+    if (label === "w" && value >= 5) {
+      return new Date(then).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+      });
+    }
+
+    return `${value}${label} ago`;
   }
 
   return "just now";
