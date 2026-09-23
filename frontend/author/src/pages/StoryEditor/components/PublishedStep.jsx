@@ -37,7 +37,7 @@ export default function PublishedStep({
           transition={{ type: "spring", stiffness: 260, damping: 18 }}
           className="relative"
         >
-          <span className="flex items-center justify-center w-24 h-24 rounded-full bg-success/85 shadow-md">
+          <span className="flex items-center justify-center w-24 h-24 rounded-full bg-success shadow-lg shadow-success/30">
             <svg
               viewBox="0 0 24 24"
               fill="none"

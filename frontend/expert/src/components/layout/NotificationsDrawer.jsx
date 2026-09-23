@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const TYPE_STYLES = {
   like: { icon: Icons.heartSolid, chip: "bg-rose-500/10 text-rose-500" },
-  comment: { icon: Icons.chat, chip: "bg-emerald-500/10 text-emerald-600" },
+  comment: { icon: Icons.chat, chip: "bg-success/10 text-success" },
   follow: { icon: Icons.userAdd, chip: "bg-blue-500/10 text-blue-500" },
   publish: { icon: Icons.book, chip: "bg-sky-500/10 text-sky-600" },
   booking: { icon: Icons.calendar, chip: "bg-violet-500/10 text-violet-500" },

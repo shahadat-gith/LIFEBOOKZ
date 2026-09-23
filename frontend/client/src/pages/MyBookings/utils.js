@@ -13,7 +13,7 @@ export const STATUS_STYLES = {
   completed: {
     label: "Completed",
     className:
-      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      "bg-success/10 text-success border-success/20",
   },
   cancelled: {
     label: "Cancelled",

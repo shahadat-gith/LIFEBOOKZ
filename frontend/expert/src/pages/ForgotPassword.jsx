@@ -201,8 +201,8 @@ export default function ForgotPasswordPage() {
                   transition={{ duration: 0.3 }}
                   className="text-center space-y-6"
                 >
-                  <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <Icons.checkCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  <div className="mx-auto w-16 h-16 rounded-full bg-success/10 text-success ring-1 ring-success/20 flex items-center justify-center">
+                    <Icons.checkCircle className="h-8 w-8" />
                   </div>
                   <CardTitle className="text-xl">Password reset!</CardTitle>
                   <p className="text-sm text-muted-foreground">

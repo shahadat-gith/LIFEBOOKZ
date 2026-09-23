@@ -59,7 +59,7 @@ function BookVisual() {
 
       {/* Floating engagement chip */}
       <div className="absolute -left-2 bottom-2 flex -rotate-3 items-center gap-2 rounded-xl border border-border/60 bg-white px-3 py-2 shadow-lg shadow-primary/10">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500/10">
           <Icons.heartSolid className="h-3.5 w-3.5 text-rose-500" />
         </span>
         <div>

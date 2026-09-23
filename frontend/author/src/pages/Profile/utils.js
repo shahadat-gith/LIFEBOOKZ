@@ -19,7 +19,7 @@ export const PROFILE_TABS = [
 /** Pastel tint per chapter slot (matches the mockup's coloured cards). */
 const CHAPTER_TINTS = [
   "bg-blue-50/70 border-blue-100",
-  "bg-green-50/70 border-green-100",
+  "bg-emerald-50/70 border-emerald-100",
   "bg-rose-50/70 border-rose-100",
   "bg-amber-50/70 border-amber-100",
   "bg-violet-50/70 border-violet-100",

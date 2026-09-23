@@ -2,18 +2,44 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Icons } from "../../icons";
-import {
-  CONTRIBUTOR_PORTALS,
-  STAFF_PORTALS,
-  portalLoginUrl,
-} from "../../config/portals";
+
+const PORTALS = [
+  {
+    id: "admin",
+    name: "Admin",
+    tagline: "Manage the LifeBookz platform",
+    url: "https://admin.lifebookz.com",
+    icon: Icons.shield,
+  },
+  {
+    id: "author",
+    name: "Author",
+    tagline: "Create and manage your stories",
+    url: "https://author.lifebookz.com",
+    icon: Icons.pen,
+  },
+  {
+    id: "expert",
+    name: "Expert",
+    tagline: "Share your knowledge and expertise",
+    url: "https://expert.lifebookz.com",
+    icon: Icons.sparkles,
+  },
+  {
+    id: "developer",
+    name: "Developer",
+    tagline: "Developer tools and resources",
+    url: "https://developer.lifebookz.com",
+    icon: Icons.code,
+  },
+];
 
 function PortalRow({ portal, onNavigate }) {
   const Icon = portal.icon;
 
   return (
     <a
-      href={portalLoginUrl(portal)}
+      href={portal.url}
       target="_blank"
       rel="noopener noreferrer"
       onClick={onNavigate}
@@ -27,6 +53,7 @@ function PortalRow({ portal, onNavigate }) {
         <span className="block text-xs font-semibold text-foreground">
           {portal.name}
         </span>
+
         <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
           {portal.tagline}
         </span>
@@ -37,20 +64,6 @@ function PortalRow({ portal, onNavigate }) {
   );
 }
 
-function GroupLabel({ children }) {
-  return (
-    <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
-      {children}
-    </p>
-  );
-}
-
-/**
- * Account / workspace switcher.
- *
- * Sits in the navbar's top-right action cluster (where "Join as Author" used
- * to be) and links out to the other LifeBookz portals.
- */
 export function PortalMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
@@ -63,7 +76,9 @@ export function PortalMenu() {
     }
 
     function handleEscape(event) {
-      if (event.key === "Escape") setIsOpen(false);
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -82,13 +97,15 @@ export function PortalMenu() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        aria-label="Other LifeBookz portals"
+        aria-label="LifeBookz portals"
         className="flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 text-muted-foreground shadow-xs transition-all duration-200 hover:border-primary/25 hover:text-primary active:scale-95 sm:h-10 sm:px-3"
       >
         <Icons.globe className="h-[18px] w-[18px]" />
+
         <span className="hidden text-xs font-semibold tracking-wide md:inline">
           Portals
         </span>
+
         <Icons.chevronDown
           className={`hidden h-3 w-3 transition-transform duration-200 md:block ${
             isOpen ? "rotate-180" : ""
@@ -106,19 +123,11 @@ export function PortalMenu() {
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-border/80 bg-card p-1.5 shadow-xl backdrop-blur-xl"
           >
-            <GroupLabel>Contribute</GroupLabel>
-            {CONTRIBUTOR_PORTALS.map((portal) => (
-              <PortalRow
-                key={portal.id}
-                portal={portal}
-                onNavigate={() => setIsOpen(false)}
-              />
-            ))}
+            <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
+              LifeBookz Portals
+            </p>
 
-            <div className="my-1 border-t border-border/40" />
-
-            <GroupLabel>Staff</GroupLabel>
-            {STAFF_PORTALS.map((portal) => (
+            {PORTALS.map((portal) => (
               <PortalRow
                 key={portal.id}
                 portal={portal}
@@ -127,7 +136,7 @@ export function PortalMenu() {
             ))}
 
             <p className="px-3 pb-1 pt-2 text-[10px] leading-relaxed text-muted-foreground/80">
-              Every portal opens in a new tab with its own sign-in.
+              Each portal opens in a new tab with its own sign-in.
             </p>
           </motion.div>
         )}

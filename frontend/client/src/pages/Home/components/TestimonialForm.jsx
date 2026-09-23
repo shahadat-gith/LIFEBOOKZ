@@ -99,7 +99,7 @@ export default function TestimonialForm({ onSubmitted }) {
           className="p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-card border border-border/70 shadow-xs"
         >
           {mine && (
-            <p className="mb-4 text-xs font-medium text-emerald-600 bg-emerald-500/10 rounded-lg px-3 py-2">
+            <p className="mb-4 text-xs font-medium text-success bg-success/10 rounded-lg px-3 py-2">
               You already shared a testimonial — editing it will update your
               existing entry.
             </p>

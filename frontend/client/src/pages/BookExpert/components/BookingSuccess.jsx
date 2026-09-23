@@ -28,7 +28,7 @@ export default function BookingSuccess({ expert, sessionType, date, time, catego
   return (
     <div className="min-h-screen bg-background px-4 py-16 font-sans text-foreground md:py-24">
       <div className="mx-auto max-w-xl space-y-6 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10 text-success ring-1 ring-success/20">
           <Icons.checkCircle className="h-8 w-8" />
         </div>
 
