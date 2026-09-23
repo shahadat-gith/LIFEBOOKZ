@@ -5,6 +5,7 @@ import api from "../config/api";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import Card, { CardTitle } from "../components/ui/Card";
+import SpamNotice from "../components/auth/SpamNotice";
 import { Icons } from "../icons";
 import toast from "react-hot-toast";
 
@@ -297,6 +298,8 @@ export default function ForgotPasswordPage() {
                       <span className="font-medium text-foreground">{email}</span>
                     </p>
                   </div>
+
+                  <SpamNotice />
 
                   <form onSubmit={handleVerifyOTP} className="space-y-5">
                     <div>

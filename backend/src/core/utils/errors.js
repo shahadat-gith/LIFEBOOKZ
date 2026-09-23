@@ -1,57 +1,41 @@
-export class AppError extends Error {
-  constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
-    this.isOperational = true;
-  }
+/**
+ * Error factories.
+ *
+ * Every expected failure is a plain Error carrying the HTTP status and a
+ * stable machine-readable code. The error handler reads only those two
+ * fields, so a new failure kind never has to touch the handler.
+ */
+
+function appError(message, statusCode, code) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  error.code = code;
+  error.isAppError = true;
+  return error;
 }
 
-export class NotFoundError extends AppError {
-  constructor(message = 'Resource not found') {
-    super(message, 404, 'NOT_FOUND');
-  }
-}
+export const notFoundError = (message = "Resource not found") =>
+  appError(message, 404, "NOT_FOUND");
 
-export class ValidationError extends AppError {
-  constructor(message = 'Validation failed', errors = []) {
-    super(message, 422, 'VALIDATION_ERROR');
-    this.errors = errors;
-  }
-}
+export const validationError = (message = "Validation failed") =>
+  appError(message, 422, "VALIDATION_ERROR");
 
-export class AuthenticationError extends AppError {
-  constructor(message = 'Authentication required') {
-    super(message, 401, 'AUTHENTICATION_ERROR');
-  }
-}
+export const authenticationError = (message = "Authentication required") =>
+  appError(message, 401, "AUTHENTICATION_ERROR");
 
-export class AuthorizationError extends AppError {
-  constructor(message = 'Insufficient permissions') {
-    super(message, 403, 'AUTHORIZATION_ERROR');
-  }
-}
+export const authorizationError = (message = "Insufficient permissions") =>
+  appError(message, 403, "AUTHORIZATION_ERROR");
 
-export class ForbiddenError extends AppError {
-  constructor(message = 'Access forbidden') {
-    super(message, 403, 'FORBIDDEN');
-  }
-}
+export const forbiddenError = (message = "Access forbidden") =>
+  appError(message, 403, "FORBIDDEN");
 
-export class ConflictError extends AppError {
-  constructor(message = 'Resource already exists') {
-    super(message, 409, 'CONFLICT_ERROR');
-  }
-}
+export const conflictError = (message = "Resource already exists") =>
+  appError(message, 409, "CONFLICT_ERROR");
 
-export class ServiceUnavailableError extends AppError {
-  constructor(message = 'Service temporarily unavailable') {
-    super(message, 503, 'SERVICE_UNAVAILABLE');
-  }
-}
+export const serviceUnavailableError = (
+  message = "Service temporarily unavailable",
+) => appError(message, 503, "SERVICE_UNAVAILABLE");
 
-export class StorageError extends AppError {
-  constructor(message = 'File storage is unavailable. Please try again later.') {
-    super(message, 502, 'STORAGE_ERROR');
-  }
-}
+export const storageError = (
+  message = "File storage is unavailable. Please try again later.",
+) => appError(message, 502, "STORAGE_ERROR");

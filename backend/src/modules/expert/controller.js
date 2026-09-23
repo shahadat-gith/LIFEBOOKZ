@@ -1,7 +1,5 @@
 import * as expertService from "./service.js";
 
-/* ---------- Authentication ---------- */
-
 export async function register(req, res, next) {
   try {
     const { expert, token } = await expertService.registerExpert({
@@ -46,8 +44,6 @@ export async function logout(_req, res, next) {
   }
 }
 
-/* ---------- Self service (expert role — pending experts included) ---------- */
-
 export async function getMe(req, res, next) {
   try {
     const expert = await expertService.getMyExpertProfile(req.user?.id);
@@ -73,8 +69,6 @@ export async function updateMe(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Bookings ---------- */
 
 export async function getMyBookings(req, res, next) {
   try {
@@ -102,8 +96,6 @@ export async function updateBookingStatus(req, res, next) {
   }
 }
 
-/* ---------- Public ---------- */
-
 export async function getProfile(req, res, next) {
   try {
     const expert = await expertService.getPublicExpert(req.params.expertId);
@@ -113,8 +105,6 @@ export async function getProfile(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Password reset (OTP based) ---------- */
 
 export async function forgotPassword(req, res, next) {
   try {

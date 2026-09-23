@@ -1,7 +1,5 @@
 import * as userService from "./service.js";
 
-/* ---------- Authentication ---------- */
-
 export async function register(req, res, next) {
   try {
     const { user, token } = await userService.registerUser({
@@ -36,8 +34,6 @@ export async function login(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Profile ---------- */
 
 export async function getMe(req, res, next) {
   try {
@@ -87,8 +83,6 @@ export async function getProfile(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Password Reset (OTP-based) ---------- */
 
 export async function forgotPassword(req, res, next) {
   try {

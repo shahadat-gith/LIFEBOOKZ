@@ -1,5 +1,4 @@
 import multer from "multer";
-import { AppError } from "../utils/errors.js";
 
 /**
  * Attach the error detail to the request so the request logger can persist it
@@ -79,8 +78,8 @@ export default function errorHandler(err, req, res, _next) {
     );
   }
 
-  // — Our own AppError instances —
-  if (err instanceof AppError) {
+  // — Our own app errors — (plain Errors flagged by core/utils/errors.js)
+  if (err.isAppError) {
     return respond(req, res, err.statusCode, err.code, err.message, {
       stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });

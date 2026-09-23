@@ -2,7 +2,7 @@ import config from "../../core/config/index.js";
 import Log from "../../core/models/log.model.js";
 
 import { generateToken } from "../../core/utils/helpers.js";
-import * as Errors from "../../core/utils/errors.js";
+import { authenticationError } from "../../core/utils/errors.js";
 import { logger } from "../../core/services/logger.js";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"];
@@ -26,7 +26,7 @@ export function isDeveloperConfigured() {
  */
 export async function authenticateDeveloper({ email, password, ip }) {
   if (!isDeveloperConfigured()) {
-    throw new Errors.AuthenticationError(
+    throw authenticationError(
       "Developer access is not configured on this server.",
     );
   }
@@ -38,7 +38,7 @@ export async function authenticateDeveloper({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid developer credentials.");
+    throw authenticationError("Invalid developer credentials.");
   }
 
   const token = generateToken({ role: "developer" });

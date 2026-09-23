@@ -276,7 +276,6 @@ authorSchema.virtual("role").get(() => "author");
 authorSchema.index({ fullName: "text" });
 authorSchema.index({ status: 1 });
 
-// Hash password before saving
 authorSchema.pre("save", async function (next) {
   if (!this.isModified("auth.passwordHash")) return next();
 
@@ -291,11 +290,6 @@ authorSchema.pre("save", async function (next) {
     next(err);
   }
 });
-
-// Compare password
-authorSchema.methods.comparePassword = function (password) {
-  return bcrypt.compare(password, this.auth.passwordHash);
-};
 
 const Author =
   mongoose.models.Author ||

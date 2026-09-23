@@ -1,10 +1,15 @@
 import crypto from "crypto";
 
 import User from "./model.js";
-import { generateToken } from "../../core/utils/helpers.js";
-import * as Errors from "../../core/utils/errors.js";
+import { generateToken, verifyPassword } from "../../core/utils/helpers.js";
+import {
+  authenticationError,
+  conflictError,
+  notFoundError,
+  validationError,
+} from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
-import { sendEmail } from "../../core/services/email.js";
+import { sendWelcomeMail, sendOtpMail } from "../../core/services/mailer.js";
 import { logger } from "../../core/services/logger.js";
 import {
   uploadAvatar,
@@ -45,21 +50,15 @@ function userToken(user) {
   return generateToken({ role: "user", userId: user.id });
 }
 
-/* ---------- Authentication ---------- */
-
 export async function registerUser({ email, password, fullName, file }) {
   if (!email || !password || !fullName) {
-    throw new Errors.ValidationError(
-      "Email, password, and full name are required.",
-    );
+    throw validationError("Email, password, and full name are required.");
   }
 
   const existing = await User.findOne({ email });
 
   if (existing) {
-    throw new Errors.ConflictError(
-      "An account with this email already exists.",
-    );
+    throw conflictError("An account with this email already exists.");
   }
 
   const username = await buildUniqueUsername(email);
@@ -79,6 +78,8 @@ export async function registerUser({ email, password, fullName, file }) {
     avatar,
   });
 
+  sendWelcomeMail({ to: user.email, name: user.fullName, role: "user" });
+
   return { user, token: userToken(user) };
 }
 
@@ -96,10 +97,10 @@ export async function loginUser({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
-  const isValid = await user.comparePassword(password);
+  const isValid = await verifyPassword(password, user.auth.passwordHash);
 
   if (!isValid) {
     await logger.warn("Reader login failed — incorrect password", {
@@ -108,23 +109,21 @@ export async function loginUser({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
   return { user, token: userToken(user) };
 }
 
-/* ---------- Profile ---------- */
-
 export async function getUserById(userId) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new Errors.NotFoundError("User not found.");
+    throw notFoundError("User not found.");
   }
 
   return user;
@@ -190,18 +189,16 @@ export async function getPublicProfile(userId) {
     .lean();
 
   if (!user) {
-    throw new Errors.NotFoundError("User not found.");
+    throw notFoundError("User not found.");
   }
 
   // `lean()` skips schema virtuals, so the role is added explicitly.
   return { ...user, role: "user" };
 }
 
-/* ---------- Password Reset (OTP-based) ---------- */
-
 export async function requestPasswordReset({ email }) {
   if (!email) {
-    throw new Errors.ValidationError("Email is required.");
+    throw validationError("Email is required.");
   }
 
   // Always resolve silently to avoid revealing whether the email exists
@@ -216,17 +213,13 @@ export async function requestPasswordReset({ email }) {
 
     await user.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "LifeBookz - Password Reset OTP",
-      text: `You requested a password reset for your LifeBookz account.\n\nYour OTP is:\n\n${otp}\n\nThis code is valid for 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nThe LifeBookz Team`,
-    }).catch(() => {});
+    await sendOtpMail({ to: user.email, otp, role: "user" });
   }
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
   if (!email || !otp) {
-    throw new Errors.ValidationError("Email and OTP are required.");
+    throw validationError("Email and OTP are required.");
   }
 
   const user = await User.findOne({ email }).select(RESET_SELECT);
@@ -237,7 +230,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     !user.auth.passwordResetOTPExpires ||
     user.auth.passwordResetOTPExpires < new Date()
   ) {
-    throw new Errors.ValidationError("Invalid or expired OTP.");
+    throw validationError("Invalid or expired OTP.");
   }
 
   // Mark OTP as verified and swap it for a short-lived reset token
@@ -257,15 +250,11 @@ export async function verifyPasswordResetOTP({ email, otp }) {
 
 export async function resetPassword({ resetToken, password }) {
   if (!resetToken || !password) {
-    throw new Errors.ValidationError(
-      "Reset token and new password are required.",
-    );
+    throw validationError("Reset token and new password are required.");
   }
 
   if (password.length < 8) {
-    throw new Errors.ValidationError(
-      "Password must be at least 8 characters.",
-    );
+    throw validationError("Password must be at least 8 characters.");
   }
 
   const user = await User.findOne({
@@ -275,12 +264,11 @@ export async function resetPassword({ resetToken, password }) {
   }).select(`+auth.passwordHash ${RESET_SELECT}`);
 
   if (!user) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }
 
-  // Update password and clear all reset fields
   user.auth.passwordHash = password;
   user.auth.passwordResetOTP = "";
   user.auth.passwordResetOTPExpires = undefined;

@@ -24,8 +24,6 @@ async function start() {
   }
 }
 
-/* ---------- Process-level failures ---------- */
-
 process.on("unhandledRejection", (reason) => {
   logger.error("Unhandled promise rejection", {
     reason: reason?.message || String(reason),

@@ -24,11 +24,6 @@ export const config = {
     password: process.env.DEVELOPER_PASSWORD,
   },
 
-  mail: {
-    user: process.env.APP_MAIL_USERNAME,
-    password: process.env.APP_MAIL_PASSWORD,
-  },
-
   r2: {
     accountId: process.env.R2_ACCOUNT_ID,
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
@@ -38,6 +33,18 @@ export const config = {
     publicBaseUrl: process.env.R2_PUBLIC_BASE_URL,
   },
 
+  aws:{
+    region:"ap-south-1",
+    key:{
+      access:process.env.AWS_ACCESS_KEY,
+      secret:process.env.AWS_SECRET_KEY
+    },
+
+    ses:{
+      fromName:"Lifebookz",
+      fromMail:"noreply@lifebookz.com"
+    }
+  },
   frontend: {
     admin: process.env.FRONTEND_ADMIN_URL,
     client: process.env.FRONTEND_CLIENT_URL,

@@ -1,7 +1,5 @@
 import * as adminService from "./service.js";
 
-/* ---------- Authentication ---------- */
-
 export async function login(req, res, next) {
   try {
     const token = adminService.loginAdmin({
@@ -18,8 +16,6 @@ export async function login(req, res, next) {
   }
 }
 
-/* ---------- Session ---------- */
-
 export async function getMe(_req, res, next) {
   try {
     return res.json({
@@ -31,8 +27,6 @@ export async function getMe(_req, res, next) {
   }
 }
 
-/* ---------- Dashboard ---------- */
-
 export async function dashboard(_req, res, next) {
   try {
     const data = await adminService.getDashboardStats();
@@ -42,8 +36,6 @@ export async function dashboard(_req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Authors ---------- */
 
 export async function getPendingAuthors(_req, res, next) {
   try {
@@ -98,8 +90,6 @@ export async function getApprovedAuthors(_req, res, next) {
   }
 }
 
-/* ---------- Users ---------- */
-
 export async function getUsers(_req, res, next) {
   try {
     const users = await adminService.listUsers();
@@ -110,8 +100,6 @@ export async function getUsers(_req, res, next) {
   }
 }
 
-/* ---------- Stories ---------- */
-
 export async function getStories(_req, res, next) {
   try {
     const stories = await adminService.listStories();
@@ -121,8 +109,6 @@ export async function getStories(_req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Experts ---------- */
 
 export async function getPendingExperts(_req, res, next) {
   try {

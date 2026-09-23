@@ -5,17 +5,11 @@ import * as developer from "./controller.js";
 
 const router = Router();
 
-/* ---------- Authentication ---------- */
-
 router.post("/login", developer.login);
 
 router.post("/logout", developer.logout);
 
-/* ---------- Session ---------- */
-
 router.get("/me", authenticate, authorize("developer"), developer.getMe);
-
-/* ---------- Logs ---------- */
 
 router.get(
   "/logs/stats",

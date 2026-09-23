@@ -1,7 +1,5 @@
-import * as Errors from "../../core/utils/errors.js";
+import { authenticationError } from "../../core/utils/errors.js";
 import * as developerService from "./service.js";
-
-/* ---------- Authentication ---------- */
 
 export async function login(req, res, next) {
   try {
@@ -34,7 +32,7 @@ export async function logout(_req, res, next) {
 export async function getMe(req, res, next) {
   try {
     if (!req.developer) {
-      throw new Errors.AuthenticationError("Authentication required.");
+      throw authenticationError("Authentication required.");
     }
 
     return res.json({
@@ -45,8 +43,6 @@ export async function getMe(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Logs ---------- */
 
 /**
  * GET /developer/logs

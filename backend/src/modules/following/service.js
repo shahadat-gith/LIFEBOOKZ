@@ -3,7 +3,10 @@ import User from "../user/model.js";
 import Author from "../author/model.js";
 import Expert from "../expert/model.js";
 import { createNotification } from "../notification/service.js";
-import { NotFoundError, ValidationError } from "../../core/utils/errors.js";
+import {
+  notFoundError,
+  validationError,
+} from "../../core/utils/errors.js";
 
 const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
 
@@ -63,22 +66,22 @@ async function withFollowerAccounts(follows) {
  */
 export async function followAuthor({ userId, role, authorId }) {
   if (!role || !FOLLOWER_ROLES.includes(role)) {
-    throw new ValidationError(
+    throw validationError(
       "Only signed-in readers, authors and experts can follow authors.",
     );
   }
   if (role === "author" && String(userId) === String(authorId)) {
-    throw new ValidationError("You cannot follow yourself.");
+    throw validationError("You cannot follow yourself.");
   }
 
   const author = await Author.findById(authorId);
   if (!author) {
-    throw new NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   const existing = await Follow.findOne({ who: userId, whom: authorId });
   if (existing) {
-    throw new ValidationError("Already following this author.");
+    throw validationError("Already following this author.");
   }
 
   const whoModel = ROLE_TO_MODEL[role] || "User";
@@ -106,7 +109,7 @@ export async function followAuthor({ userId, role, authorId }) {
  */
 export async function unfollowAuthor({ userId, role, authorId }) {
   if (!role || !FOLLOWER_ROLES.includes(role)) {
-    throw new ValidationError(
+    throw validationError(
       "Only signed-in readers, authors and experts can unfollow authors.",
     );
   }
@@ -114,7 +117,7 @@ export async function unfollowAuthor({ userId, role, authorId }) {
   const follow = await Follow.findOneAndDelete({ who: userId, whom: authorId });
 
   if (!follow) {
-    throw new NotFoundError("You are not following this author.");
+    throw notFoundError("You are not following this author.");
   }
 
   const followerModel = FOLLOWER_MODELS[ROLE_TO_MODEL[role] || "User"];

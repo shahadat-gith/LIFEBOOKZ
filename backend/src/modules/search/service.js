@@ -11,22 +11,16 @@ const AUTHOR_POPULATE =
   "fullName username avatar profession verification.status";
 
 /**
- * Simple text search over published public lifebooks — lifebook titles and
- * the titles and content of the stories inside them.
+ * Text search over published public lifebooks — the lifebook title and the
+ * titles and content of the stories inside them.
  *
  * @param {object} params
- * @param {string} params.q          free-text query
- * @param {number} [params.limit]    max results (capped at 50)
+ * @param {string} params.q           free-text query
+ * @param {number} [params.limit]     max results (capped at 50)
  * @param {string} [params.profession] author profession filter
- * @param {string} [params.storyType]  story type filter (kept for API compat)
  * @param {{id: string, role: string}} [params.viewer]
  */
-export async function semanticSearch({
-  q,
-  limit,
-  profession,
-  viewer,
-}) {
+export async function searchStories({ q, limit, profession, viewer }) {
   const query = q?.trim() || "";
   if (!query) return [];
 
@@ -42,7 +36,6 @@ export async function semanticSearch({
       }
     : {};
 
-  // 1. Text search across the lifebook title and the stories inside it
   const stories = await Story.find({
     status: "published",
     visibility: "public",
@@ -59,7 +52,7 @@ export async function semanticSearch({
     .limit(safeLimit)
     .lean();
 
-  // Enrich like/follow state for authenticated users (matches feed UX)
+  // Same like/follow decoration the feed cards get.
   const likedMap = {};
   const followingMap = {};
 

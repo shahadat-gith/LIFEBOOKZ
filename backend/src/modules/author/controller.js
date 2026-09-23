@@ -1,7 +1,5 @@
 import * as authorService from "./service.js";
 
-/* ---------- Authentication ---------- */
-
 export async function register(req, res, next) {
   try {
     const { author, token } = await authorService.registerAuthor({
@@ -34,8 +32,6 @@ export async function login(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Self service (author role — pending authors included) ---------- */
 
 export async function getMe(req, res, next) {
   try {
@@ -103,8 +99,6 @@ export async function getMyStory(req, res, next) {
   }
 }
 
-/* ---------- Public ---------- */
-
 export async function getProfile(req, res, next) {
   try {
     const author = await authorService.getPublicAuthor({
@@ -127,8 +121,6 @@ export async function listApproved(_req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Password Reset (OTP-based) ---------- */
 
 export async function forgotPassword(req, res, next) {
   try {

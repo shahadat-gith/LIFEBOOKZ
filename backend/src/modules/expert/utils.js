@@ -1,8 +1,5 @@
-import { sendEmail } from "../../core/services/email.js";
-import * as Errors from "../../core/utils/errors.js";
+import { validationError } from "../../core/utils/errors.js";
 import { CONSULT_CATEGORY_IDS } from "./constants.js";
-
-/* ---------- Form field parsing ---------- */
 
 /**
  * Multipart form fields arrive as strings. Accept a JSON array, a comma
@@ -36,9 +33,7 @@ export function parseCategories(raw) {
  */
 export function validateCategories(categories) {
   if (!categories.length) {
-    throw new Errors.ValidationError(
-      "Select at least one consultancy category.",
-    );
+    throw validationError("Select at least one consultancy category.");
   }
 
   const invalid = categories.filter(
@@ -46,7 +41,7 @@ export function validateCategories(categories) {
   );
 
   if (invalid.length) {
-    throw new Errors.ValidationError(
+    throw validationError(
       `Unknown consultancy category: ${invalid.join(", ")}.`,
     );
   }
@@ -81,54 +76,4 @@ export function parseLanguages(raw) {
     .filter(Boolean);
 
   return cleaned.length ? cleaned : ["English"];
-}
-
-/* ---------- Notifications ---------- */
-
-export async function sendExpertApproved(expertEmail, expertName) {
-  const subject = "Welcome to LifeBookz — Your Expert Account is Approved! 🎉";
-
-  const text = `Hi ${expertName},
-
-Congratulations!
-
-Your expert application has been approved and your LifeBookz expert account is now active.
-
-You can now:
-• Receive consultation bookings from people who need your guidance
-• Manage your upcoming and past sessions from your expert dashboard
-• Keep your profile, expertise and categories up to date
-
-Sign in to your expert dashboard to get started.
-
-We're excited to have you as part of the LifeBookz community.
-
-Best regards,
-The LifeBookz Team`;
-
-  await sendEmail({ to: expertEmail, subject, text });
-}
-
-export async function sendExpertRejected(expertEmail, expertName, reason) {
-  const subject = "Update on Your LifeBookz Expert Application";
-
-  const text = `Hi ${expertName},
-
-Thank you for your interest in becoming a LifeBookz expert.
-
-After reviewing your application, we're unable to approve it at this time.
-
-Reason:
-${reason || "No specific reason was provided."}
-
-You are welcome to update your information and submit a new application in the future.
-
-If you believe this decision was made in error, please contact our support team.
-
-Thank you for your interest in LifeBookz.
-
-Best regards,
-The LifeBookz Team`;
-
-  await sendEmail({ to: expertEmail, subject, text });
 }

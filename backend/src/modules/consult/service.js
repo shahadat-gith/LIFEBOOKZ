@@ -5,16 +5,19 @@ import {
   categoryLabel,
 } from "../expert/constants.js";
 import { logger } from "../../core/services/logger.js";
-import * as Errors from "../../core/utils/errors.js";
+import {
+  authenticationError,
+  notFoundError,
+  validationError,
+} from "../../core/utils/errors.js";
 import { createNotification } from "../notification/service.js";
+import { sendBookingRequestMail } from "../../core/services/mailer.js";
 
 // Fields the consult results cards need.
 const EXPERT_SELECT =
   "fullName username expertise qualification categories bio languages experience price avatar rating sessions";
 
 const MIN_PROBLEM_LENGTH = 10;
-
-/* ---------- Semantic matching ---------- */
 
 /**
  * Finds approved experts for the described problem and ranks them by
@@ -26,13 +29,13 @@ export async function matchExperts({ problem, category, limit }) {
   const safeLimit = Math.min(Math.max(Number(limit) || 5, 1), 10);
 
   if (!cleanProblem || cleanProblem.length < MIN_PROBLEM_LENGTH) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Please describe your problem in at least 10 characters.",
     );
   }
 
   if (cleanCategory && !CONSULT_CATEGORY_IDS.includes(cleanCategory)) {
-    throw new Errors.ValidationError("Unknown consultancy category.");
+    throw validationError("Unknown consultancy category.");
   }
 
   // Semantic matching was removed — experts are surfaced by category and
@@ -60,8 +63,6 @@ export async function matchExperts({ problem, category, limit }) {
   };
 }
 
-/* ---------- Bookings ---------- */
-
 /**
  * Creates a booking for the signed-in user against an approved expert.
  */
@@ -81,35 +82,35 @@ export async function createBooking({ user, input }) {
   const cleanCategory = category?.trim() || "";
 
   if (!expertId) {
-    throw new Errors.ValidationError("Please choose an expert to book.");
+    throw validationError("Please choose an expert to book.");
   }
 
   if (!cleanProblem || cleanProblem.length < MIN_PROBLEM_LENGTH) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Please describe your problem in at least 10 characters.",
     );
   }
 
   if (cleanCategory && !CONSULT_CATEGORY_IDS.includes(cleanCategory)) {
-    throw new Errors.ValidationError("Unknown consultancy category.");
+    throw validationError("Unknown consultancy category.");
   }
 
   if (sessionType && !SESSION_TYPES.includes(sessionType)) {
-    throw new Errors.ValidationError("Unknown session type.");
+    throw validationError("Unknown session type.");
   }
 
   if (!user?.id) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const expert = await Expert.findOne({
     _id: expertId,
     status: "active",
     "verification.status": "approved",
-  }).select("fullName expertise price categories");
+  }).select("fullName email expertise price categories");
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found or not available.");
+    throw notFoundError("Expert not found or not available.");
   }
 
   const booking = await Booking.create({
@@ -127,6 +128,16 @@ export async function createBooking({ user, input }) {
     time: time?.trim() || "",
     notes: notes?.trim() || "",
     preferredContact: preferredContact || "email",
+  });
+
+  sendBookingRequestMail({
+    to: expert.email,
+    expertName: expert.fullName,
+    clientName: user.fullName,
+    sessionType: sessionType || "video",
+    date,
+    time,
+    problem: cleanProblem,
   });
 
   // Notify the expert (best-effort, never blocks the booking)
@@ -154,7 +165,7 @@ export async function createBooking({ user, input }) {
  */
 export async function listMyBookings({ userId }) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   return Booking.find({ user: userId })
@@ -168,17 +179,17 @@ export async function listMyBookings({ userId }) {
  */
 export async function cancelMyBooking({ userId, bookingId }) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const booking = await Booking.findOne({ _id: bookingId, user: userId });
 
   if (!booking) {
-    throw new Errors.NotFoundError("Booking not found.");
+    throw notFoundError("Booking not found.");
   }
 
   if (!["pending", "confirmed"].includes(booking.status)) {
-    throw new Errors.ValidationError(
+    throw validationError(
       `A ${booking.status} booking cannot be cancelled.`,
     );
   }

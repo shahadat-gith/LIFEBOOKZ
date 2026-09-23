@@ -1,7 +1,5 @@
 import * as consultService from "./service.js";
 
-/* ---------- Semantic matching ---------- */
-
 /**
  * POST /consult/match
  */
@@ -26,8 +24,6 @@ export async function matchExperts(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Bookings ---------- */
 
 /**
  * POST /consult/bookings

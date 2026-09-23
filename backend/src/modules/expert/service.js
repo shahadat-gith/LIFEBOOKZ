@@ -4,10 +4,23 @@ import mongoose from "mongoose";
 import Expert from "./model.js";
 import Booking, { BOOKING_STATUSES } from "../consult/model.js";
 
-import { generateToken, toSlugUsername } from "../../core/utils/helpers.js";
-import * as Errors from "../../core/utils/errors.js";
+import {
+  generateToken,
+  toSlugUsername,
+  verifyPassword,
+} from "../../core/utils/helpers.js";
+import {
+  authenticationError,
+  conflictError,
+  notFoundError,
+  validationError,
+} from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
-import { sendEmail } from "../../core/services/email.js";
+import {
+  sendWelcomeMail,
+  sendOtpMail,
+  sendBookingStatusMail,
+} from "../../core/services/mailer.js";
 import { logger } from "../../core/services/logger.js";
 import {
   uploadAvatar,
@@ -35,19 +48,17 @@ function expertToken(expert) {
 
 async function findExpertById(userId) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const expert = await Expert.findById(userId);
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found.");
+    throw notFoundError("Expert not found.");
   }
 
   return expert;
 }
-
-/* ---------- Authentication ---------- */
 
 export async function registerExpert({ body, file }) {
   let {
@@ -90,27 +101,27 @@ export async function registerExpert({ body, file }) {
     !bio ||
     !phone
   ) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Please fill all required fields (name, email, password, area of expertise, qualification, bio, phone).",
     );
   }
 
   if (password.length < 8) {
-    throw new Errors.ValidationError("Password must be at least 8 characters.");
+    throw validationError("Password must be at least 8 characters.");
   }
 
   if (username.length < 3) {
-    throw new Errors.ValidationError("Username must be at least 3 characters.");
+    throw validationError("Username must be at least 3 characters.");
   }
 
   const validCategories = validateCategories(parsedCategories);
 
   if (await Expert.exists({ email })) {
-    throw new Errors.ConflictError("An expert with this email already exists.");
+    throw conflictError("An expert with this email already exists.");
   }
 
   if (await Expert.exists({ username })) {
-    throw new Errors.ConflictError("That username is already taken.");
+    throw conflictError("That username is already taken.");
   }
 
   const expert = new Expert({
@@ -144,6 +155,8 @@ export async function registerExpert({ body, file }) {
 
     throw error;
   }
+
+  sendWelcomeMail({ to: expert.email, name: expert.fullName, role: "expert" });
 
   return { expert, token: expertToken(expert) };
 }
@@ -191,10 +204,10 @@ export async function loginExpert({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
-  const isValid = await expert.comparePassword(password);
+  const isValid = await verifyPassword(password, expert.auth.passwordHash);
 
   if (!isValid) {
     await logger.warn("Expert login failed — incorrect password", {
@@ -203,7 +216,7 @@ export async function loginExpert({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
   // Pending and rejected experts can sign in too: the dashboard is where they
@@ -212,17 +225,15 @@ export async function loginExpert({ email, password, ip }) {
   return { expert, token: expertToken(expert) };
 }
 
-/* ---------- Self service (expert role — pending experts included) ---------- */
-
 export async function getMyExpertProfile(userId) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const expert = await Expert.findById(userId).lean();
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found.");
+    throw notFoundError("Expert not found.");
   }
 
   // `lean()` skips schema virtuals, so the role is added explicitly.
@@ -359,11 +370,9 @@ export async function updateExpert({ userId, body, file, coverFile, coverMobileF
   return expert;
 }
 
-/* ---------- Bookings ---------- */
-
 export async function listBookingsForExpert({ expertId }) {
   if (!expertId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   return Booking.find({ expert: expertId }).sort({ createdAt: -1 }).lean();
@@ -371,11 +380,11 @@ export async function listBookingsForExpert({ expertId }) {
 
 export async function setBookingStatus({ expertId, bookingId, status }) {
   if (!expertId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   if (!BOOKING_STATUSES.includes(status)) {
-    throw new Errors.ValidationError(
+    throw validationError(
       `Status must be one of: ${BOOKING_STATUSES.join(", ")}.`,
     );
   }
@@ -383,10 +392,11 @@ export async function setBookingStatus({ expertId, bookingId, status }) {
   const booking = await Booking.findOne({ _id: bookingId, expert: expertId });
 
   if (!booking) {
-    throw new Errors.NotFoundError("Booking not found.");
+    throw notFoundError("Booking not found.");
   }
 
   const wasCompleted = booking.status === "completed";
+  const previousStatus = booking.status;
 
   booking.status = status;
 
@@ -398,10 +408,22 @@ export async function setBookingStatus({ expertId, bookingId, status }) {
 
   await booking.save();
 
+  if (booking.guestEmail && previousStatus !== status) {
+    const expert = await Expert.findById(expertId).select("fullName");
+
+    sendBookingStatusMail({
+      to: booking.guestEmail,
+      clientName: booking.guestName,
+      expertName: expert?.fullName,
+      status,
+      sessionType: booking.sessionType,
+      date: booking.date,
+      time: booking.time,
+    });
+  }
+
   return booking;
 }
-
-/* ---------- Public ---------- */
 
 export async function getPublicExpert(expertId) {
   const expert = await Expert.findOne({ _id: expertId, status: "active" })
@@ -409,17 +431,15 @@ export async function getPublicExpert(expertId) {
     .lean();
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found.");
+    throw notFoundError("Expert not found.");
   }
 
   return { ...expert, role: "expert" };
 }
 
-/* ---------- Password reset (OTP based) ---------- */
-
 export async function requestPasswordReset({ email }) {
   if (!email) {
-    throw new Errors.ValidationError("Email is required.");
+    throw validationError("Email is required.");
   }
 
   // Always resolve silently to avoid revealing whether the email exists
@@ -434,17 +454,13 @@ export async function requestPasswordReset({ email }) {
 
     await expert.save();
 
-    await sendEmail({
-      to: expert.email,
-      subject: "LifeBookz - Expert Password Reset OTP",
-      text: `You requested a password reset for your LifeBookz expert account.\n\nYour OTP is:\n\n${otp}\n\nThis code is valid for 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nThe LifeBookz Team`,
-    }).catch(() => {});
+    await sendOtpMail({ to: expert.email, otp, role: "expert" });
   }
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
   if (!email || !otp) {
-    throw new Errors.ValidationError("Email and OTP are required.");
+    throw validationError("Email and OTP are required.");
   }
 
   const expert = await Expert.findOne({ email }).select(RESET_SELECT);
@@ -455,7 +471,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     !expert.auth.passwordResetOTPExpires ||
     expert.auth.passwordResetOTPExpires < new Date()
   ) {
-    throw new Errors.ValidationError("Invalid or expired OTP.");
+    throw validationError("Invalid or expired OTP.");
   }
 
   expert.auth.passwordResetVerified = true;
@@ -474,15 +490,11 @@ export async function verifyPasswordResetOTP({ email, otp }) {
 
 export async function resetPassword({ resetToken, password }) {
   if (!resetToken || !password) {
-    throw new Errors.ValidationError(
-      "Reset token and new password are required.",
-    );
+    throw validationError("Reset token and new password are required.");
   }
 
   if (password.length < 8) {
-    throw new Errors.ValidationError(
-      "Password must be at least 8 characters.",
-    );
+    throw validationError("Password must be at least 8 characters.");
   }
 
   const expert = await Expert.findOne({
@@ -492,7 +504,7 @@ export async function resetPassword({ resetToken, password }) {
   }).select(`+auth.passwordHash ${RESET_SELECT}`);
 
   if (!expert) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }

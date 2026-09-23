@@ -14,7 +14,7 @@ import { nanoid } from "nanoid";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 import { s3, BUCKET, buildPublicUrl, deleteObject } from "../config/r2.js";
-import { StorageError } from "../utils/errors.js";
+import { storageError } from "../utils/errors.js";
 
 /** Account roles → their top-level storage folder. */
 const ROLE_FOLDER = {
@@ -70,19 +70,15 @@ async function uploadBuffer(buffer, contentType, role, kind) {
       }),
     );
   } catch (error) {
-    // Surface storage failures (bad credentials, missing permissions,
-    // misconfigured bucket) as a clear 502 instead of a raw 500.
     console.error(`[r2] Upload failed for ${key}:`, error.message);
-    throw new StorageError(
+
+    throw storageError(
       "Could not store the uploaded file. The file storage service rejected the request — check the R2 credentials and token permissions.",
     );
   }
 
-  // R2 shape: { url, key } — no Cloudinary-style publicId
   return { url: buildPublicUrl(key), key };
 }
-
-/* ---------- Role-scoped uploads ---------- */
 
 /**
  * Profile picture for an account type.
@@ -112,8 +108,6 @@ export const uploadCover = (
     role,
     variant === "mobile" ? "coverMobile" : "cover",
   );
-
-/* ---------- Shared uploads ---------- */
 
 /** Lifebook (story) cover image — not role-scoped. */
 export const uploadStoryImage = (buffer, contentType = "image/jpeg") =>

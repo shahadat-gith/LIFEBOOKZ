@@ -153,17 +153,6 @@ const expertSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Exact text that was embedded, kept so we only re-embed when it changes.
-    embeddingText: {
-      type: String,
-      default: "",
-      select: false,
-    },
-
-    embeddingUpdatedAt: {
-      type: Date,
-    },
-
     verification: {
       type: verificationSchema,
       default: () => ({}),
@@ -186,9 +175,6 @@ const expertSchema = new mongoose.Schema(
 
         delete ret._id;
         delete ret.__v;
-
-        // Internal matching state — never part of an API response.
-        delete ret.embeddingText;
 
         if (ret.auth) {
           delete ret.auth.passwordHash;
@@ -217,7 +203,6 @@ expertSchema.virtual("role").get(() => "expert");
 expertSchema.index({ status: 1 });
 expertSchema.index({ categories: 1, rating: -1 });
 
-// Hash password before saving
 expertSchema.pre("save", async function (next) {
   if (!this.isModified("auth.passwordHash")) return next();
 
@@ -232,10 +217,6 @@ expertSchema.pre("save", async function (next) {
     next(err);
   }
 });
-
-expertSchema.methods.comparePassword = function (password) {
-  return bcrypt.compare(password, this.auth.passwordHash);
-};
 
 const Expert =
   mongoose.models.Expert || mongoose.model("Expert", expertSchema);

@@ -1,18 +1,11 @@
-import { sendEmail } from "../../core/services/email.js"
+import { sendEmailSafely } from "../../core/services/email.js";
+import { applicationSubmittedEmail } from "../../core/email-templates/index.js";
 
 export async function sendApplicationSubmitted(authorEmail, authorName) {
-  const subject = 'Your Author Application Has Been Submitted';
-  const text = `Hi ${authorName},
+  const { subject, html } = applicationSubmittedEmail({
+    name: authorName,
+    role: "author",
+  });
 
-Thank you for submitting your author application to Lifebookz!
-
-Your application is now under review by our admin team. We'll notify you once it has been reviewed.
-
-This usually takes 1-2 business days.
-
-Best regards,
-The Lifebookz Team`;
-
-  await sendEmail({ to: authorEmail, subject, text });
+  await sendEmailSafely({ to: authorEmail, subject, html });
 }
-

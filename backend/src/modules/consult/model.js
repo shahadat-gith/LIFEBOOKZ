@@ -47,7 +47,7 @@ const bookingSchema = new mongoose.Schema(
       index: true,
     },
 
-    // What the person needs help with (also the embedding source).
+    // What the person needs help with.
     problem: {
       type: String,
       required: true,

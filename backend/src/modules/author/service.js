@@ -4,11 +4,16 @@ import mongoose from "mongoose";
 import Author from "./model.js";
 import Story from "../story/models/Story.js";
 
-import { generateToken } from "../../core/utils/helpers.js";
-import * as Errors from "../../core/utils/errors.js";
+import { generateToken, verifyPassword } from "../../core/utils/helpers.js";
+import {
+  authenticationError,
+  conflictError,
+  notFoundError,
+  validationError,
+} from "../../core/utils/errors.js";
 import { findAccountRolesByEmail } from "../../core/services/accounts.js";
 import { isFollowing } from "../following/service.js";
-import { sendEmail } from "../../core/services/email.js";
+import { sendWelcomeMail, sendOtpMail } from "../../core/services/mailer.js";
 import { logger } from "../../core/services/logger.js";
 import {
   uploadAvatar,
@@ -38,7 +43,7 @@ function parseJsonField(value, { strict = false } = {}) {
   try {
     return JSON.parse(value);
   } catch {
-    if (strict) throw new Errors.ValidationError("Invalid social links.");
+    if (strict) throw validationError("Invalid social links.");
     return undefined;
   }
 }
@@ -54,19 +59,17 @@ function sanitizeUsername(value) {
 
 async function findAuthorById(userId) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const author = await Author.findById(userId);
 
   if (!author) {
-    throw new Errors.NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   return author;
 }
-
-/* ---------- Authentication ---------- */
 
 export async function registerAuthor({ body, file }) {
   let {
@@ -94,23 +97,19 @@ export async function registerAuthor({ body, file }) {
 
   // Lightweight signup: only name, email, password and username are required.
   if (!email || !password || !fullName) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Please fill all required fields (name, email, password).",
     );
   }
 
   if (username.length < 3) {
-    throw new Errors.ValidationError(
-      "Username must be at least 3 characters.",
-    );
+    throw validationError("Username must be at least 3 characters.");
   }
 
   const existing = await Author.exists({ email });
 
   if (existing) {
-    throw new Errors.ConflictError(
-      "An author with this email already exists.",
-    );
+    throw conflictError("An author with this email already exists.");
   }
 
   let avatar = { url: "", key: "" };
@@ -156,6 +155,8 @@ export async function registerAuthor({ body, file }) {
     isProfileCompleted,
   });
 
+  sendWelcomeMail({ to: author.email, name: author.fullName, role: "author" });
+
   return { author, token: authorToken(author) };
 }
 
@@ -173,10 +174,10 @@ export async function loginAuthor({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
-  const isValid = await author.comparePassword(password);
+  const isValid = await verifyPassword(password, author.auth.passwordHash);
 
   if (!isValid) {
     await logger.warn("Author login failed — incorrect password", {
@@ -185,7 +186,7 @@ export async function loginAuthor({ email, password, ip }) {
       ip,
     });
 
-    throw new Errors.AuthenticationError("Invalid email or password.");
+    throw authenticationError("Invalid email or password.");
   }
 
   // Pending and rejected authors can sign in too: the dashboard is where they
@@ -194,17 +195,15 @@ export async function loginAuthor({ email, password, ip }) {
   return { author, token: authorToken(author) };
 }
 
-/* ---------- Profile ---------- */
-
 export async function getMyAuthorProfile(userId) {
   if (!userId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const author = await Author.findById(userId).lean();
 
   if (!author) {
-    throw new Errors.NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   // `lean()` skips schema virtuals, so the role is added explicitly.
@@ -307,7 +306,7 @@ export async function getPublicAuthor({ authorId, viewerId } = {}) {
     .lean();
 
   if (!author) {
-    throw new Errors.NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   const isSelf = Boolean(viewerId) && String(viewerId) === String(author._id);
@@ -335,11 +334,9 @@ export async function getPublicAuthor({ authorId, viewerId } = {}) {
   };
 }
 
-/* ---------- Stories owned by the author ---------- */
-
 export async function listMyStories({ authorId }) {
   if (!authorId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   return Story.find({ author: authorId }).sort({ updatedAt: -1 }).lean();
@@ -347,13 +344,13 @@ export async function listMyStories({ authorId }) {
 
 export async function getMyStory({ authorId, storyId }) {
   if (!authorId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const story = await Story.findOne({ _id: storyId, author: authorId }).lean();
 
   if (!story) {
-    throw new Errors.NotFoundError("Story not found.");
+    throw notFoundError("Story not found.");
   }
 
   return story;
@@ -365,7 +362,7 @@ export async function getMyStory({ authorId, storyId }) {
  */
 export async function getMyAuthorStats({ authorId }) {
   if (!authorId) {
-    throw new Errors.AuthenticationError("Authentication required.");
+    throw authenticationError("Authentication required.");
   }
 
   const Follow = (await import("../following/model.js")).default;
@@ -415,8 +412,6 @@ export async function getMyAuthorStats({ authorId }) {
   };
 }
 
-/* ---------- Public directory ---------- */
-
 export async function listApprovedAuthors() {
   const listed = await Author.find({ "verification.status": "approved" })
     .select("fullName profession avatar bio createdAt")
@@ -443,11 +438,9 @@ export async function listApprovedAuthors() {
   }));
 }
 
-/* ---------- Password Reset (OTP-based) ---------- */
-
 export async function requestPasswordReset({ email }) {
   if (!email) {
-    throw new Errors.ValidationError("Email is required.");
+    throw validationError("Email is required.");
   }
 
   // Always resolve silently to avoid revealing whether the email exists
@@ -462,17 +455,13 @@ export async function requestPasswordReset({ email }) {
 
     await author.save();
 
-    await sendEmail({
-      to: author.email,
-      subject: "LifeBookz - Author Password Reset OTP",
-      text: `You requested a password reset for your LifeBookz author account.\n\nYour OTP is:\n\n${otp}\n\nThis code is valid for 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nThe LifeBookz Team`,
-    }).catch(() => {});
+    await sendOtpMail({ to: author.email, otp, role: "author" });
   }
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
   if (!email || !otp) {
-    throw new Errors.ValidationError("Email and OTP are required.");
+    throw validationError("Email and OTP are required.");
   }
 
   const author = await Author.findOne({ email }).select(RESET_SELECT);
@@ -483,7 +472,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     !author.auth.passwordResetOTPExpires ||
     author.auth.passwordResetOTPExpires < new Date()
   ) {
-    throw new Errors.ValidationError("Invalid or expired OTP.");
+    throw validationError("Invalid or expired OTP.");
   }
 
   author.auth.passwordResetVerified = true;
@@ -502,15 +491,11 @@ export async function verifyPasswordResetOTP({ email, otp }) {
 
 export async function resetPassword({ resetToken, password }) {
   if (!resetToken || !password) {
-    throw new Errors.ValidationError(
-      "Reset token and new password are required.",
-    );
+    throw validationError("Reset token and new password are required.");
   }
 
   if (password.length < 8) {
-    throw new Errors.ValidationError(
-      "Password must be at least 8 characters.",
-    );
+    throw validationError("Password must be at least 8 characters.");
   }
 
   const author = await Author.findOne({
@@ -520,7 +505,7 @@ export async function resetPassword({ resetToken, password }) {
   }).select(`+auth.passwordHash ${RESET_SELECT}`);
 
   if (!author) {
-    throw new Errors.ValidationError(
+    throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }

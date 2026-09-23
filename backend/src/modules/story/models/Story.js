@@ -259,18 +259,15 @@ const storyBookSchema = new mongoose.Schema(
   }
 );
 
-// Virtual: total number of chapters
 storyBookSchema.virtual("chapterCount").get(function () {
   return this.chapters ? this.chapters.length : 0;
 });
 
-// Virtual: total number of stories across all chapters
 storyBookSchema.virtual("storyCount").get(function () {
   if (!this.chapters) return 0;
   return this.chapters.reduce((sum, ch) => sum + (ch.stories?.length || 0), 0);
 });
 
-// Compound Indexes for queries
 storyBookSchema.index({ author: 1, updatedAt: -1 });
 storyBookSchema.index({ author: 1, status: 1, updatedAt: -1 });
 storyBookSchema.index({ status: 1, visibility: 1, publishedAt: -1 });
@@ -279,14 +276,13 @@ storyBookSchema.index({ status: 1, authorProfession: 1, publishedAt: -1 });
 storyBookSchema.index({ status: 1, language: 1, publishedAt: -1 });
 storyBookSchema.index({ featured: 1, publishedAt: -1 });
 
-// Middleware
 storyBookSchema.pre("save", function () {
   // Chapters read in slot order everywhere, so they are stored that way.
   if (Array.isArray(this.chapters) && this.chapters.length > 1) {
     this.chapters.sort((a, b) => a.order - b.order);
   }
 
-  // Generate slug only once when title exists
+  // The slug follows the title so links stay predictable.
   if (this.title && (!this.slug || this.isModified("title"))) {
     const baseSlug = slugify(this.title, {
       lower: true,
@@ -297,7 +293,7 @@ storyBookSchema.pre("save", function () {
     this.slug = `${baseSlug}-${nanoid(8)}`;
   }
 
-  // Set first publish timestamp
+  // First publication only — re-publishing keeps the original date.
   if (
     this.isModified("status") && this.status === "published" && !this.publishedAt
   ) {

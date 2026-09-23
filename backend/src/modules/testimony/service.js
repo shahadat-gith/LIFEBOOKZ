@@ -1,8 +1,8 @@
 import Testimonial from "./model.js";
 import {
-  ValidationError,
-  NotFoundError,
-  ForbiddenError,
+  forbiddenError,
+  notFoundError,
+  validationError,
 } from "../../core/utils/errors.js";
 
 const PERSON_SELECT = "fullName avatar profession";
@@ -26,11 +26,11 @@ export async function listTestimonials({ limit } = {}) {
  */
 export async function createTestimonial({ role, userId, message, rating }) {
   if (!message?.trim()) {
-    throw new ValidationError("Testimonial message is required.");
+    throw validationError("Testimonial message is required.");
   }
 
   if (role !== "user" && role !== "author" && role !== "expert") {
-    throw new ForbiddenError(
+    throw forbiddenError(
       "Only authenticated users, authors and experts can post testimonials.",
     );
   }
@@ -81,13 +81,13 @@ export async function deleteTestimonial({ id, userId, isAdmin }) {
   const testimonial = await Testimonial.findById(id);
 
   if (!testimonial) {
-    throw new NotFoundError("Testimonial not found.");
+    throw notFoundError("Testimonial not found.");
   }
 
   const isOwner = userId && testimonial.person.toString() === userId.toString();
 
   if (!isAdmin && !isOwner) {
-    throw new ForbiddenError("You cannot delete this testimonial.");
+    throw forbiddenError("You cannot delete this testimonial.");
   }
 
   await testimonial.deleteOne();
@@ -98,7 +98,7 @@ export async function deleteTestimonial({ id, userId, isAdmin }) {
  */
 export async function moderateTestimonial({ id, status }) {
   if (!["approved", "hidden"].includes(status)) {
-    throw new ValidationError("Invalid status.");
+    throw validationError("Invalid status.");
   }
 
   const testimonial = await Testimonial.findByIdAndUpdate(
@@ -108,7 +108,7 @@ export async function moderateTestimonial({ id, status }) {
   ).populate("person", PERSON_SELECT);
 
   if (!testimonial) {
-    throw new NotFoundError("Testimonial not found.");
+    throw notFoundError("Testimonial not found.");
   }
 
   return testimonial;

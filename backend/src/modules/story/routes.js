@@ -20,16 +20,12 @@ const authorOnly = [authenticate, authorize("author")];
 // story are reader actions, and authors read each other's lifebooks too.
 const anyAccount = [authenticate, authorize("user", "author", "expert")];
 
-/* ---------- Stories ---------- */
-
 router.post(
   "/",
   authorOnly,
   upload.single("bannerImage"),
   story.create,
 );
-
-/* ---------- Media (presigned direct-to-R2 uploads) ---------- */
 
 // Issue a presigned PUT URL — the client uploads the file straight to R2.
 // Available to every signed-in author, no profile completion needed.
@@ -56,8 +52,6 @@ router.patch(
 // Full author control — delete any time, even after publish
 router.delete("/:storyId", authorOnly, story.remove);
 
-/* ---------- Publishing (synchronous, no review pipeline) ---------- */
-
 // Publishing additionally requires the author's profile to be complete.
 router.post(
   "/:storyId/publish",
@@ -68,16 +62,12 @@ router.post(
 
 router.post("/:storyId/unpublish", authorOnly, story.unpublish);
 
-/* ---------- Chapters ---------- */
-
 router.post("/:storyId/chapters", authorOnly, story.addChapter);
 
 // Rename a chapter — the title is the author's own
 router.patch("/:storyId/chapters/:chapterId", authorOnly, story.updateChapter);
 
 router.delete("/:storyId/chapters/:chapterId", authorOnly, story.deleteChapter);
-
-/* ---------- Stories inside chapters ---------- */
 
 router.post(
   "/:storyId/chapters/:chapterId/stories",
@@ -97,11 +87,7 @@ router.delete(
   story.deleteChapterStory,
 );
 
-/* ---------- Likes ---------- */
-
 router.post("/:storyId/like", anyAccount, story.toggleLike);
-
-/* ---------- Comments ---------- */
 
 // Comments are publicly readable (optionally personalised for signed-in
 // callers: likedByMe, own comments)

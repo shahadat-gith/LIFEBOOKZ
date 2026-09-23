@@ -6,23 +6,25 @@ import User from "../user/model.js";
 import Story from "../story/models/Story.js";
 
 import { generateToken } from "../../core/utils/helpers.js";
-import * as Errors from "../../core/utils/errors.js";
+import {
+  authenticationError,
+  notFoundError,
+  serviceUnavailableError,
+  validationError,
+} from "../../core/utils/errors.js";
 import { logger } from "../../core/services/logger.js";
 
 import { sendApplicationApproved, sendApplicationRejected } from "./utils.js";
-import { sendExpertApproved, sendExpertRejected } from "../expert/utils.js";
-
-/* ---------- Authentication ---------- */
 
 export function loginAdmin({ email, password }) {
   if (!config.admin.email || !config.admin.password || !config.admin.key) {
-    throw new Errors.ServiceUnavailableError(
+    throw serviceUnavailableError(
       "Admin access is not configured on this server.",
     );
   }
 
   if (email !== config.admin.email || password !== config.admin.password) {
-    throw new Errors.AuthenticationError("Invalid admin credentials.");
+    throw authenticationError("Invalid admin credentials.");
   }
 
   return generateToken({ role: "admin", key: config.admin.key });
@@ -34,8 +36,6 @@ export function loginAdmin({ email, password }) {
 export function getAdminIdentity() {
   return { email: config.admin.email, role: "admin" };
 }
-
-/* ---------- Dashboard ---------- */
 
 export async function getDashboardStats() {
   const [
@@ -64,8 +64,6 @@ export async function getDashboardStats() {
   };
 }
 
-/* ---------- Authors ---------- */
-
 export async function listPendingAuthors() {
   const authors = await Author.find({ "verification.status": "pending" })
     .sort({ createdAt: 1 })
@@ -79,7 +77,7 @@ export async function approveAuthor({ authorId }) {
   const author = await Author.findById(authorId);
 
   if (!author) {
-    throw new Errors.NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   author.verification.status = "approved";
@@ -88,26 +86,21 @@ export async function approveAuthor({ authorId }) {
 
   await author.save();
 
-  // Send email without delaying the response
-  sendApplicationApproved(author.email, author.fullName).catch((err) =>
-    logger.error("Failed to send author approval email", {
-      authorId: author.id,
-      reason: err.message,
-    }),
-  );
+  // Fire-and-forget: the response should not wait on SES.
+  sendApplicationApproved(author.email, author.fullName, "author");
 
   return author;
 }
 
 export async function rejectAuthor({ authorId, reason }) {
   if (!reason?.trim()) {
-    throw new Errors.ValidationError("Rejection reason is required.");
+    throw validationError("Rejection reason is required.");
   }
 
   const author = await Author.findById(authorId);
 
   if (!author) {
-    throw new Errors.NotFoundError("Author not found.");
+    throw notFoundError("Author not found.");
   }
 
   author.verification.status = "rejected";
@@ -116,13 +109,7 @@ export async function rejectAuthor({ authorId, reason }) {
 
   await author.save();
 
-  sendApplicationRejected(author.email, author.fullName, reason.trim()).catch(
-    (err) =>
-      logger.error("Failed to send author rejection email", {
-        authorId: author.id,
-        reason: err.message,
-      }),
-  );
+  sendApplicationRejected(author.email, author.fullName, reason.trim(), "author");
 
   return author;
 }
@@ -153,15 +140,11 @@ export async function listApprovedAuthors() {
   }));
 }
 
-/* ---------- Users ---------- */
-
 export async function listUsers() {
   const users = await User.find().sort({ createdAt: -1 }).lean();
 
   return users.map((user) => ({ ...user, role: "user" }));
 }
-
-/* ---------- Stories ---------- */
 
 export async function listStories() {
   return Story.find()
@@ -169,8 +152,6 @@ export async function listStories() {
     .sort({ createdAt: -1 })
     .lean();
 }
-
-/* ---------- Experts ---------- */
 
 export async function listPendingExperts() {
   const experts = await Expert.find({ "verification.status": "pending" })
@@ -184,7 +165,7 @@ export async function approveExpert({ expertId }) {
   const expert = await Expert.findById(expertId);
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found.");
+    throw notFoundError("Expert not found.");
   }
 
   expert.verification.status = "approved";
@@ -193,25 +174,20 @@ export async function approveExpert({ expertId }) {
 
   await expert.save();
 
-  sendExpertApproved(expert.email, expert.fullName).catch((err) =>
-    logger.error("Failed to send expert approval email", {
-      expertId: expert.id,
-      reason: err.message,
-    }),
-  );
+  sendApplicationApproved(expert.email, expert.fullName, "expert");
 
   return expert;
 }
 
 export async function rejectExpert({ expertId, reason }) {
   if (!reason?.trim()) {
-    throw new Errors.ValidationError("Rejection reason is required.");
+    throw validationError("Rejection reason is required.");
   }
 
   const expert = await Expert.findById(expertId);
 
   if (!expert) {
-    throw new Errors.NotFoundError("Expert not found.");
+    throw notFoundError("Expert not found.");
   }
 
   expert.verification.status = "rejected";
@@ -220,11 +196,11 @@ export async function rejectExpert({ expertId, reason }) {
 
   await expert.save();
 
-  sendExpertRejected(expert.email, expert.fullName, reason.trim()).catch((err) =>
-    logger.error("Failed to send expert rejection email", {
-      expertId: expert.id,
-      reason: err.message,
-    }),
+  sendApplicationRejected(
+    expert.email,
+    expert.fullName,
+    reason.trim(),
+    "expert",
   );
 
   return expert;

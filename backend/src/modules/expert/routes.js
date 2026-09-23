@@ -7,13 +7,9 @@ import * as expert from "./controller.js";
 
 const router = Router();
 
-/* ---------- Authentication ---------- */
-
 router.post("/register", upload.single("avatar"), expert.register);
 
 router.post("/login", expert.login);
-
-/* ---------- Self-service (expert role — pending experts included) ---------- */
 
 router.get("/me", authenticate, authorize("expert"), expert.getMe);
 
@@ -29,8 +25,6 @@ router.patch(
   expert.updateMe,
 );
 
-/* ---------- Bookings ---------- */
-
 router.get("/me/bookings", authenticate, authorize("expert"), expert.getMyBookings);
 
 router.patch(
@@ -40,19 +34,13 @@ router.patch(
   expert.updateBookingStatus,
 );
 
-/* ---------- Password Reset ---------- */
-
 router.post("/forgot-password", expert.forgotPassword);
 
 router.post("/verify-reset-otp", expert.verifyResetOTP);
 
 router.post("/reset-password", expert.resetPassword);
 
-/* ---------- Logout ---------- */
-
 router.post("/logout", expert.logout);
-
-/* ---------- Public ---------- */
 
 router.get("/:expertId", expert.getProfile);
 

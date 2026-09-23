@@ -3,7 +3,7 @@ import {
   deleteObject,
   objectKeyFromUrl,
 } from "../../core/config/r2.js";
-import { ValidationError } from "../../core/utils/errors.js";
+import { validationError } from "../../core/utils/errors.js";
 
 const IMAGE_TYPES = [
   "image/jpeg",
@@ -45,7 +45,7 @@ export async function presignMediaUpload(req, res, next) {
     const isVideo = VIDEO_TYPES.includes(contentType);
 
     if (!isImage && !isVideo) {
-      throw new ValidationError(
+      throw validationError(
         "Unsupported media type. Only photos and videos are allowed.",
       );
     }
@@ -53,7 +53,7 @@ export async function presignMediaUpload(req, res, next) {
     const bytes = Number(size) || 0;
     const limit = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
     if (bytes > limit) {
-      throw new ValidationError(
+      throw validationError(
         isImage
           ? "Photos must be 15 MB or smaller."
           : "Videos must be 500 MB or smaller.",
@@ -90,7 +90,7 @@ export async function deleteMedia(req, res, next) {
     const objectKey = key || objectKeyFromUrl(url);
 
     if (!objectKey) {
-      throw new ValidationError("Provide the media key or url to delete.");
+      throw validationError("Provide the media key or url to delete.");
     }
 
     await deleteObject({ key: objectKey });

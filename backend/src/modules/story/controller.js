@@ -108,8 +108,6 @@ export async function list(req, res, next) {
   }
 }
 
-/* ---------- Chapters ---------- */
-
 export async function addChapter(req, res, next) {
   try {
     const story = await storyService.addChapter({
@@ -152,8 +150,6 @@ export async function deleteChapter(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Chapter stories (individual stories inside a chapter) ---------- */
 
 export async function addChapterStory(req, res, next) {
   try {
@@ -200,8 +196,6 @@ export async function deleteChapterStory(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Publishing ---------- */
 
 /**
  * POST /stories/:storyId/publish — synchronous, no review pipeline.
@@ -260,8 +254,6 @@ function actorOf(req) {
   };
 }
 
-/* ---------- Likes ---------- */
-
 export async function toggleLike(req, res, next) {
   try {
     const data = await storyService.toggleLike({
@@ -286,8 +278,6 @@ export async function getLikes(req, res, next) {
     next(error);
   }
 }
-
-/* ---------- Comments ---------- */
 
 export async function createComment(req, res, next) {
   try {

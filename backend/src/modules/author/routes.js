@@ -7,13 +7,9 @@ import * as author from "./controller.js";
 
 const router = Router();
 
-/* ---------- Authentication ---------- */
-
 router.post("/register", upload.single("avatar"), author.register);
 
 router.post("/login", author.login);
-
-/* ---------- Self-service (author role — pending authors included) ---------- */
 
 router.get("/me", authenticate, authorize("author"), author.getMe);
 
@@ -37,19 +33,13 @@ router.get("/me/stats", authenticate, authorize("author"), author.getMyStats);ro
   author.getMyStory,
 );
 
-/* ---------- Password Reset ---------- */
-
 router.post("/forgot-password", author.forgotPassword);
 
 router.post("/verify-reset-otp", author.verifyResetOTP);
 
 router.post("/reset-password", author.resetPassword);
 
-/* ---------- Logout ---------- */
-
 router.post("/logout", author.logout);
-
-/* ---------- Public ---------- */
 
 router.get("/approved", author.listApproved);
 

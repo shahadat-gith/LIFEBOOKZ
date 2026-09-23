@@ -93,9 +93,8 @@ export const logger = {
 };
 
 /**
- * Log a caught error with its stack and any request/job context. Use this in
- * catch blocks that don't surface the error as an HTTP response (workers,
- * SQS jobs, background syncs).
+ * Log a caught error with its stack and any request context. Use this in catch
+ * blocks that don't surface the error as an HTTP response.
  */
 export function logError(error, context = {}) {
   return logger.error(error?.message || "Unknown error", {

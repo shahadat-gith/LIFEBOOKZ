@@ -9,9 +9,9 @@ import { createNotification, createNotificationsForMany } from "../notification/
 import { uploadStoryImage } from "../../core/services/upload.js";
 import { sanitizeHtml } from "../../core/utils/sanitizeHtml.js";
 import {
-  NotFoundError,
-  ValidationError,
-  ForbiddenError,
+  forbiddenError,
+  notFoundError,
+  validationError,
 } from "../../core/utils/errors.js";
 
 const AUTHOR_POPULATE =
@@ -58,13 +58,11 @@ async function findOwnedStory({ authorId, storyId }) {
   const story = await Story.findOne({ _id: storyId, author: authorId });
 
   if (!story) {
-    throw new NotFoundError("Story not found.");
+    throw notFoundError("Story not found.");
   }
 
   return story;
 }
-
-/* ---------- Media ---------- */
 
 /**
  * Media descriptors stored on story entries. Photos and videos only — media
@@ -130,8 +128,6 @@ function sanitizeChapter(chapter = {}, fallbackOrder = 0) {
     ),
   };
 }
-
-/* ---------- Stories (lifebooks) ---------- */
 
 /**
  * Creates a lifebook, optionally seeding the first chapter.
@@ -260,7 +256,7 @@ export async function getStoryDetail({ storyId, viewer }) {
     .lean();
 
   if (!story) {
-    throw new NotFoundError("Story not found.");
+    throw notFoundError("Story not found.");
   }
 
   const isOwner =
@@ -270,7 +266,7 @@ export async function getStoryDetail({ storyId, viewer }) {
   // published & public lifebooks
   if (!isOwner) {
     if (story.status !== "published" || story.visibility !== "public") {
-      throw new ForbiddenError("You do not have permission to view this story.");
+      throw forbiddenError("You do not have permission to view this story.");
     }
   }
 
@@ -463,8 +459,6 @@ export async function listStories({ query: queryParams, viewer }) {
   };
 }
 
-/* ---------- Chapters ---------- */
-
 /**
  * Adds a chapter — a slot in the life story structure (0 = Childhood,
  * 1 = School Life, …) with its title. Callers name the slot with `order`;
@@ -482,7 +476,7 @@ export async function addChapter({ authorId, storyId, body = {} }) {
     : nextFree;
 
   if (story.chapters.some((ch) => ch.order === order)) {
-    throw new ValidationError("That chapter already exists.");
+    throw validationError("That chapter already exists.");
   }
 
   story.chapters.push({
@@ -506,12 +500,12 @@ export async function updateChapter({ authorId, storyId, chapterId, body = {} })
 
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
-    throw new NotFoundError("Chapter not found.");
+    throw notFoundError("Chapter not found.");
   }
 
   const title = body.title?.trim();
   if (!title) {
-    throw new ValidationError("Chapter title is required.");
+    throw validationError("Chapter title is required.");
   }
 
   chapter.title = title;
@@ -526,7 +520,7 @@ export async function deleteChapter({ authorId, storyId, chapterId }) {
 
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
-    throw new NotFoundError("Chapter not found.");
+    throw notFoundError("Chapter not found.");
   }
 
   // Removing a chapter does not renumber the rest: `order` is the phase of
@@ -537,8 +531,6 @@ export async function deleteChapter({ authorId, storyId, chapterId }) {
 
   return story;
 }
-
-/* ---------- Chapter stories (individual memories / lessons / etc.) ---------- */
 
 /**
  * Validates story fields sent for create/update.
@@ -560,13 +552,13 @@ function sanitizeStoryInput(body = {}) {
   }
 
   if (errors.length > 0) {
-    throw new ValidationError(errors.join(" "));
+    throw validationError(errors.join(" "));
   }
 
   // Story content is authored rich text — sanitize before it is stored.
   const content = sanitizeHtml(body.content || "");
   if (content.length > MAX_CONTENT_LENGTH) {
-    throw new ValidationError("Story content is too long.");
+    throw validationError("Story content is too long.");
   }
 
   return {
@@ -590,7 +582,7 @@ export async function addChapterStory({ authorId, storyId, chapterId, body }) {
 
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
-    throw new NotFoundError("Chapter not found.");
+    throw notFoundError("Chapter not found.");
   }
 
   const input = sanitizeStoryInput(body);
@@ -623,12 +615,12 @@ export async function updateChapterStory({
 
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
-    throw new NotFoundError("Chapter not found.");
+    throw notFoundError("Chapter not found.");
   }
 
   const entry = chapter.stories.id(storyEntryId);
   if (!entry) {
-    throw new NotFoundError("Story not found in this chapter.");
+    throw notFoundError("Story not found in this chapter.");
   }
 
   const input = sanitizeStoryInput({ ...body, title: body.title ?? entry.title });
@@ -671,12 +663,12 @@ export async function deleteChapterStory({
 
   const chapter = story.chapters.id(chapterId);
   if (!chapter) {
-    throw new NotFoundError("Chapter not found.");
+    throw notFoundError("Chapter not found.");
   }
 
   const entry = chapter.stories.id(storyEntryId);
   if (!entry) {
-    throw new NotFoundError("Story not found in this chapter.");
+    throw notFoundError("Story not found in this chapter.");
   }
 
   chapter.stories.pull(storyEntryId);
@@ -686,8 +678,6 @@ export async function deleteChapterStory({
   return story;
 }
 
-/* ---------- Publishing ---------- */
-
 /**
  * Publishes the whole lifebook synchronously — no review pipeline,
  * the author has full control. Also re-publishes published lifebooks.
@@ -696,11 +686,11 @@ export async function publishStory({ authorId, storyId, body }) {
   const story = await findOwnedStory({ authorId, storyId });
 
   if (!story.title?.trim()) {
-    throw new ValidationError("Story title is required before publishing.");
+    throw validationError("Story title is required before publishing.");
   }
 
   if (!story.chapters || story.chapters.length === 0) {
-    throw new ValidationError("Story must have at least one chapter.");
+    throw validationError("Story must have at least one chapter.");
   }
 
   // Sync denormalized profession in case author updated profile
@@ -714,7 +704,7 @@ export async function publishStory({ authorId, storyId, body }) {
   // Optional visibility change at publish time
   if (body?.visibility) {
     if (!VISIBILITY_LEVELS.includes(body.visibility)) {
-      throw new ValidationError("Invalid visibility value.");
+      throw validationError("Invalid visibility value.");
     }
     story.visibility = body.visibility;
   }
@@ -779,8 +769,6 @@ export async function unpublishStory({ authorId, storyId }) {
   return { id: story.id, status: story.status };
 }
 
-/* ---------- Likes ---------- */
-
 /**
  * Like / unlike a story. Any signed-in account can like — the caller's
  * collection and display name are recorded so the like renders correctly
@@ -799,7 +787,7 @@ export async function toggleLike({
   }).select("_id author slug");
 
   if (!story) {
-    throw new NotFoundError("Story not found.");
+    throw notFoundError("Story not found.");
   }
 
   const existing = await Like.findOne({ story: storyId, user: userId });
@@ -855,8 +843,6 @@ export async function listLikes({ storyId }) {
     .lean();
 }
 
-/* ---------- Comments ---------- */
-
 /**
  * Flatten a populated reply for rendering.
  *
@@ -906,7 +892,7 @@ export async function createComment({
   content,
 }) {
   if (!content?.trim()) {
-    throw new ValidationError("Comment cannot be empty.");
+    throw validationError("Comment cannot be empty.");
   }
 
   const story = await Story.findOne({
@@ -916,7 +902,7 @@ export async function createComment({
   }).select("_id");
 
   if (!story) {
-    throw new NotFoundError("Story not found.");
+    throw notFoundError("Story not found.");
   }
 
   const comment = await Comment.create({
@@ -953,13 +939,13 @@ export async function updateComment({
   content,
 }) {
   if (!content?.trim()) {
-    throw new ValidationError("Comment cannot be empty.");
+    throw validationError("Comment cannot be empty.");
   }
 
   const comment = await Comment.findOne({ _id: commentId, user: userId, userModel });
 
   if (!comment) {
-    throw new NotFoundError("Comment not found.");
+    throw notFoundError("Comment not found.");
   }
 
   comment.content = content.trim();
@@ -974,7 +960,7 @@ export async function deleteComment({ commentId, userId, userModel = "User" }) {
   const comment = await Comment.findOne({ _id: commentId, user: userId, userModel });
 
   if (!comment) {
-    throw new NotFoundError("Comment not found.");
+    throw notFoundError("Comment not found.");
   }
 
   await Promise.all([
@@ -1024,7 +1010,7 @@ export async function listComments({ storyId, page, limit, viewerId, viewerModel
 export async function toggleCommentLike({ commentId, whoId, whoModel }) {
   const comment = await Comment.findById(commentId);
   if (!comment) {
-    throw new NotFoundError("Comment not found.");
+    throw notFoundError("Comment not found.");
   }
 
   const existing = comment.likes.find(
@@ -1052,7 +1038,7 @@ export async function toggleCommentLike({ commentId, whoId, whoModel }) {
  */
 export async function replyToComment({ commentId, authorId, content }) {
   if (!content?.trim()) {
-    throw new ValidationError("Reply cannot be empty.");
+    throw validationError("Reply cannot be empty.");
   }
 
   const comment = await Comment.findById(commentId).populate(
@@ -1061,13 +1047,11 @@ export async function replyToComment({ commentId, authorId, content }) {
   );
 
   if (!comment) {
-    throw new NotFoundError("Comment not found.");
+    throw notFoundError("Comment not found.");
   }
 
   if (String(comment.story.author) !== String(authorId)) {
-    throw new ForbiddenError(
-      "Only the story's author can reply to comments.",
-    );
+    throw forbiddenError("Only the story's author can reply to comments.");
   }
 
   comment.replies.push({ author: authorId, content: content.trim() });
@@ -1082,8 +1066,6 @@ export async function replyToComment({ commentId, authorId, content }) {
   const replies = saved?.replies || [];
   return shapeReply(replies[replies.length - 1]);
 }
-
-/* ---------- Search helpers (used by the search module) ---------- */
 
 /**
  * Simple text search over published public lifebooks: title,

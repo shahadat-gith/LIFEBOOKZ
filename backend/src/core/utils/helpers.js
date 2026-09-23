@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
-import { v5 as uuidv5 } from "uuid";
+import bcrypt from "bcryptjs";
+
 import config from "../config/index.js";
 
 export function generateToken(payload) {
@@ -19,8 +20,9 @@ export function toSlugUsername(raw) {
     .slice(0, 30);
 }
 
-const QDRANT_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+/** Compare a candidate password against a stored bcrypt hash. */
+export function verifyPassword(password, hash) {
+  if (!password || !hash) return false;
 
-export function toQdrantUuid(mongoId) {
-  return uuidv5(mongoId.toString(), QDRANT_NAMESPACE);
+  return bcrypt.compare(password, hash);
 }

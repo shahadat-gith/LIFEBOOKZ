@@ -5,14 +5,10 @@ import User from "../../modules/user/model.js";
 import Author from "../../modules/author/model.js";
 import Expert from "../../modules/expert/model.js";
 
-import {
-  AuthenticationError,
-  AuthorizationError,
-} from "../utils/errors.js";
+import { authenticationError, authorizationError } from "../utils/errors.js";
 
 /**
- * Token roles that map to an account document, plus the JWT claim carrying
- * its id. One table drives every lookup so a token can never resolve to the
+ * One table drives every token lookup, so a token can never resolve to the
  * wrong account type.
  */
 const ACCOUNT_ROLES = {
@@ -21,9 +17,6 @@ const ACCOUNT_ROLES = {
   expert: { model: Expert, claim: "expertId", label: "Expert" },
 };
 
-/**
- * Extract token from the Authorization header.
- */
 function extractToken(req) {
   const auth = req.headers.authorization;
   if (auth?.startsWith("Bearer ")) return auth.slice(7);
@@ -36,7 +29,7 @@ function verifyToken(token) {
     return jwt.verify(token, config.jwt.secret);
   } catch {
     // Covers malformed, tampered with and expired tokens alike.
-    throw new AuthenticationError("Invalid or expired token.");
+    throw authenticationError("Invalid or expired token.");
   }
 }
 
@@ -49,18 +42,18 @@ async function loadAccount(role, decoded) {
   const id = decoded[claim];
 
   if (!id) {
-    throw new AuthenticationError("Invalid token.");
+    throw authenticationError("Invalid token.");
   }
 
   const account = await model.findById(id).select("-auth.passwordHash");
 
   if (!account) {
-    throw new AuthenticationError(`${label} account no longer exists.`);
+    throw authenticationError(`${label} account no longer exists.`);
   }
 
   // Accounts created before the `status` field existed are treated as active.
   if (account.status && account.status !== "active") {
-    throw new AuthenticationError(
+    throw authenticationError(
       "This account is not active. Please contact support.",
     );
   }
@@ -86,7 +79,7 @@ export async function authenticate(req, _res, next) {
     const token = extractToken(req);
 
     if (!token) {
-      throw new AuthenticationError("Authentication required.");
+      throw authenticationError("Authentication required.");
     }
 
     const decoded = verifyToken(token);
@@ -96,7 +89,7 @@ export async function authenticate(req, _res, next) {
     switch (decoded.role) {
       case "admin": {
         if (!config.admin.key || decoded.key !== config.admin.key) {
-          throw new AuthenticationError("Invalid admin token.");
+          throw authenticationError("Invalid admin token.");
         }
 
         req.admin = true;
@@ -106,7 +99,7 @@ export async function authenticate(req, _res, next) {
 
       case "developer": {
         if (!config.developer.email || !config.developer.password) {
-          throw new AuthenticationError(
+          throw authenticationError(
             "Developer access is not configured on this server.",
           );
         }
@@ -125,7 +118,7 @@ export async function authenticate(req, _res, next) {
       }
 
       default:
-        throw new AuthenticationError("Invalid token.");
+        throw authenticationError("Invalid token.");
     }
   } catch (error) {
     return next(error);
@@ -162,16 +155,12 @@ export async function optionalAuthenticate(req, _res, next) {
 /**
  * Role gate. Must run after `authenticate`, which sets `req.role`.
  * Rejects anyone whose role isn't in the allowed list with a 403.
- *
- * Usage: router.get("/logs", authenticate, authorize("developer"), handler)
  */
 export function authorize(...roles) {
   return function authorizeRole(req, _res, next) {
     if (!req.role || !roles.includes(req.role)) {
       return next(
-        new AuthorizationError(
-          "You do not have permission to perform this action.",
-        ),
+        authorizationError("You do not have permission to perform this action."),
       );
     }
 
@@ -190,7 +179,7 @@ export function requireProfileComplete(req, _res, next) {
   }
 
   return next(
-    new AuthorizationError(
+    authorizationError(
       "Please complete your profile before publishing. Fill in your profession, bio, phone, date of birth, and gender to continue.",
     ),
   );
