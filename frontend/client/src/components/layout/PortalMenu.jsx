@@ -9,14 +9,14 @@ const PORTALS = [
     name: "Admin",
     tagline: "Manage the LifeBookz platform",
     url: "https://admin.lifebookz.com",
-    icon: Icons.shield,
+    icon: Icons.shieldCheck,
   },
   {
     id: "author",
     name: "Author",
     tagline: "Create and manage your stories",
     url: "https://author.lifebookz.com",
-    icon: Icons.pen,
+    icon: Icons.edit,
   },
   {
     id: "expert",
@@ -35,7 +35,9 @@ const PORTALS = [
 ];
 
 function PortalRow({ portal, onNavigate }) {
-  const Icon = portal.icon;
+  // A missing icon name would otherwise throw while rendering and blank the
+  // whole app, so fall back to the trigger's own icon.
+  const Icon = portal.icon || Icons.globe;
 
   return (
     <a
