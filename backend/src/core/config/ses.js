@@ -6,14 +6,8 @@ let client;
 export function getSesClient() {
   if (client) return client;
 
-  const { region, key } = config.aws;
-
   client = new SESv2Client({
-    region,
-    credentials: {
-      accessKeyId: key.access,
-      secretAccessKey: key.secret,
-    },
+    region: config.aws.region,
   });
 
   return client;
@@ -21,10 +15,13 @@ export function getSesClient() {
 
 export function getSesSender() {
   const { fromName, fromMail } = config.aws.ses;
+
   return `"${fromName}" <${fromMail}>`;
 }
 
 export function isSesConfigured() {
-  const { key } = config.aws;
-  return Boolean(key.access && key.secret);
+  return Boolean(
+    config.aws.region &&
+    config.aws.ses.fromMail
+  );
 }

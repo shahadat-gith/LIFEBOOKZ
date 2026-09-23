@@ -5,3 +5,7 @@ main = "./worker/index.js"
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+
+[[routes]]
+pattern = "expert.lifebookz.com"
+custom_domain = true

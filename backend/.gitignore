@@ -1,5 +1,6 @@
 node_modules/
 .env
+.aws-sam
 
 .vscode/
 /src/generated/prisma

@@ -1,11 +1,13 @@
 import serverless from "serverless-http";
-
 import app from "./src/app.js";
 import { connectDatabase } from "./src/core/config/database.js";
 
+const serverlessApp = serverless(app);
 
-await connectDatabase();
+export async function handler(event, context) {
+  await connectDatabase();
 
-export const handler = serverless(app);
+  return serverlessApp(event, context);
+}
 
 export default handler;
