@@ -5,7 +5,3 @@ main = "./worker/index.js"
 [assets]
 directory = "./dist"
 binding = "ASSETS"
-
-[vars]
-VITE_BACKEND_URL = "https://lifebookz-backend.onrender.com/api/v1"
-VITE_AUTHOR_PORTAL = "https://author.lifebookz.com"
