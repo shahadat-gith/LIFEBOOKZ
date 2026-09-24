@@ -3,6 +3,18 @@ export function apiErrorMessage(error, fallback = "Something went wrong. Please 
   return error?.response?.data?.error?.message || fallback;
 }
 
+/**
+ * The API's message plus the per-field errors it attached.
+ *
+ * `fields` names the input that was rejected (`{ password: "Incorrect password." }`),
+ * so a form can mark that input alongside showing the message. Forms that only
+ * need the text use `apiErrorMessage` above.
+ */
+export function apiError(error, fallback = "Something went wrong. Please try again.") {
+  const payload = error?.response?.data?.error;
+  return { message: payload?.message || fallback, fields: payload?.fields || {} };
+}
+
 export function getContentPreview(html, maxLength = 80) {
   const plain = html.replace(/<[^>]*>/g, "").trim();
   if (!plain) return "";

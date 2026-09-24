@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../context/AuthContext";
+import { apiError } from "../utils/helpers";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import AuthShell from "../components/auth/AuthShell";
+import FormError from "../components/common/FormError";
 import { Icons } from "../icons";
 
 export default function Login() {
@@ -14,6 +15,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Which input the API rejected — "wrong email" vs "wrong password" — so the
+  // offending field is marked, not just the form.
+  const [fieldErrors, setFieldErrors] = useState({});
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -21,6 +25,7 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     setLoading(true);
     try {
       await login({ email, password });
@@ -31,9 +36,12 @@ export default function Login() {
         redirect && redirect.startsWith("/") ? redirect : "/dashboard",
       );
     } catch (err) {
-      setError(
-        err?.response?.data?.error?.message || "Invalid email or password",
+      const { message, fields } = apiError(
+        err,
+        "Could not sign you in. Please try again.",
       );
+      setError(message);
+      setFieldErrors(fields);
     } finally {
       setLoading(false);
     }
@@ -58,6 +66,7 @@ export default function Login() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
           required
+          invalid={Boolean(fieldErrors.email)}
           icon={<Icons.mail className="h-4 w-4" />}
         />
 
@@ -79,21 +88,13 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             required
+            invalid={Boolean(fieldErrors.password)}
             icon={<Icons.lock className="h-4 w-4" />}
             showPasswordToggle
           />
         </div>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs text-destructive flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20"
-          >
-            <Icons.exclamationCircle className="h-4 w-4 flex-shrink-0" />
-            <span>{error}</span>
-          </motion.div>
-        )}
+        <FormError>{error}</FormError>
 
         <Button
           type="submit"

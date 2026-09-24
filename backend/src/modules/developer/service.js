@@ -31,14 +31,24 @@ export async function authenticateDeveloper({ email, password, ip }) {
     );
   }
 
-  if (email !== config.developer.email || password !== config.developer.password) {
+  const emailMatches = email === config.developer.email;
+  const passwordMatches = password === config.developer.password;
+
+  if (!emailMatches || !passwordMatches) {
     // Failed privileged logins are exactly the kind of event worth keeping.
     await logger.warn("Developer login failed", {
       email: email ? String(email).slice(0, 120) : null,
+      emailMatches,
       ip,
     });
 
-    throw authenticationError("Invalid developer credentials.");
+    const message = emailMatches
+      ? "Incorrect developer password."
+      : "Incorrect developer email.";
+
+    throw authenticationError(message, {
+      [emailMatches ? "password" : "email"]: message,
+    });
   }
 
   const token = generateToken({ role: "developer" });

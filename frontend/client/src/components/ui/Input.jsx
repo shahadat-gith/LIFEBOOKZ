@@ -1,9 +1,12 @@
 import { useState, forwardRef } from "react";
 
+// `invalid` marks the input as rejected without printing a message under it —
+// used for submit-level failures that are reported once, in the form banner.
 export const Input = forwardRef(function Input(
   {
     label,
     error,
+    invalid,
     icon,
     helperText,
     className = "",
@@ -22,9 +25,10 @@ export const Input = forwardRef(function Input(
   const baseClasses =
     "block w-full rounded-lg border bg-card text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted py-2 text-sm";
   const paddingClasses = `${icon ? "pl-10" : "pl-3"} ${showPasswordToggle ? "pr-10" : "pr-3"}`;
-  const stateClasses = error
-    ? "border-destructive focus:ring-destructive"
-    : "border-input hover:border-muted-foreground/50";
+  const stateClasses =
+    error || invalid
+      ? "border-destructive focus:ring-destructive"
+      : "border-input hover:border-muted-foreground/50";
 
   return (
     <div className="space-y-1.5">
@@ -50,7 +54,7 @@ export const Input = forwardRef(function Input(
           {...props}
           type={inputType}
           className={`${baseClasses} ${paddingClasses} ${stateClasses} ${className}`}
-          aria-invalid={!!error}
+          aria-invalid={!!(error || invalid)}
         />
 
         {isPassword && showPasswordToggle && (

@@ -1,0 +1,129 @@
+[WARN] POST /api/v1/users/register → 409 (CONFLICT_ERROR) {
+  method: 'POST',
+  path: '/api/v1/users/register',
+  statusCode: 409,
+  durationMs: 156,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'CONFLICT_ERROR',
+  message: 'An account with this email already exists.',
+  fields: { email: 'An account with this email already exists.' }
+}
+[WARN] POST /api/v1/authors/register → 422 (VALIDATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/authors/register',
+  statusCode: 422,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'curl/8.17.0',
+  code: 'VALIDATION_ERROR',
+  message: 'Please fill all required fields (name, email, password).'
+}
+[WARN] Email delivery failed {
+  to: 'dupe.verify@example.com',
+  subject: 'Welcome to LifeBookz',
+  error: 'Email address is not verified. The following identities failed the check in region AP-SOUTH-1: dupe.verify@example.com'
+}
+[WARN] Reader login failed — no reader account for this email { email: 'nobody@example.com', accountRoles: [], ip: '::1' }
+[WARN] POST /api/v1/users/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/users/login',
+  statusCode: 401,
+  durationMs: 574,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'No account found with this email.',
+  fields: { email: 'No account found with this email.' }
+}
+[WARN] Reader login failed — incorrect password {
+  userId: '6ab4b5d585c38ec88a2d1fb0',
+  email: 'verify.1790227925@example.com',
+  ip: '::1'
+}
+[WARN] POST /api/v1/users/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/users/login',
+  statusCode: 401,
+  durationMs: 1497,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'Incorrect password. Try again, or reset it.',
+  fields: { password: 'Incorrect password. Try again, or reset it.' }
+}
+[WARN] Author login failed — no author account for this email {
+  email: 'verify.1790227925@example.com',
+  accountRoles: [ 'user' ],
+  ip: '::1'
+}
+[WARN] POST /api/v1/authors/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/authors/login',
+  statusCode: 401,
+  durationMs: 4910,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'No account found with this email — it is registered as a reader account.',
+  fields: {
+    email: 'No account found with this email — it is registered as a reader account.'
+  }
+}
+[WARN] POST /api/v1/admin/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/admin/login',
+  statusCode: 401,
+  durationMs: 1,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'Incorrect admin email.',
+  fields: { email: 'Incorrect admin email.' }
+}
+[WARN] Expert login failed — no expert account for this email {
+  email: 'verify.1790227925@example.com',
+  accountRoles: [ 'user' ],
+  ip: '::1'
+}
+[WARN] POST /api/v1/experts/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/experts/login',
+  statusCode: 401,
+  durationMs: 966,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'No account found with this email — it is registered as a reader account.',
+  fields: {
+    email: 'No account found with this email — it is registered as a reader account.'
+  }
+}
+[WARN] Developer login failed { email: 'wrong-dev@example.com', emailMatches: false, ip: '::1' }
+[WARN] POST /api/v1/developer/login → 401 (AUTHENTICATION_ERROR) {
+  method: 'POST',
+  path: '/api/v1/developer/login',
+  statusCode: 401,
+  durationMs: 172,
+  ip: '::1',
+  role: 'anonymous',
+  accountId: null,
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Freebuff/0.0.128 Chrome/130.0.6723.191 Electron/33.4.11 Safari/537.36',
+  code: 'AUTHENTICATION_ERROR',
+  message: 'Incorrect developer email.',
+  fields: { email: 'Incorrect developer email.' }
+}

@@ -23,8 +23,19 @@ export function loginAdmin({ email, password }) {
     );
   }
 
-  if (email !== config.admin.email || password !== config.admin.password) {
-    throw authenticationError("Invalid admin credentials.");
+  // There is exactly one admin, from env, so naming the wrong half of the
+  // pair tells an attacker nothing they could not already guess — and it is
+  // the difference between a five-second retry and a support ticket.
+  if (email !== config.admin.email) {
+    const message = "Incorrect admin email.";
+
+    throw authenticationError(message, { email: message });
+  }
+
+  if (password !== config.admin.password) {
+    const message = "Incorrect admin password.";
+
+    throw authenticationError(message, { password: message });
   }
 
   return generateToken({ role: "admin", key: config.admin.key });

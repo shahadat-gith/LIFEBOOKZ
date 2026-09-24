@@ -11,7 +11,10 @@ import {
   notFoundError,
   validationError,
 } from "../../core/utils/errors.js";
-import { findAccountRolesByEmail } from "../../core/services/accounts.js";
+import {
+  findAccountRolesByEmail,
+  noAccountMessage,
+} from "../../core/services/accounts.js";
 import { isFollowing } from "../following/service.js";
 import { sendWelcomeMail, sendOtpMail } from "../../core/services/mailer.js";
 import { logger } from "../../core/services/logger.js";
@@ -109,7 +112,9 @@ export async function registerAuthor({ body, file }) {
   const existing = await Author.exists({ email });
 
   if (existing) {
-    throw conflictError("An author with this email already exists.");
+    const message = "An author with this email already exists.";
+
+    throw conflictError(message, { email: message });
   }
 
   let avatar = { url: "", key: "" };
@@ -164,8 +169,6 @@ export async function loginAuthor({ email, password, ip }) {
   const author = await Author.findOne({ email }).select("+auth.passwordHash");
 
   if (!author) {
-    // Failed sign-ins are worth a record: this usually means the email belongs
-    // to another portal rather than that the password was wrong.
     const accountRoles = await findAccountRolesByEmail(email);
 
     await logger.warn("Author login failed — no author account for this email", {
@@ -174,7 +177,9 @@ export async function loginAuthor({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = noAccountMessage(accountRoles, "author");
+
+    throw authenticationError(message, { email: message });
   }
 
   const isValid = await verifyPassword(password, author.auth.passwordHash);
@@ -186,7 +191,9 @@ export async function loginAuthor({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = "Incorrect password. Try again, or reset it.";
+
+    throw authenticationError(message, { password: message });
   }
 
   // Pending and rejected authors can sign in too: the dashboard is where they

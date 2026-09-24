@@ -5,13 +5,14 @@ import toast from "react-hot-toast";
 
 import { useAuth } from "../context/AuthContext";
 import { CONSULT_CATEGORIES } from "../config";
-import { sanitizeUsername } from "../utils/helpers";
+import { apiError, sanitizeUsername } from "../utils/helpers";
 import { Icons } from "../icons";
 
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Textarea from "../components/ui/Textarea";
 import Card, { CardTitle } from "../components/ui/Card";
+import FormError from "../components/common/FormError";
 
 function initials(name) {
   if (!name) return "?";
@@ -30,6 +31,7 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
 
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -106,6 +108,7 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -145,11 +148,17 @@ export default function Register() {
         "Application submitted! We'll notify you once your account is approved.",
       );
       navigate("/dashboard");
-    } catch (error) {
-      toast.error(
-        error.response?.data?.error?.message ||
-          "Registration failed. Please try again.",
+    } catch (err) {
+      const { message, fields } = apiError(
+        err,
+        "Registration failed. Please try again.",
       );
+
+      // Field-level failures read best under the input they belong to; the
+      // banner is left for failures that are not about one field.
+      const hasFields = Object.keys(fields).length > 0;
+      setErrors((prev) => ({ ...prev, ...fields }));
+      setError(hasFields ? "" : message);
     } finally {
       setLoading(false);
     }
@@ -415,6 +424,7 @@ export default function Register() {
                   Submit Application
                 </Button>
               </div>
+              <FormError className="mt-4">{error}</FormError>
               <p className="mt-4 text-center text-xs text-muted-foreground sm:text-left">
                 Your profile is reviewed by our team before it becomes visible to
                 the community.

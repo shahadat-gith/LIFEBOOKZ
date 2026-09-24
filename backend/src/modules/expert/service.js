@@ -15,7 +15,10 @@ import {
   notFoundError,
   validationError,
 } from "../../core/utils/errors.js";
-import { findAccountRolesByEmail } from "../../core/services/accounts.js";
+import {
+  findAccountRolesByEmail,
+  noAccountMessage,
+} from "../../core/services/accounts.js";
 import {
   sendWelcomeMail,
   sendOtpMail,
@@ -117,11 +120,15 @@ export async function registerExpert({ body, file }) {
   const validCategories = validateCategories(parsedCategories);
 
   if (await Expert.exists({ email })) {
-    throw conflictError("An expert with this email already exists.");
+    const message = "An expert with this email already exists.";
+
+    throw conflictError(message, { email: message });
   }
 
   if (await Expert.exists({ username })) {
-    throw conflictError("That username is already taken.");
+    const message = "That username is already taken.";
+
+    throw conflictError(message, { username: message });
   }
 
   const expert = new Expert({
@@ -194,8 +201,6 @@ export async function loginExpert({ email, password, ip }) {
   const expert = await Expert.findOne({ email }).select("+auth.passwordHash");
 
   if (!expert) {
-    // Failed sign-ins are worth a record: this usually means the email belongs
-    // to another portal rather than that the password was wrong.
     const accountRoles = await findAccountRolesByEmail(email);
 
     await logger.warn("Expert login failed — no expert account for this email", {
@@ -204,7 +209,9 @@ export async function loginExpert({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = noAccountMessage(accountRoles, "expert");
+
+    throw authenticationError(message, { email: message });
   }
 
   const isValid = await verifyPassword(password, expert.auth.passwordHash);
@@ -216,7 +223,9 @@ export async function loginExpert({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = "Incorrect password. Try again, or reset it.";
+
+    throw authenticationError(message, { password: message });
   }
 
   // Pending and rejected experts can sign in too: the dashboard is where they

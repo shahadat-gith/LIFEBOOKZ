@@ -8,6 +8,7 @@ import AuthHeading from "../../components/auth/AuthHeading";
 import AuthFooter from "../../components/auth/AuthFooter";
 import FormError from "../../components/common/FormError";
 import { Icons } from "../../icons";
+import { apiError } from "../../utils/helpers";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
@@ -15,6 +16,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Which input the API rejected — "wrong email" vs "wrong password" — so the
+  // offending field is marked, not just the form.
+  const [fieldErrors, setFieldErrors] = useState({});
   const { loginUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -22,6 +26,7 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     setLoading(true);
     try {
       await loginUser(email, password);
@@ -30,8 +35,12 @@ export default function LoginPage() {
       const redirect = searchParams.get("redirect");
       navigate(redirect && redirect.startsWith("/") ? redirect : "/");
     } catch (err) {
-      const msg = err.response?.data?.error?.message;
-      setError(msg || "Invalid email address or password");
+      const { message, fields } = apiError(
+        err,
+        "Could not sign you in. Please try again.",
+      );
+      setError(message);
+      setFieldErrors(fields);
     } finally {
       setLoading(false);
     }
@@ -52,6 +61,7 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
           required
+          invalid={Boolean(fieldErrors.email)}
           icon={<Icons.mail className="h-4 w-4" />}
         />
 
@@ -73,12 +83,13 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             required
+            invalid={Boolean(fieldErrors.password)}
             icon={<Icons.lock className="h-4 w-4" />}
             showPasswordToggle
           />
         </div>
 
-        <FormError message={error} />
+        <FormError>{error}</FormError>
 
         <Button
           type="submit"

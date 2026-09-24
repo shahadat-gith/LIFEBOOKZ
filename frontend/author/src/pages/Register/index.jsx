@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { useAuth } from "../../context/AuthContext";
-import { apiErrorMessage, sanitizeUsername } from "../../utils/helpers";
+import { apiError, sanitizeUsername } from "../../utils/helpers";
 import AuthShell from "../../components/auth/AuthShell";
 import AuthFooter from "../../components/auth/AuthFooter";
 import AuthHeading from "../../components/auth/AuthHeading";
@@ -87,7 +87,16 @@ export default function RegisterPage() {
       toast.success("Welcome to Lifebookz! Let's set up your lifebook.");
       navigate("/");
     } catch (err) {
-      setError(apiErrorMessage(err, "Registration failed. Please try again."));
+      const { message, fields } = apiError(
+        err,
+        "Registration failed. Please try again.",
+      );
+
+      // Field-level failures read best under the input they belong to; the
+      // banner is left for failures that are not about one field.
+      const hasFields = Object.keys(fields).length > 0;
+      setErrors((prev) => ({ ...prev, ...fields }));
+      setError(hasFields ? "" : message);
     } finally {
       setLoading(false);
     }

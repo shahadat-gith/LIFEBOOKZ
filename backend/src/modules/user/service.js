@@ -8,7 +8,10 @@ import {
   notFoundError,
   validationError,
 } from "../../core/utils/errors.js";
-import { findAccountRolesByEmail } from "../../core/services/accounts.js";
+import {
+  findAccountRolesByEmail,
+  noAccountMessage,
+} from "../../core/services/accounts.js";
 import { sendWelcomeMail, sendOtpMail } from "../../core/services/mailer.js";
 import { logger } from "../../core/services/logger.js";
 import {
@@ -58,7 +61,9 @@ export async function registerUser({ email, password, fullName, file }) {
   const existing = await User.findOne({ email });
 
   if (existing) {
-    throw conflictError("An account with this email already exists.");
+    const message = "An account with this email already exists.";
+
+    throw conflictError(message, { email: message });
   }
 
   const username = await buildUniqueUsername(email);
@@ -87,8 +92,6 @@ export async function loginUser({ email, password, ip }) {
   const user = await User.findOne({ email }).select("+auth.passwordHash");
 
   if (!user) {
-    // Failed sign-ins are worth a record: this usually means the email belongs
-    // to another portal (author/expert) rather than that the password was wrong.
     const accountRoles = await findAccountRolesByEmail(email);
 
     await logger.warn("Reader login failed — no reader account for this email", {
@@ -97,7 +100,9 @@ export async function loginUser({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = noAccountMessage(accountRoles, "user");
+
+    throw authenticationError(message, { email: message });
   }
 
   const isValid = await verifyPassword(password, user.auth.passwordHash);
@@ -109,7 +114,9 @@ export async function loginUser({ email, password, ip }) {
       ip,
     });
 
-    throw authenticationError("Invalid email or password.");
+    const message = "Incorrect password. Try again, or reset it.";
+
+    throw authenticationError(message, { password: message });
   }
 
   return { user, token: userToken(user) };

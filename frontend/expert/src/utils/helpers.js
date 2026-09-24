@@ -1,4 +1,15 @@
 /**
+ * The API's message for a failed request, plus any per-field errors it sent.
+ *
+ * `fields` names the input that was rejected (`{ password: "Incorrect password." }`),
+ * so a form can mark that input alongside showing the message.
+ */
+export function apiError(error, fallback = "Something went wrong. Please try again.") {
+  const payload = error?.response?.data?.error;
+  return { message: payload?.message || fallback, fields: payload?.fields || {} };
+}
+
+/**
  * Sanitize a raw string into a valid expert username.
  * Rules: lowercase, a-z/0-9/./-/_ only, no leading/trailing separators, max 30.
  */

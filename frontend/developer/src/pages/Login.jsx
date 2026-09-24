@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Card, { CardTitle } from '../components/ui/Card';
+import FormError from '../components/common/FormError';
 import { Icons } from '../icons';
 import toast from 'react-hot-toast';
 
@@ -13,21 +14,27 @@ export default function DeveloperLoginPage() {
  const [password, setPassword] = useState('');
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState('');
+ // Which input the API rejected — "wrong email" vs "wrong password" — so the
+ // offending field is marked, not just the form.
+ const [fieldErrors, setFieldErrors] = useState({});
  const { login } = useAuth();
  const navigate = useNavigate();
 
  async function handleSubmit(e) {
   e.preventDefault();
   setError('');
+  setFieldErrors({});
   setLoading(true);
   try {
    await login(email, password);
    toast.success('Signed in to the developer portal');
    navigate('/logs');
   } catch (err) {
+   const payload = err?.response?.data?.error;
    setError(
-     err?.response?.data?.error?.message || 'Invalid developer credentials'
+     payload?.message || 'Could not sign you in. Please try again.'
    );
+   setFieldErrors(payload?.fields || {});
   } finally {
    setLoading(false);
   }
@@ -61,6 +68,7 @@ export default function DeveloperLoginPage() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Enter your developer email"
         required
+        invalid={Boolean(fieldErrors.email)}
         icon={<Icons.mail className="h-4 w-4" />}
       />
       <Input
@@ -70,15 +78,11 @@ export default function DeveloperLoginPage() {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter your password"
         required
+        invalid={Boolean(fieldErrors.password)}
         icon={<Icons.lock className="h-4 w-4" />}
         showPasswordToggle
       />
-      {error && (
-       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-destructive flex items-start gap-1.5 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-        <Icons.exclamationCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-        <span>{error}</span>
-       </motion.div>
-      )}
+      <FormError>{error}</FormError>
       <Button type="submit" fullWidth size="lg" loading={loading} icon={<Icons.login className="h-4 w-4" />}>
         Sign In
       </Button>

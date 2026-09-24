@@ -57,14 +57,11 @@ export default function errorHandler(err, req, res, _next) {
   if (err.name === "MongoServerError" && err.code === 11000) {
     const keyValue = err.keyValue || {};
     const field = Object.keys(keyValue)[0] || "field";
+    const message = `An account with this ${field} already exists.`;
 
-    return respond(
-      req,
-      res,
-      409,
-      "DUPLICATE_FIELD",
-      `An account with this ${field} already exists.`,
-    );
+    return respond(req, res, 409, "DUPLICATE_FIELD", message, {
+      fields: { [field]: message },
+    });
   }
 
   // — Mongoose cast errors (e.g. bad ObjectId) —
@@ -81,6 +78,7 @@ export default function errorHandler(err, req, res, _next) {
   // — Our own app errors — (plain Errors flagged by core/utils/errors.js)
   if (err.isAppError) {
     return respond(req, res, err.statusCode, err.code, err.message, {
+      fields: err.fields,
       stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
   }

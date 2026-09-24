@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Card, { CardTitle } from '../components/ui/Card';
+import FormError from '../components/common/FormError';
 import { Icons } from '../icons';
 import toast from 'react-hot-toast';
 
@@ -13,19 +14,25 @@ export default function AdminLoginPage() {
  const [password, setPassword] = useState('');
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState('');
+ // Which input the API rejected — "wrong email" vs "wrong password" — so the
+ // offending field is marked, not just the form.
+ const [fieldErrors, setFieldErrors] = useState({});
  const { loginAdmin } = useAuth();
  const navigate = useNavigate();
 
  async function handleSubmit(e) {
   e.preventDefault();
   setError('');
+  setFieldErrors({});
   setLoading(true);
   try {
    await loginAdmin(email, password);
    toast.success('Welcome admin!');
    navigate('/dashboard');
-  } catch {
-   setError('Invalid admin credentials');
+  } catch (err) {
+   const payload = err?.response?.data?.error;
+   setError(payload?.message || 'Could not sign you in. Please try again.');
+   setFieldErrors(payload?.fields || {});
   } finally {
    setLoading(false);
   }
@@ -52,13 +59,9 @@ export default function AdminLoginPage() {
      </div>
 
      <motion.form onSubmit={handleSubmit} className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}>
-      <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your admin email" required icon={<Icons.mail className="h-4 w-4" />} />
-      <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />
-      {error && (
-       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-destructive flex items-center gap-1.5 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-        <Icons.exclamationCircle className="h-4 w-4" />{error}
-       </motion.div>
-      )}
+      <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your admin email" required invalid={Boolean(fieldErrors.email)} icon={<Icons.mail className="h-4 w-4" />} />
+      <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required invalid={Boolean(fieldErrors.password)} icon={<Icons.lock className="h-4 w-4" />} showPasswordToggle />
+      <FormError>{error}</FormError>
       <Button type="submit" fullWidth size="lg" loading={loading} icon={<Icons.login className="h-4 w-4" />}>Sign In</Button>
      </motion.form>
     </Card>

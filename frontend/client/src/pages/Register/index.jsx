@@ -9,6 +9,7 @@ import AuthHeading from "../../components/auth/AuthHeading";
 import AuthFooter from "../../components/auth/AuthFooter";
 import FormError from "../../components/common/FormError";
 import { Icons } from "../../icons";
+import { apiError } from "../../utils/helpers";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {
@@ -19,6 +20,8 @@ export default function RegisterPage() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Per-input messages: local checks plus any field the API rejected.
+  const [fieldErrors, setFieldErrors] = useState({});
   const { registerUser } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
@@ -36,10 +39,13 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError("");
+      setFieldErrors({ password: "Password must be at least 8 characters." });
       return;
     }
+
     setError("");
+    setFieldErrors({});
     setLoading(true);
     try {
       const fd = new FormData();
@@ -52,8 +58,16 @@ export default function RegisterPage() {
       toast.success("Account created successfully!");
       navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.error?.message;
-      setError(msg || "Registration failed. Please try again.");
+      const { message, fields } = apiError(
+        err,
+        "Registration failed. Please try again.",
+      );
+
+      // Field-level failures read best under the input they belong to; the
+      // banner is left for failures that are not about one field.
+      const hasFields = Object.keys(fields).length > 0;
+      setFieldErrors(fields);
+      setError(hasFields ? "" : message);
     } finally {
       setLoading(false);
     }
@@ -108,6 +122,7 @@ export default function RegisterPage() {
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Enter your full name"
           required
+          error={fieldErrors.fullName}
           icon={<Icons.user className="h-4 w-4" />}
         />
 
@@ -118,6 +133,7 @@ export default function RegisterPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
           required
+          error={fieldErrors.email}
           icon={<Icons.mail className="h-4 w-4" />}
         />
 
@@ -128,14 +144,13 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Create a password"
           required
+          error={fieldErrors.password}
+          helperText="Use at least 8 characters."
           icon={<Icons.lock className="h-4 w-4" />}
           showPasswordToggle
         />
-        <p className="text-xs text-muted-foreground -mt-2">
-          Use at least 8 characters.
-        </p>
 
-        <FormError message={error} />
+        <FormError>{error}</FormError>
 
         <Button
           type="submit"
