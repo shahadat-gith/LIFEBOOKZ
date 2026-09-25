@@ -1,0 +1,70 @@
+service: lifebookz-analytics-worker
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# Analytics worker: SQS (lifebookz-analytics-queue) → S3 (lifebookz-analytics).
+#
+# Deliberately NO httpApi events and deliberately NO Athena permissions — the
+# worker only writes; querying is done from laptops/notebooks with separate
+# credentials (spec §20).
+#
+# IAM is the narrowest set that works:
+#   sqs:ReceiveMessage / DeleteMessage / GetQueueAttributes on the analytics queue
+#   s3:PutObject on the analytics bucket's events/ prefix
+# Nothing else. No MongoDB, no EventBridge publish, no Athena.
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  logRetentionInDays: 30
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    SERVICE_NAME: analytics-worker
+    ANALYTICS_S3_BUCKET: ${env:ANALYTICS_S3_BUCKET, 'lifebookz-analytics'}
+    ANALYTICS_S3_PREFIX: ${env:ANALYTICS_S3_PREFIX, 'events/'}
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: analytics-worker
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        # Consume exactly one queue — the analytics queue.
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            - sqs:GetQueueUrl
+          Resource: !ImportValue lifebookz-${sls:stage}-analytics-queue-arn
+
+        # Write analytics records only. Read/list are not needed by the
+        # worker, and the bucket is Block-Public-Access + encrypted (system stack).
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource:
+            - !Sub "arn:aws:s3:::${env:ANALYTICS_S3_BUCKET, 'lifebookz-analytics'}/events/*"
+
+functions:
+  worker:
+    name: lifebookz-analytics-worker-${sls:stage}
+    handler: src/handler.handler
+    description: Persists domain events from SQS to the partitioned analytics S3 bucket for Athena.
+    timeout: 60
+    memorySize: 256
+    reservedConcurrency: 20
+    events:
+      - sqs:
+          arn: !ImportValue lifebookz-${sls:stage}-analytics-queue-arn
+          batchSize: 100
+          functionResponseType: ReportBatchItemFailures
+          maximumBatchingWindow: 30s

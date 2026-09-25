@@ -11,8 +11,8 @@ export const COVER_VARIANTS = [
   {
     key: "desktop",
     label: "Desktop cover",
-    ratio: "16:5",
-    aspect: 16 / 5,
+    ratio: "16:9",
+    aspect: 16 / 9,
     icon: Icons.desktop,
     hint: "Wide banner shown on laptops and desktops",
   },

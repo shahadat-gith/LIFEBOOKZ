@@ -1,0 +1,33 @@
+{
+  "name": "lifebookz-backend-microservices",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LifeBookz AWS serverless microservice architecture (HTTP API + Lambda + EventBridge + SQS + SES + S3/Athena + MongoDB Atlas + Cloudflare R2)",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "services/*",
+    "workers/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "test:shared": "npm test --workspaces --if-present --workspace=./shared/*",
+    "check:imports": "node scripts/verify-no-cross-service-imports.mjs",
+    "check:env": "node scripts/verify-env-contract.mjs",
+    "check": "npm run check:imports && npm run check:env && npm run test",
+    "package:all": "node scripts/package-all.mjs",
+    "deploy:system": "npm run deploy -w @lifebookz/system",
+    "deploy:auth": "npm run deploy -w @lifebookz/auth",
+    "deploy:story": "npm run deploy -w @lifebookz/story",
+    "deploy:consultation": "npm run deploy -w @lifebookz/consultation",
+    "deploy:notification": "npm run deploy -w @lifebookz/notification",
+    "deploy:email-worker": "npm run deploy -w @lifebookz/email-worker",
+    "deploy:analytics-worker": "npm run deploy -w @lifebookz/analytics-worker"
+  },
+  "devDependencies": {
+    "serverless": "^3.40.0"
+  }
+}

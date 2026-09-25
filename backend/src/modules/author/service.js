@@ -4,7 +4,11 @@ import mongoose from "mongoose";
 import Author from "./model.js";
 import Story from "../story/models/Story.js";
 
-import { generateToken, verifyPassword } from "../../core/utils/helpers.js";
+import {
+  generateToken,
+  hashPassword,
+  verifyPassword,
+} from "../../core/utils/helpers.js";
 import {
   authenticationError,
   conflictError,
@@ -258,7 +262,7 @@ export async function updateAuthor({
     });
   }
 
-  // Desktop (16:5) cover variant
+  // Desktop (16:9) cover variant
   if (coverFile) {
     author.coverImage = await replaceImage({
       buffer: coverFile.buffer,
@@ -451,19 +455,27 @@ export async function requestPasswordReset({ email }) {
   }
 
   // Always resolve silently to avoid revealing whether the email exists
-  const author = await Author.findOne({ email }).select(RESET_SELECT);
+  const author = await Author.findOne({ email }).select("email");
 
-  if (author) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  if (!author) return;
 
-    author.auth.passwordResetOTP = otp;
-    author.auth.passwordResetOTPExpires = new Date(Date.now() + OTP_TTL_MS);
-    author.auth.passwordResetVerified = false;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await author.save();
+  // Targeted write on purpose. Resetting a password only touches `auth`, so it
+  // must not re-validate the rest of the profile — a document predating a
+  // `required` field would otherwise be locked out of its own reset.
+  await Author.updateOne(
+    { _id: author._id },
+    {
+      $set: {
+        "auth.passwordResetOTP": otp,
+        "auth.passwordResetOTPExpires": new Date(Date.now() + OTP_TTL_MS),
+        "auth.passwordResetVerified": false,
+      },
+    },
+  );
 
-    await sendOtpMail({ to: author.email, otp, role: "author" });
-  }
+  await sendOtpMail({ to: author.email, otp, role: "author" });
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
@@ -471,7 +483,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Email and OTP are required.");
   }
 
-  const author = await Author.findOne({ email }).select(RESET_SELECT);
+  const author = await Author.findOne({ email }).select(`email ${RESET_SELECT}`);
 
   if (
     !author ||
@@ -482,16 +494,22 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Invalid or expired OTP.");
   }
 
-  author.auth.passwordResetVerified = true;
-  author.auth.passwordResetOTPExpires = undefined;
-
+  // Verified marks that the reset token — not the OTP — is the credential the
+  // next step accepts, so the short-lived token replaces the OTP here.
   const resetToken = crypto.randomBytes(32).toString("hex");
-  author.auth.passwordResetOTP = resetToken;
-  author.auth.passwordResetOTPExpires = new Date(
-    Date.now() + RESET_TOKEN_TTL_MS,
-  );
 
-  await author.save();
+  await Author.updateOne(
+    { _id: author._id },
+    {
+      $set: {
+        "auth.passwordResetVerified": true,
+        "auth.passwordResetOTP": resetToken,
+        "auth.passwordResetOTPExpires": new Date(
+          Date.now() + RESET_TOKEN_TTL_MS,
+        ),
+      },
+    },
+  );
 
   return resetToken;
 }
@@ -505,22 +523,33 @@ export async function resetPassword({ resetToken, password }) {
     throw validationError("Password must be at least 8 characters.");
   }
 
-  const author = await Author.findOne({
-    "auth.passwordResetOTP": resetToken,
-    "auth.passwordResetOTPExpires": { $gt: new Date() },
-    "auth.passwordResetVerified": true,
-  }).select(`+auth.passwordHash ${RESET_SELECT}`);
+  // Hashing happens here because the write below is a targeted update, so the
+  // model's pre-save hook never runs.
+  const passwordHash = await hashPassword(password);
 
-  if (!author) {
+  // One atomic write: match on the token, swap in the hash and drop the token.
+  // Two concurrent submissions of the same token cannot both succeed.
+  const result = await Author.updateOne(
+    {
+      "auth.passwordResetOTP": resetToken,
+      "auth.passwordResetOTPExpires": { $gt: new Date() },
+      "auth.passwordResetVerified": true,
+    },
+    {
+      $set: {
+        "auth.passwordHash": passwordHash,
+        "auth.passwordResetVerified": false,
+      },
+      $unset: {
+        "auth.passwordResetOTP": "",
+        "auth.passwordResetOTPExpires": "",
+      },
+    },
+  );
+
+  if (result.matchedCount === 0) {
     throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }
-
-  author.auth.passwordHash = password;
-  author.auth.passwordResetOTP = "";
-  author.auth.passwordResetOTPExpires = undefined;
-  author.auth.passwordResetVerified = false;
-
-  await author.save();
 }

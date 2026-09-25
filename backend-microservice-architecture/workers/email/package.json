@@ -1,0 +1,22 @@
+{
+  "name": "@lifebookz/email-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LifeBookz email worker — consumes the SQS email queue and sends transactional email through SES. No HTTP API.",
+  "main": "src/handler.js",
+  "scripts": {
+    "test": "node --test",
+    "package": "serverless package",
+    "deploy": "serverless deploy",
+    "logs": "serverless logs -f worker"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.750.0",
+    "@aws-sdk/client-sesv2": "^3.750.0",
+    "@lifebookz/shared-aws": "*",
+    "@lifebookz/shared-errors": "*",
+    "@lifebookz/shared-logger": "*",
+    "zod": "^3.24.0"
+  }
+}

@@ -1,7 +1,11 @@
 import crypto from "crypto";
 
 import User from "./model.js";
-import { generateToken, verifyPassword } from "../../core/utils/helpers.js";
+import {
+  generateToken,
+  hashPassword,
+  verifyPassword,
+} from "../../core/utils/helpers.js";
 import {
   authenticationError,
   conflictError,
@@ -28,8 +32,11 @@ const RESET_TOKEN_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Builds a unique username from an email local part.
+ *
+ * Exported so the backfill script can repair documents created before
+ * `username` was required, using exactly the same rules.
  */
-async function buildUniqueUsername(email) {
+export async function buildUniqueUsername(email) {
   let username = String(email || "")
     .split("@")[0]
     .toLowerCase()
@@ -153,7 +160,7 @@ export async function updateUser({ userId, fullName, file, coverFile, coverMobil
     });
   }
 
-  // Desktop (16:5) cover variant
+  // Desktop (16:9) cover variant
   if (coverFile) {
     user.coverImage = await replaceImage({
       buffer: coverFile.buffer,
@@ -209,19 +216,27 @@ export async function requestPasswordReset({ email }) {
   }
 
   // Always resolve silently to avoid revealing whether the email exists
-  const user = await User.findOne({ email }).select(RESET_SELECT);
+  const user = await User.findOne({ email }).select("email");
 
-  if (user) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  if (!user) return;
 
-    user.auth.passwordResetOTP = otp;
-    user.auth.passwordResetOTPExpires = new Date(Date.now() + OTP_TTL_MS);
-    user.auth.passwordResetVerified = false;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await user.save();
+  // Targeted write on purpose. Resetting a password only touches `auth`, so it
+  // must not re-validate the rest of the profile — a document predating a
+  // `required` field would otherwise be locked out of its own reset.
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        "auth.passwordResetOTP": otp,
+        "auth.passwordResetOTPExpires": new Date(Date.now() + OTP_TTL_MS),
+        "auth.passwordResetVerified": false,
+      },
+    },
+  );
 
-    await sendOtpMail({ to: user.email, otp, role: "user" });
-  }
+  await sendOtpMail({ to: user.email, otp, role: "user" });
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
@@ -229,7 +244,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Email and OTP are required.");
   }
 
-  const user = await User.findOne({ email }).select(RESET_SELECT);
+  const user = await User.findOne({ email }).select(`email ${RESET_SELECT}`);
 
   if (
     !user ||
@@ -240,17 +255,22 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Invalid or expired OTP.");
   }
 
-  // Mark OTP as verified and swap it for a short-lived reset token
-  user.auth.passwordResetVerified = true;
-  user.auth.passwordResetOTPExpires = undefined;
-
+  // Verified marks that the reset token — not the OTP — is the credential the
+  // next step accepts, so the short-lived token replaces the OTP here.
   const resetToken = crypto.randomBytes(32).toString("hex");
-  user.auth.passwordResetOTP = resetToken;
-  user.auth.passwordResetOTPExpires = new Date(
-    Date.now() + RESET_TOKEN_TTL_MS,
-  );
 
-  await user.save();
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        "auth.passwordResetVerified": true,
+        "auth.passwordResetOTP": resetToken,
+        "auth.passwordResetOTPExpires": new Date(
+          Date.now() + RESET_TOKEN_TTL_MS,
+        ),
+      },
+    },
+  );
 
   return resetToken;
 }
@@ -264,22 +284,33 @@ export async function resetPassword({ resetToken, password }) {
     throw validationError("Password must be at least 8 characters.");
   }
 
-  const user = await User.findOne({
-    "auth.passwordResetOTP": resetToken,
-    "auth.passwordResetOTPExpires": { $gt: new Date() },
-    "auth.passwordResetVerified": true,
-  }).select(`+auth.passwordHash ${RESET_SELECT}`);
+  // Hashing happens here because the write below is a targeted update, so the
+  // model's pre-save hook never runs.
+  const passwordHash = await hashPassword(password);
 
-  if (!user) {
+  // One atomic write: match on the token, swap in the hash and drop the token.
+  // Two concurrent submissions of the same token cannot both succeed.
+  const result = await User.updateOne(
+    {
+      "auth.passwordResetOTP": resetToken,
+      "auth.passwordResetOTPExpires": { $gt: new Date() },
+      "auth.passwordResetVerified": true,
+    },
+    {
+      $set: {
+        "auth.passwordHash": passwordHash,
+        "auth.passwordResetVerified": false,
+      },
+      $unset: {
+        "auth.passwordResetOTP": "",
+        "auth.passwordResetOTPExpires": "",
+      },
+    },
+  );
+
+  if (result.matchedCount === 0) {
     throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }
-
-  user.auth.passwordHash = password;
-  user.auth.passwordResetOTP = "";
-  user.auth.passwordResetOTPExpires = undefined;
-  user.auth.passwordResetVerified = false;
-
-  await user.save();
 }

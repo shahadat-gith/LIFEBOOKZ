@@ -1,0 +1,108 @@
+service: lifebookz-email-worker
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# Email worker: SQS (lifebookz-email-queue) → SES.
+#
+# Deliberately NO httpApi events — this worker is not reachable from the
+# internet. Everything it needs (queue ARN/URL) is imported from the `system`
+# stack, which owns both queues and their redrive policies.
+#
+# IAM is the narrowest set that works:
+#   sqs:ReceiveMessage / DeleteMessage / GetQueueAttributes on the email queue
+#   ses:SendEmail / SendRawEmail           on the SES identity
+#   dynamodb conditional writes on its own idempotency table
+# Nothing else. No MongoDB, no EventBridge, no S3.
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  logRetentionInDays: 30
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    SERVICE_NAME: email-worker
+    SES_FROM_EMAIL: ${env:SES_FROM_EMAIL, 'noreply@lifebookz.com'}
+    SES_FROM_NAME: ${env:SES_FROM_NAME, 'LifeBookz'}
+    SES_REPLY_TO: ${env:SES_REPLY_TO, ''}
+    SES_REGION: ${env:SES_REGION, 'ap-south-1'}
+    SES_CONFIGURATION_SET: ${env:SES_CONFIGURATION_SET, ''}
+    DYNAMODB_IDEMPOTENCY_TABLE: !Ref EmailIdempotencyTable
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: email-worker
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        # Consume exactly one queue — the email queue. Nothing else.
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            - sqs:GetQueueUrl
+          Resource: !ImportValue lifebookz-${sls:stage}-email-queue-arn
+
+        # Send transactional email. Scoped to the configuration set when one is
+        # configured; the identity itself is verified out-of-band in SES.
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - ses:SendRawEmail
+          Resource:
+            - arn:aws:ses:${env:SES_REGION, 'ap-south-1'}:${env:AWS_ACCOUNT_ID, '*'}:identity/*
+            - arn:aws:ses:${env:SES_REGION, 'ap-south-1'}:${env:AWS_ACCOUNT_ID, '*'}:configuration-set/${env:SES_CONFIGURATION_SET, 'default'}
+
+        # Its own idempotency table (conditional Put + Delete for release).
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:DeleteItem
+          Resource: !GetAtt EmailIdempotencyTable.Arn
+
+functions:
+  worker:
+    name: lifebookz-email-worker-${sls:stage}
+    handler: src/handler.handler
+    description: Sends transactional email through SES from the SQS email queue (idempotent, DLQ-backed).
+    timeout: 60
+    memorySize: 256
+    # Emails are bursty; a low reserve keeps SES throttling predictable and the
+    # queue absorbs spikes (that is what it is for).
+    reservedConcurrency: 20
+    events:
+      - sqs:
+          arn: !ImportValue lifebookz-${sls:stage}-email-queue-arn
+          batchSize: 10
+          # Retry only the failed messages, not the whole batch.
+          functionResponseType: ReportBatchItemFailures
+          maximumBatchingWindow: 10s
+
+resources:
+  Resources:
+    # Deterministic jobId → conditional PutItem. TTL keeps it bounded.
+    EmailIdempotencyTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: lifebookz-email-worker-idempotency-${sls:stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        SSESpecification:
+          SSEEnabled: true

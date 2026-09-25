@@ -120,7 +120,7 @@ export default function ProfileImagesSection({
                 <button
                   type="button"
                   onClick={() => pick(variant.key)}
-                  className="relative h-24 w-full overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 transition-colors hover:border-primary/50"
+                  className="relative w-full overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 transition-colors hover:border-primary/50"
                   style={{ aspectRatio: `${variant.aspect}` }}
                 >
                   {preview ? (

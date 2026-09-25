@@ -1,0 +1,17 @@
+{
+  "name": "@lifebookz/shared-auth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RS256 JWT signing, JWKS/OIDC documents, API Gateway claim helpers and service-token verification.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@lifebookz/shared-errors": "*"
+  }
+}

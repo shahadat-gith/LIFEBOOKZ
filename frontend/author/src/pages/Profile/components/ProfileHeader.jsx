@@ -36,10 +36,13 @@ export default function ProfileHeader({ author, bio, onShare, onEdit }) {
 
   return (
     <div className="relative">
-      <div className="relative h-44 sm:h-64 lg:h-80 overflow-hidden bg-gradient-to-b from-secondary via-[#7d9cc0] to-background">
+      {/* Phones keep a fixed-height strip; from `sm` up the banner is the
+          desktop crop's own 16:9, so the framing the author chose in the
+          cropper is exactly what shows. */}
+      <div className="relative h-44 overflow-hidden bg-gradient-to-b from-secondary via-[#7d9cc0] to-background sm:h-auto sm:aspect-video">
         {author.coverImage?.url && (
           // Phone-sized screens get the tighter 4:3 crop when the author
-          // uploaded one; larger screens use the wide 16:5 banner.
+          // uploaded one; larger screens use the wide 16:9 banner.
           <picture>
             {author.coverImageMobile?.url && (
               <source

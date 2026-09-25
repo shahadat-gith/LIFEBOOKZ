@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Serverless artifacts
+.serverless/
+**/.serverless/
+.serverless_plugins/
+package-lock.json.bak
+
+# Environment / secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.key
+*.jwk
+secrets/
+
+# Tests / coverage
+coverage/
+.nyc_output/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.log

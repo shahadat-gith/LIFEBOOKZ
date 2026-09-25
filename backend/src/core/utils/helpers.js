@@ -20,6 +20,14 @@ export function toSlugUsername(raw) {
     .slice(0, 30);
 }
 
+/**
+ * Hash a password with the same cost the models use in their pre-save hook.
+ * Needed by flows that write through an update query instead of `save()`.
+ */
+export function hashPassword(password) {
+  return bcrypt.hash(password, 12);
+}
+
 /** Compare a candidate password against a stored bcrypt hash. */
 export function verifyPassword(password, hash) {
   if (!password || !hash) return false;

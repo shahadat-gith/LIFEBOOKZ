@@ -1,0 +1,323 @@
+service: lifebookz-story
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# Story owns the lifebook domain: lifebooks, chapters, story entries, media,
+# likes, comments, follows, author profiles and testimonials, plus the
+# read-model projection of the Auth account it renders in the feed.
+#
+# It consumes account events from the shared bus through its own queue, and
+# publishes story events that Notification (in-app notifications) and Analytics
+# (S3/Athena) consume.
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  memorySize: 1024
+  timeout: 20
+  logRetentionInDays: 30
+
+  # The ONE shared HTTP API, owned by the `system` stack.
+  httpApi:
+    id: !ImportValue lifebookz-${sls:stage}-http-api-id
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    AWS_REGION: ${self:provider.region}
+    SERVICE_NAME: story
+
+    EVENT_BUS_NAME: !ImportValue lifebookz-${sls:stage}-event-bus-name
+
+    MONGODB_STORY_URI_SECRET_ID: ${env:MONGODB_STORY_URI_SECRET_ID, 'lifebookz/story/mongodb-uri'}
+    MONGO_MAX_POOL_SIZE: ${env:MONGO_MAX_POOL_SIZE, '15'}
+    FEED_PAGE_SIZE: ${env:FEED_PAGE_SIZE, '12'}
+    MAX_CHAPTERS: ${env:MAX_CHAPTERS, '50'}
+    # Followers carried inside one StoryPublished event (256 KB EventBridge limit).
+    MAX_PUBLISH_FANOUT: ${env:MAX_PUBLISH_FANOUT, '500'}
+
+    SQS_STORY_EVENTS_QUEUE_URL: !Ref StoryEventsQueue
+
+    R2_BUCKET_NAME: ${env:R2_BUCKET_NAME, 'lifebookz'}
+    R2_ENDPOINT: ${env:R2_ENDPOINT, ''}
+    R2_PUBLIC_BASE_URL: ${env:R2_PUBLIC_BASE_URL, ''}
+    R2_ACCESS_KEY_ID: ${env:R2_ACCESS_KEY_ID, ''}
+    R2_SECRET_ACCESS_KEY: ${env:R2_SECRET_ACCESS_KEY, ''}
+
+    FRONTEND_CLIENT_URL: ${env:FRONTEND_CLIENT_URL, 'http://localhost:5173'}
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: story
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        # Publish domain events (StoryCreated/Published/Liked/Comment…).
+        - Effect: Allow
+          Action: events:PutEvents
+          Resource: !ImportValue lifebookz-${sls:stage}-event-bus-arn
+
+        # Consume the account events this service projects.
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource: !GetAtt StoryEventsQueue.Arn
+
+        # Only the Story cluster and its R2 credentials.
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/story/*
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/r2/*
+
+        # NOTE: no SES, no SQS email queue, no analytics S3 bucket, no Athena,
+        # no Auth/Consultation/Notification secret. Deliberately absent.
+
+functions:
+  api:
+    name: lifebookz-story-${sls:stage}-api
+    handler: src/handlers/api.handler
+    description: LifeBookz Story API (lifebooks, chapters, engagement, authors, search, testimonials)
+    timeout: 25
+    memorySize: 1024
+    # 60 containers × maxPoolSize 15 = 900 sockets, inside Atlas M10 (~1500).
+    reservedConcurrency: 60
+    events:
+      # ---------------------------------------------------- public reads
+      - httpApi: "GET /api/v1/stories"
+      - httpApi: "GET /api/v1/stories/{storyId}"
+      - httpApi: "GET /api/v1/stories/{storyId}/comments"
+      - httpApi: "GET /api/v1/authors/approved"
+      - httpApi: "GET /api/v1/authors/{authorId}"
+      - httpApi: "GET /api/v1/following/{authorId}/followers"
+      - httpApi: "GET /api/v1/following/user/{userId}/following"
+      - httpApi: "GET /api/v1/search"
+      - httpApi: "GET /api/v1/search/professions"
+      - httpApi: "GET /api/v1/testimonials"
+
+      # ------------------------------------ JWT protected (API Gateway JWT)
+      - httpApi:
+          method: POST
+          path: /api/v1/stories
+          authorizer: &jwtAuthorizer
+            type: jwt
+            id: !ImportValue lifebookz-${sls:stage}-jwt-authorizer-id
+      - httpApi:
+          method: PATCH
+          path: /api/v1/stories/{storyId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/stories/{storyId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/stories/drafts
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/publish
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/unpublish
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/chapters
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/stories/{storyId}/chapters/{chapterId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/stories/{storyId}/chapters/{chapterId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/chapters/{chapterId}/stories
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/stories/{storyId}/chapters/{chapterId}/stories/{entryId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/stories/{storyId}/chapters/{chapterId}/stories/{entryId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/like
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/{storyId}/comments
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/comments/{commentId}/like
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/comments/{commentId}/reply
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/stories/comments/{commentId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/stories/comments/{commentId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/stories/media/presign
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/stories/media
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/authors/me
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/authors/me
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/authors/me/stories
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/authors/me/stats
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/authors/me/stories/{storyId}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/authors/me/media/presign
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/following/{authorId}/follow
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/following/{authorId}/follow
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/following/{authorId}/check
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/testimonials/me
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/testimonials
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/testimonials/{id}
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/testimonials/{id}/status
+          authorizer: *jwtAuthorizer
+
+  events:
+    name: lifebookz-story-${sls:stage}-events
+    handler: src/handlers/events.handler
+    description: Projects Auth account events (name, avatar, verification, status) into Story read models
+    timeout: 30
+    memorySize: 512
+    reservedConcurrency: 10
+    events:
+      - sqs:
+          arn: !GetAtt StoryEventsQueue.Arn
+          batchSize: 10
+          maximumBatchingWindow: 5
+          functionResponseType: ReportBatchItemFailures
+
+resources:
+  Resources:
+    StoryEventsDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-story-events-dlq-${sls:stage}
+        MessageRetentionPeriod: 1209600
+        SqsManagedSseEnabled: true
+
+    StoryEventsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-story-events-queue-${sls:stage}
+        VisibilityTimeout: 60
+        MessageRetentionPeriod: 345600
+        SqsManagedSseEnabled: true
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt StoryEventsDlq.Arn
+          # 5 attempts balances "transient Mongo/network blip" against "poison
+          # message sitting at the head of the queue"; after that the message is
+          # parked in the DLQ for inspection.
+          maxReceiveCount: 5
+
+    StoryEventsQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref StoryEventsQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt StoryEventsQueue.Arn
+
+    # Story subscribes to exactly the account events it needs — an allow-list,
+    # not a wildcard, so a new event type cannot arrive unhandled.
+    StoryAccountEventsRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: lifebookz-story-${sls:stage}-account-events
+        EventBusName: !ImportValue lifebookz-${sls:stage}-event-bus-name
+        EventPattern:
+          source:
+            - lifebookz.auth
+          detail-type:
+            - AccountRegistered
+            - AccountProfileUpdated
+            - AccountVerificationDecided
+            - AccountStatusChanged
+        Targets:
+          - Id: story-events-queue
+            Arn: !GetAtt StoryEventsQueue.Arn
+            DeadLetterConfig:
+              Arn: !GetAtt StoryEventsDlq.Arn
+
+  Outputs:
+    StoryEventsQueueUrl:
+      Value: !Ref StoryEventsQueue
+      Export:
+        Name: lifebookz-${sls:stage}-story-events-queue-url
+    StoryEventsQueueArn:
+      Value: !GetAtt StoryEventsQueue.Arn
+      Export:
+        Name: lifebookz-${sls:stage}-story-events-queue-arn

@@ -6,6 +6,7 @@ import Booking, { BOOKING_STATUSES } from "../consult/model.js";
 
 import {
   generateToken,
+  hashPassword,
   toSlugUsername,
   verifyPassword,
 } from "../../core/utils/helpers.js";
@@ -326,7 +327,7 @@ export async function updateExpert({ userId, body, file, coverFile, coverMobileF
     freshKeys.push(uploaded.key);
   }
 
-  // Desktop (16:5) cover variant
+  // Desktop (16:9) cover variant
   if (coverFile) {
     replacedKeys.push(["coverImage", expert.coverImage?.key]);
     const uploaded = await uploadCover(
@@ -452,19 +453,27 @@ export async function requestPasswordReset({ email }) {
   }
 
   // Always resolve silently to avoid revealing whether the email exists
-  const expert = await Expert.findOne({ email }).select(RESET_SELECT);
+  const expert = await Expert.findOne({ email }).select("email");
 
-  if (expert) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  if (!expert) return;
 
-    expert.auth.passwordResetOTP = otp;
-    expert.auth.passwordResetOTPExpires = new Date(Date.now() + OTP_TTL_MS);
-    expert.auth.passwordResetVerified = false;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await expert.save();
+  // Targeted write on purpose. Resetting a password only touches `auth`, so it
+  // must not re-validate the rest of the profile — a document predating a
+  // `required` field would otherwise be locked out of its own reset.
+  await Expert.updateOne(
+    { _id: expert._id },
+    {
+      $set: {
+        "auth.passwordResetOTP": otp,
+        "auth.passwordResetOTPExpires": new Date(Date.now() + OTP_TTL_MS),
+        "auth.passwordResetVerified": false,
+      },
+    },
+  );
 
-    await sendOtpMail({ to: expert.email, otp, role: "expert" });
-  }
+  await sendOtpMail({ to: expert.email, otp, role: "expert" });
 }
 
 export async function verifyPasswordResetOTP({ email, otp }) {
@@ -472,7 +481,7 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Email and OTP are required.");
   }
 
-  const expert = await Expert.findOne({ email }).select(RESET_SELECT);
+  const expert = await Expert.findOne({ email }).select(`email ${RESET_SELECT}`);
 
   if (
     !expert ||
@@ -483,16 +492,22 @@ export async function verifyPasswordResetOTP({ email, otp }) {
     throw validationError("Invalid or expired OTP.");
   }
 
-  expert.auth.passwordResetVerified = true;
-  expert.auth.passwordResetOTPExpires = undefined;
-
+  // Verified marks that the reset token — not the OTP — is the credential the
+  // next step accepts, so the short-lived token replaces the OTP here.
   const resetToken = crypto.randomBytes(32).toString("hex");
-  expert.auth.passwordResetOTP = resetToken;
-  expert.auth.passwordResetOTPExpires = new Date(
-    Date.now() + RESET_TOKEN_TTL_MS,
-  );
 
-  await expert.save();
+  await Expert.updateOne(
+    { _id: expert._id },
+    {
+      $set: {
+        "auth.passwordResetVerified": true,
+        "auth.passwordResetOTP": resetToken,
+        "auth.passwordResetOTPExpires": new Date(
+          Date.now() + RESET_TOKEN_TTL_MS,
+        ),
+      },
+    },
+  );
 
   return resetToken;
 }
@@ -506,22 +521,33 @@ export async function resetPassword({ resetToken, password }) {
     throw validationError("Password must be at least 8 characters.");
   }
 
-  const expert = await Expert.findOne({
-    "auth.passwordResetOTP": resetToken,
-    "auth.passwordResetOTPExpires": { $gt: new Date() },
-    "auth.passwordResetVerified": true,
-  }).select(`+auth.passwordHash ${RESET_SELECT}`);
+  // Hashing happens here because the write below is a targeted update, so the
+  // model's pre-save hook never runs.
+  const passwordHash = await hashPassword(password);
 
-  if (!expert) {
+  // One atomic write: match on the token, swap in the hash and drop the token.
+  // Two concurrent submissions of the same token cannot both succeed.
+  const result = await Expert.updateOne(
+    {
+      "auth.passwordResetOTP": resetToken,
+      "auth.passwordResetOTPExpires": { $gt: new Date() },
+      "auth.passwordResetVerified": true,
+    },
+    {
+      $set: {
+        "auth.passwordHash": passwordHash,
+        "auth.passwordResetVerified": false,
+      },
+      $unset: {
+        "auth.passwordResetOTP": "",
+        "auth.passwordResetOTPExpires": "",
+      },
+    },
+  );
+
+  if (result.matchedCount === 0) {
     throw validationError(
       "Invalid or expired reset token. Please request a new OTP.",
     );
   }
-
-  expert.auth.passwordHash = password;
-  expert.auth.passwordResetOTP = "";
-  expert.auth.passwordResetOTPExpires = undefined;
-  expert.auth.passwordResetVerified = false;
-
-  await expert.save();
 }

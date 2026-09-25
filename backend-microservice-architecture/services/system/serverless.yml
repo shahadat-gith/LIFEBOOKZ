@@ -1,0 +1,347 @@
+service: lifebookz-system
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# System service — AND the platform's shared infrastructure.
+#
+# This stack owns the ONE shared HTTP API (api.lifebookz.com), the
+# `lifebookz-events` bus, the SQS queues (including DLQs) and the analytics
+# bucket, and exports them via CloudFormation Outputs. Every other stack
+# attaches with `httpApi.id: !ImportValue lifebookz-<stage>-http-api-id`, so
+# services deploy independently but share a single API Gateway (spec §7).
+#
+# System's own Lambda routes require the admin/developer JWT claims.
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  memorySize: 512
+  timeout: 15
+  logRetentionInDays: 30
+
+  # ONE shared HTTP API — this stack creates it and configures CORS for the
+  # real LifeBookz frontend origins (no wildcard; spec §12).
+  httpApi:
+    authorizers:
+      lifebookzJwt:
+        identitySource: $request.header.Authorization
+        issuerUrl: ${env:JWT_ISSUER, 'https://api.lifebookz.com'}
+        audience:
+          - ${env:JWT_AUDIENCE, 'lifebookz-api'}
+        resultTtlInSeconds: 300
+    cors:
+      allowedOrigins:
+        - ${env:FRONTEND_CLIENT_URL, 'http://localhost:5173'}
+        - ${env:FRONTEND_AUTHOR_URL, 'http://localhost:5174'}
+        - ${env:FRONTEND_ADMIN_URL, 'http://localhost:5175'}
+        - ${env:FRONTEND_EXPERT_URL, 'http://localhost:5176'}
+        - ${env:FRONTEND_DEVELOPER_URL, 'http://localhost:5177'}
+      allowedHeaders:
+        - content-type
+        - authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PATCH
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: false
+      maxAge: 86400
+    # Account-level throttling: general abuse protection at the edge (spec §11).
+    # Domain-specific limits (OTP, login) are enforced in the auth service.
+    metrics: true
+    disableDefaultEndpoint: false
+
+  # Custom domain: api.lifebookz.com (certificate + DNS documented in the
+  # root README; see the root README's custom-domain section).
+  # Uncomment once the ACM certificate (us-east-1 for edge, or the API region)
+  # exists:
+  #
+  # domain: api.lifebookz.com
+  # certificate: arn:aws:acm:us-east-1:${env:AWS_ACCOUNT_ID}:certificate/REPLACE_ME
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    AWS_REGION: ${self:provider.region}
+    SERVICE_NAME: system
+
+    EVENT_BUS_NAME: !Ref EventBus
+
+    MONGODB_SYSTEM_URI_SECRET_ID: ${env:MONGODB_SYSTEM_URI_SECRET_ID, ''}
+    INTERNAL_SERVICE_TOKEN_SECRET_ID: ${env:INTERNAL_SERVICE_TOKEN_SECRET_ID, 'lifebookz/internal/service-token'}
+    AUTH_API_BASE_URL: ${env:AUTH_API_BASE_URL, ''}
+    DEVELOPER_LOG_GROUP: /aws/lambda/lifebookz-${sls:stage}-api
+    ANALYTICS_S3_BUCKET: ${env:ANALYTICS_S3_BUCKET, 'lifebookz-analytics'}
+
+    MONGO_MAX_POOL_SIZE: ${env:MONGO_MAX_POOL_SIZE, '10'}
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: system
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: events:PutEvents
+          Resource: !GetAtt EventBus.Arn
+
+        # Read the developer portal's operational logs (Insights queries).
+        - Effect: Allow
+          Action:
+            - logs:StartQuery
+            - logs:GetQueryResults
+            - logs:DescribeLogGroups
+          Resource: "*"
+
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/system/*
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/internal/*
+
+functions:
+  api:
+    name: lifebookz-system-${sls:stage}-api
+    handler: src/handlers/api.handler
+    description: LifeBookz admin + developer API (review queues, verification coordination, audit logs).
+    timeout: 20
+    reservedConcurrency: 10
+    events:
+      - httpApi:
+          method: GET
+          path: /api/v1/system/me
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/system/dashboard
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/system/authors/pending
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/system/authors/approved
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/system/experts/pending
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/system/experts/approved
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: PATCH
+          path: /api/v1/system/{role}/{accountId}/verification
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/developer/me
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/developer/logs
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/developer/logs/stats
+          authorizer: lifebookzJwt
+      - httpApi:
+          method: GET
+          path: /api/v1/developer/application-logs
+          authorizer: lifebookzJwt
+
+  events:
+    name: lifebookz-system-${sls:stage}-events
+    handler: src/handlers/events.handler
+    description: System's inbound event consumer (review queue read model + audit trail). Idempotent.
+    timeout: 30
+    reservedConcurrency: 10
+    events:
+      - sqs:
+          arn: !GetAtt SystemEventsQueue.Arn
+          batchSize: 10
+          functionResponseType: ReportBatchItemFailures
+          maximumBatchingWindow: 10s
+
+resources:
+  Resources:
+    # ------------------------------------------------------------- event bus
+    EventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: lifebookz-events-${sls:stage}
+
+    # Route analytics-flagged events to the analytics queue (allow-list rule).
+    AnalyticsRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: lifebookz-analytics-${sls:stage}
+        EventBusName: !Ref EventBus
+        EventPattern:
+          source:
+            - prefix: lifebookz.
+          "detail-type":
+            - AccountRegistered
+            - AccountVerificationDecided
+            - PasswordResetCompleted
+            - PrivilegedLoginRecorded
+            - AuthorProfileSubmitted
+            - StoryCreated
+            - StoryUpdated
+            - StoryPublished
+            - StoryUnpublished
+            - StoryDeleted
+            - StoryLiked
+            - StoryUnliked
+            - CommentCreated
+            - CommentDeleted
+            - CommentLiked
+            - CommentReplyCreated
+            - FollowCreated
+            - FollowRemoved
+            - TestimonialCreated
+            - TestimonialModerated
+            - TestimonialDeleted
+            - ExpertProfileSubmitted
+            - ConsultationBooked
+            - ConsultationCancelled
+            - ConsultationStatusChanged
+            - NotificationCreated
+            - EmailQueued
+            - EmailDelivered
+            - EmailFailed
+            - AdminActionRecorded
+        Targets:
+          - Id: analytics-queue
+            Arn: !GetAtt AnalyticsQueue.Arn
+
+    # --------------------------------------------------------------- queues
+    SystemEventsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz_system_events_queue
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt SystemEventsDlq.Arn
+          maxReceiveCount: 5
+        VisibilityTimeout: 120
+
+    SystemEventsDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz_system_events_dlq
+        MessageRetentionPeriod: 1209600
+
+    AnalyticsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-analytics-queue
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt AnalyticsDlq.Arn
+          maxReceiveCount: 5
+        VisibilityTimeout: 120
+
+    AnalyticsDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-analytics-dlq
+        MessageRetentionPeriod: 1209600
+
+    EmailQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-email-queue
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt EmailDlq.Arn
+          maxReceiveCount: 5
+        VisibilityTimeout: 120
+
+    EmailDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-email-dlq
+        MessageRetentionPeriod: 1209600
+
+    # ------------------------------------------------------- analytics bucket
+    AnalyticsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${env:ANALYTICS_S3_BUCKET, 'lifebookz-analytics'}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: BucketOwnerEnforced
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+
+    AnalyticsBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref AnalyticsBucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: DenyInsecureTransport
+              Effect: Deny
+              Principal: "*"
+              Action: s3:*
+              Resource:
+                - !GetAtt AnalyticsBucket.Arn
+                - !Sub "${AnalyticsBucket.Arn}/*"
+              Condition:
+                Bool:
+                  aws:SecureTransport: false
+
+  Outputs:
+    HttpApiId:
+      Value: !Ref HttpApi
+      Export:
+        Name: lifebookz-${sls:stage}-http-api-id
+    HttpApiEndpoint:
+      Value: !GetAtt HttpApi.ApiEndpoint
+      Export:
+        Name: lifebookz-${sls:stage}-http-api-endpoint
+    JwtAuthorizerId:
+      Value: lifebookzJwt
+      Export:
+        Name: lifebookz-${sls:stage}-jwt-authorizer-id
+    EventBusName:
+      Value: !Ref EventBus
+      Export:
+        Name: lifebookz-${sls:stage}-event-bus-name
+    EventBusArn:
+      Value: !GetAtt EventBus.Arn
+      Export:
+        Name: lifebookz-${sls:stage}-event-bus-arn
+    EmailQueueUrl:
+      Value: !Ref EmailQueue
+      Export:
+        Name: lifebookz-${sls:stage}-email-queue-url
+    EmailQueueArn:
+      Value: !GetAtt EmailQueue.Arn
+      Export:
+        Name: lifebookz-${sls:stage}-email-queue-arn
+    AnalyticsQueueUrl:
+      Value: !Ref AnalyticsQueue
+      Export:
+        Name: lifebookz-${sls:stage}-analytics-queue-url
+    AnalyticsQueueArn:
+      Value: !GetAtt AnalyticsQueue.Arn
+      Export:
+        Name: lifebookz-${sls:stage}-analytics-queue-arn

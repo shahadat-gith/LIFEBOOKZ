@@ -1,0 +1,215 @@
+service: lifebookz-consultation
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# Consultation owns the expert domain: expert profiles (professional fields +
+# a projection of the Auth account), expert matching and consultation bookings.
+#
+# It publishes ConsultationBooked / ConsultationStatusChanged /
+# ConsultationCancelled / ExpertProfileSubmitted to the shared bus, and consumes
+# the Auth account events it needs to keep its expert projection fresh.
+#
+# It does NOT send email and does NOT touch the Story, Notification or System
+# clusters.
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  memorySize: 1024
+  timeout: 20
+  logRetentionInDays: 30
+
+  # The ONE shared HTTP API (owned by the `system` stack).
+  httpApi:
+    id: !ImportValue lifebookz-${sls:stage}-http-api-id
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    AWS_REGION: ${self:provider.region}
+    SERVICE_NAME: consultation
+
+    EVENT_BUS_NAME: !ImportValue lifebookz-${sls:stage}-event-bus-name
+
+    MONGODB_CONSULTATION_URI_SECRET_ID: ${env:MONGODB_CONSULTATION_URI_SECRET_ID, 'lifebookz/consultation/mongodb-uri'}
+    MONGO_MAX_POOL_SIZE: ${env:MONGO_MAX_POOL_SIZE, '10'}
+    MATCH_DEFAULT_LIMIT: ${env:MATCH_DEFAULT_LIMIT, '5'}
+
+    SQS_CONSULTATION_EVENTS_QUEUE_URL: !Ref ConsultationEventsQueue
+
+    R2_BUCKET_NAME: ${env:R2_BUCKET_NAME, 'lifebookz'}
+    R2_ENDPOINT: ${env:R2_ENDPOINT, ''}
+    R2_PUBLIC_BASE_URL: ${env:R2_PUBLIC_BASE_URL, ''}
+    R2_ACCESS_KEY_ID: ${env:R2_ACCESS_KEY_ID, ''}
+    R2_SECRET_ACCESS_KEY: ${env:R2_SECRET_ACCESS_KEY, ''}
+
+    FRONTEND_CLIENT_URL: ${env:FRONTEND_CLIENT_URL, 'http://localhost:5173'}
+    FRONTEND_EXPERT_URL: ${env:FRONTEND_EXPERT_URL, 'http://localhost:5176'}
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: consultation
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: events:PutEvents
+          Resource: !ImportValue lifebookz-${sls:stage}-event-bus-arn
+
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource: !GetAtt ConsultationEventsQueue.Arn
+
+        # Only the Consultation cluster and the shared R2 credentials.
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/consultation/*
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/r2/*
+
+        # NOTE: deliberately absent — SES, the email queue, the analytics bucket,
+        # Athena, and every other service's MongoDB secret.
+
+functions:
+  api:
+    name: lifebookz-consultation-${sls:stage}-api
+    handler: src/handlers/api.handler
+    description: LifeBookz Consultation API (expert profiles, matching, bookings)
+    timeout: 25
+    memorySize: 1024
+    # 40 containers × maxPoolSize 10 = 400 sockets, inside Atlas M10 (~1500).
+    reservedConcurrency: 40
+    events:
+      # Public expert profile.
+      - httpApi: "GET /api/v1/experts/{expertId}"
+
+      # Reader consult flow.
+      - httpApi:
+          method: POST
+          path: /api/v1/consult/match
+          authorizer: &jwtAuthorizer
+            type: jwt
+            id: !ImportValue lifebookz-${sls:stage}-jwt-authorizer-id
+      - httpApi:
+          method: POST
+          path: /api/v1/consult/bookings
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/consult/bookings
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/consult/bookings/{bookingId}/cancel
+          authorizer: *jwtAuthorizer
+
+      # Expert portal. `/experts/me` is registered before `/experts/{expertId}`
+      # on purpose: API Gateway resolves the literal route first.
+      - httpApi:
+          method: GET
+          path: /api/v1/experts/me
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/experts/me
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /api/v1/experts/me/media/presign
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/experts/me/media
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: GET
+          path: /api/v1/experts/me/bookings
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/experts/me/bookings/{bookingId}
+          authorizer: *jwtAuthorizer
+
+  events:
+    name: lifebookz-consultation-${sls:stage}-events
+    handler: src/handlers/events.handler
+    description: Projects Auth account events into the Consultation expert read model
+    timeout: 30
+    memorySize: 512
+    reservedConcurrency: 10
+    events:
+      - sqs:
+          arn: !GetAtt ConsultationEventsQueue.Arn
+          batchSize: 10
+          maximumBatchingWindow: 5
+          functionResponseType: ReportBatchItemFailures
+
+resources:
+  Resources:
+    ConsultationEventsDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-consultation-events-dlq-${sls:stage}
+        MessageRetentionPeriod: 1209600
+        SqsManagedSseEnabled: true
+
+    ConsultationEventsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-consultation-events-queue-${sls:stage}
+        VisibilityTimeout: 60
+        MessageRetentionPeriod: 345600
+        SqsManagedSseEnabled: true
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt ConsultationEventsDlq.Arn
+          maxReceiveCount: 5
+
+    ConsultationEventsQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref ConsultationEventsQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt ConsultationEventsQueue.Arn
+
+    # Only the account events Consultation actually projects — an allow-list.
+    ConsultationAccountEventsRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: lifebookz-consultation-${sls:stage}-account-events
+        EventBusName: !ImportValue lifebookz-${sls:stage}-event-bus-name
+        EventPattern:
+          source:
+            - lifebookz.auth
+          detail-type:
+            - AccountRegistered
+            - AccountProfileUpdated
+            - AccountVerificationDecided
+            - AccountStatusChanged
+        Targets:
+          - Id: consultation-events-queue
+            Arn: !GetAtt ConsultationEventsQueue.Arn
+            DeadLetterConfig:
+              Arn: !GetAtt ConsultationEventsDlq.Arn
+
+  Outputs:
+    ConsultationEventsQueueUrl:
+      Value: !Ref ConsultationEventsQueue
+      Export:
+        Name: lifebookz-${sls:stage}-consultation-events-queue-url

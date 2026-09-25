@@ -1,0 +1,25 @@
+{
+  "name": "@lifebookz/story",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LifeBookz Story service — lifebooks, chapters, story entries, media, likes, comments, follows, author profiles, testimonials and search.",
+  "main": "src/handlers/api.js",
+  "scripts": {
+    "test": "node --test",
+    "package": "serverless package",
+    "deploy": "serverless deploy",
+    "logs": "serverless logs -f api",
+    "info": "serverless info"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
+    "@lifebookz/shared-auth": "*",
+    "@lifebookz/shared-aws": "*",
+    "@lifebookz/shared-errors": "*",
+    "@lifebookz/shared-events": "*",
+    "@lifebookz/shared-logger": "*",
+    "@lifebookz/shared-validation": "*",
+    "mongoose": "^8.24.0"
+  }
+}

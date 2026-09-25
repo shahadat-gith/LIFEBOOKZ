@@ -20,8 +20,8 @@ const COVER_VARIANTS = [
     key: "desktop",
     field: "coverImage",
     label: "Desktop cover",
-    ratio: "16:5",
-    aspect: 16 / 5,
+    ratio: "16:9",
+    aspect: 16 / 9,
     icon: Icons.desktop,
     hint: "Wide banner shown on laptops and desktops",
   },
@@ -190,7 +190,9 @@ export default function Profile() {
       {/* Header — responsive cover (mobile crop on phones, desktop crop on
           larger screens) with the avatar overlapping it */}
       <div className="rounded-3xl border overflow-hidden bg-card">
-        <div className="relative h-32 sm:h-48 bg-gradient-to-br from-primary/20 to-accent/20">
+        {/* Phones keep a fixed-height strip; from `sm` up the banner is the
+            desktop crop's own 16:9. */}
+        <div className="relative h-32 bg-gradient-to-br from-primary/20 to-accent/20 sm:h-auto sm:aspect-video">
           {coverPreviews.desktop || coverPreviews.mobile ? (
             <picture>
               {coverPreviews.mobile && (
@@ -493,7 +495,7 @@ export default function Profile() {
             cropping.kind === "avatar"
               ? 1
               : cropping.kind === "desktop"
-                ? 16 / 5
+                ? 16 / 9
                 : 4 / 3
           }
           circular={cropping.kind === "avatar"}

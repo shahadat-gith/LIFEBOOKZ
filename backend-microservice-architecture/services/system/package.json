@@ -1,0 +1,25 @@
+{
+  "name": "@lifebookz/system",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LifeBookz System service — admin and developer portals: review queues, cross-service read models, audit trail and the platform's shared infrastructure outputs.",
+  "main": "src/handlers/api.js",
+  "scripts": {
+    "test": "node --test",
+    "package": "serverless package",
+    "deploy": "serverless deploy",
+    "logs": "serverless logs -f api",
+    "info": "serverless info"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.750.0",
+    "@lifebookz/shared-auth": "*",
+    "@lifebookz/shared-aws": "*",
+    "@lifebookz/shared-errors": "*",
+    "@lifebookz/shared-events": "*",
+    "@lifebookz/shared-logger": "*",
+    "@lifebookz/shared-validation": "*",
+    "mongoose": "^8.24.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@lifebookz/shared-logger",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Structured (JSON) logging with redaction, shared by every LifeBookz Lambda.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

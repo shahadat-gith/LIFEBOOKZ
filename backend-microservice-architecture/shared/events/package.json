@@ -1,0 +1,20 @@
+{
+  "name": "@lifebookz/shared-events",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned LifeBookz domain event envelope, EventBridge publisher, SQS consumer and idempotency guard.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./event-patterns/*": "./event-patterns/*"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.1140.0",
+    "@lifebookz/shared-errors": "*",
+    "@lifebookz/shared-logger": "*"
+  }
+}

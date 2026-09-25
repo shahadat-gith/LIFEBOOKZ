@@ -19,7 +19,9 @@ export default function IdentityCard({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs">
-      <div className="relative h-24 bg-gradient-to-r from-primary via-primary to-accent/70 sm:h-28">
+      {/* Phones keep a fixed-height strip; from `sm` up the banner is the
+          desktop crop's own 16:9. */}
+      <div className="relative h-24 bg-gradient-to-r from-primary via-primary to-accent/70 sm:h-auto sm:aspect-video">
         {hasCover ? (
           <picture>
             {coverPreviews.mobile && (

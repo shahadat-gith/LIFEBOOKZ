@@ -1,0 +1,205 @@
+service: lifebookz-notification
+
+frameworkVersion: "3"
+
+# ---------------------------------------------------------------------------
+# Notification owns in-app notifications, the recipient/actor read model and
+# email routing. It is the only service that decides "who should know", and the
+# only one that writes to the email queue. It never sends email itself.
+#
+#   business services → EventBridge → this queue → this consumer
+#                                                        ├→ notifications (own cluster)
+#                                                        └→ lifebookz-email-queue → email worker → SES
+# ---------------------------------------------------------------------------
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ${env:AWS_REGION, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  architecture: x86_64
+  memorySize: 1024
+  timeout: 20
+  logRetentionInDays: 30
+
+  # The ONE shared HTTP API (owned by the `system` stack).
+  httpApi:
+    id: !ImportValue lifebookz-${sls:stage}-http-api-id
+
+  environment:
+    NODE_ENV: ${sls:stage}
+    AWS_REGION: ${self:provider.region}
+    SERVICE_NAME: notification
+
+    EVENT_BUS_NAME: !ImportValue lifebookz-${sls:stage}-event-bus-name
+
+    MONGODB_NOTIFICATION_URI_SECRET_ID: ${env:MONGODB_NOTIFICATION_URI_SECRET_ID, 'lifebookz/notification/mongodb-uri'}
+    MONGO_MAX_POOL_SIZE: ${env:MONGO_MAX_POOL_SIZE, '10'}
+    MAX_NOTIFICATION_FANOUT: ${env:MAX_NOTIFICATION_FANOUT, '500'}
+    MAX_NOTIFICATIONS_PER_PAGE: ${env:MAX_NOTIFICATIONS_PER_PAGE, '50'}
+
+    SQS_NOTIFICATION_EVENTS_QUEUE_URL: !Ref NotificationEventsQueue
+
+    # The email worker's queue (created by workers/email, referenced by import).
+    SQS_EMAIL_QUEUE_URL: !ImportValue lifebookz-${sls:stage}-email-queue-url
+
+    FRONTEND_CLIENT_URL: ${env:FRONTEND_CLIENT_URL, 'http://localhost:5173'}
+    FRONTEND_AUTHOR_URL: ${env:FRONTEND_AUTHOR_URL, 'http://localhost:5174'}
+    FRONTEND_EXPERT_URL: ${env:FRONTEND_EXPERT_URL, 'http://localhost:5176'}
+
+  stackTags: &tags
+    Project: lifebookz
+    Service: notification
+    ManagedBy: serverless
+  tags: *tags
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: events:PutEvents
+          Resource: !ImportValue lifebookz-${sls:stage}-event-bus-arn
+
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource: !GetAtt NotificationEventsQueue.Arn
+
+        # The only service allowed to enqueue email work. `SendMessage` only —
+        # it can never read or delete from the email queue.
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !ImportValue lifebookz-${sls:stage}-email-queue-arn
+
+        # Only the Notification cluster; no R2 (this service stores no media).
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:*:${env:AWS_ACCOUNT_ID, '*'}:secret:lifebookz/notification/*
+
+        # NOTE: deliberately absent — SES, the analytics bucket, Athena, and
+        # every other service's secrets and queues.
+
+functions:
+  api:
+    name: lifebookz-notification-${sls:stage}-api
+    handler: src/handlers/api.handler
+    description: LifeBookz Notification API (inbox, unread count, read state)
+    timeout: 15
+    memorySize: 512
+    # 20 containers × maxPoolSize 10 = 200 sockets.
+    reservedConcurrency: 20
+    events:
+      - httpApi:
+          method: GET
+          path: /api/v1/notifications
+          authorizer: &jwtAuthorizer
+            type: jwt
+            id: !ImportValue lifebookz-${sls:stage}-jwt-authorizer-id
+      - httpApi:
+          method: GET
+          path: /api/v1/notifications/unread-count
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/notifications/read-all
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: PATCH
+          path: /api/v1/notifications/{notificationId}/read
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/notifications
+          authorizer: *jwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /api/v1/notifications/{notificationId}
+          authorizer: *jwtAuthorizer
+
+  events:
+    name: lifebookz-notification-${sls:stage}-events
+    handler: src/handlers/events.handler
+    description: Turns domain events into in-app notifications and email jobs
+    timeout: 60
+    memorySize: 1024
+    # A publish fan-out can touch hundreds of recipients, so this needs more
+    # concurrency than the read API but is still capped to protect the cluster.
+    reservedConcurrency: 20
+    events:
+      - sqs:
+          arn: !GetAtt NotificationEventsQueue.Arn
+          batchSize: 10
+          maximumBatchingWindow: 5
+          functionResponseType: ReportBatchItemFailures
+
+resources:
+  Resources:
+    NotificationEventsDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-notification-events-dlq-${sls:stage}
+        MessageRetentionPeriod: 1209600
+        SqsManagedSseEnabled: true
+
+    NotificationEventsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: lifebookz-notification-events-queue-${sls:stage}
+        # Must exceed the consumer's timeout so a message is never processed
+        # twice concurrently; 60s timeout + 30s of SQS polling headroom.
+        VisibilityTimeout: 90
+        MessageRetentionPeriod: 345600
+        SqsManagedSseEnabled: true
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt NotificationEventsDlq.Arn
+          maxReceiveCount: 5
+
+    NotificationEventsQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref NotificationEventsQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt NotificationEventsQueue.Arn
+
+    # An allow-list of exactly the events that produce a notification or an
+    # email for a real recipient. Nothing else can reach this consumer, so a new
+    # event type cannot accidentally notify anyone.
+    NotificationDomainEventsRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: lifebookz-notification-${sls:stage}-domain-events
+        EventBusName: !ImportValue lifebookz-${sls:stage}-event-bus-name
+        EventPattern:
+          detail-type:
+            - AccountRegistered
+            - AccountProfileUpdated
+            - AccountVerificationDecided
+            - OtpRequested
+            - StoryLiked
+            - CommentCreated
+            - FollowCreated
+            - StoryPublished
+            - ConsultationBooked
+            - ConsultationStatusChanged
+            - ConsultationCancelled
+        Targets:
+          - Id: notification-events-queue
+            Arn: !GetAtt NotificationEventsQueue.Arn
+            DeadLetterConfig:
+              Arn: !GetAtt NotificationEventsDlq.Arn
+
+  Outputs:
+    NotificationEventsQueueUrl:
+      Value: !Ref NotificationEventsQueue
+      Export:
+        Name: lifebookz-${sls:stage}-notification-events-queue-url

@@ -1,0 +1,14 @@
+{
+  "name": "@lifebookz/shared-validation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable validation primitives (no domain schemas) for LifeBookz services.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@lifebookz/analytics-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LifeBookz analytics worker — consumes the analytics SQS queue and writes partitioned event records to S3 for Athena. No HTTP API.",
+  "main": "src/handler.js",
+  "scripts": {
+    "test": "node --test",
+    "package": "serverless package",
+    "deploy": "serverless deploy",
+    "logs": "serverless logs -f worker"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@lifebookz/shared-aws": "*",
+    "@lifebookz/shared-errors": "*",
+    "@lifebookz/shared-events": "*",
+    "@lifebookz/shared-logger": "*"
+  }
+}
