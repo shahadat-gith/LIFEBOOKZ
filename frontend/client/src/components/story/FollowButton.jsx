@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 

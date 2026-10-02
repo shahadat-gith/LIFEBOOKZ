@@ -3,7 +3,7 @@ import { motion, useInView } from "framer-motion";
 import { Link } from "react-router-dom";
 import StoryTile from "./StoryTile";
 import { Icons } from "../../../icons";
-import api from "../../../config/axios";
+import api from "../../../config/api";
 
 function SkeletonTile() {
   return (

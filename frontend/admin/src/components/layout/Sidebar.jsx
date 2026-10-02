@@ -3,7 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { Icons } from '../../icons';
-import Badge from '../ui/Badge';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: Icons.home },
@@ -18,16 +17,10 @@ export default function Sidebar({ pendingCount = 0, pendingExperts = 0, collapse
   const { logout } = useAuth();
   const location = useLocation();
 
-  const sidebarClasses = collapsed
-    ? 'w-[72px]'
-    : 'w-64';
+  const sidebarClasses = collapsed ? 'w-[72px]' : 'w-64';
 
   const handleNavClick = () => {
     setMobileOpen(false);
-  };
-
-  const handleToggle = () => {
-    if (onToggleCollapse) onToggleCollapse();
   };
 
   return (
@@ -40,7 +33,7 @@ export default function Sidebar({ pendingCount = 0, pendingExperts = 0, collapse
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-primary/45 backdrop-blur-sm lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -48,7 +41,7 @@ export default function Sidebar({ pendingCount = 0, pendingExperts = 0, collapse
 
       {/* Mobile hamburger */}
       <button
-        className="fixed top-4 left-4 z-50 lg:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-card border border-border shadow-md text-foreground hover:bg-muted transition-all"
+        className="fixed top-4 left-4 z-50 lg:hidden flex items-center justify-center w-10 h-10 rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-muted"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label="Toggle menu"
       >
@@ -84,7 +77,7 @@ export default function Sidebar({ pendingCount = 0, pendingExperts = 0, collapse
       >
         <SidebarContent
           collapsed={collapsed}
-          onToggle={handleToggle}
+          onToggle={onToggleCollapse}
           pendingCount={pendingCount}
           pendingExperts={pendingExperts}
           onNavClick={handleNavClick}
@@ -107,18 +100,12 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
           <img
             src="/logo.png"
             alt="LifeBookz"
-            className="h-8 w-8 rounded-lg flex-shrink-0"
+            className="h-9 w-auto flex-shrink-0"
           />
           {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.15 }}
-            >
-              <span className="text-sm font-bold text-foreground tracking-tight block leading-tight">LifeBookz</span>
-              <span className="text-[10px] text-accent font-semibold uppercase tracking-wider">Admin Portal</span>
-            </motion.div>
+            <span className="font-display text-lg font-bold tracking-tight text-brand-wordmark">
+              Life<span className="text-accent">bookz</span>
+            </span>
           )}
         </div>
       </div>
@@ -126,7 +113,7 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
           const Icon = item.icon;
 
@@ -135,35 +122,23 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
               key={item.path}
               to={item.path}
               onClick={onNavClick}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-accent/10 text-accent border border-accent/20 shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
+                  ? 'bg-primary text-primary-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
               } ${collapsed ? 'justify-center' : ''}`}
             >
-              <span className="flex-shrink-0">
-                <Icon className={`h-5 w-5 ${isActive ? 'text-accent' : ''}`} />
-              </span>
-              {!collapsed && (
-                <span className="truncate">{item.label}</span>
-              )}
+              <Icon className={`h-5 w-5 flex-shrink-0`} />
+              {!collapsed && <span className="truncate">{item.label}</span>}
               {!collapsed && item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
-                <Badge variant="warning" className="ml-auto">
-                  {badgeCounts[item.badgeKey]}
-                </Badge>
-              )}
-              {collapsed && item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-warning text-[9px] font-bold text-warning-foreground">
+                <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
                   {badgeCounts[item.badgeKey] > 9 ? '9+' : badgeCounts[item.badgeKey]}
                 </span>
               )}
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className={`absolute inset-0 rounded-xl bg-accent/5 ${collapsed ? '' : ''}`}
-                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  style={{ zIndex: -1 }}
-                />
+              {collapsed && item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-accent-foreground">
+                  {badgeCounts[item.badgeKey] > 9 ? '9+' : badgeCounts[item.badgeKey]}
+                </span>
               )}
             </NavLink>
           );
@@ -175,7 +150,7 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
         {/* Collapse toggle - desktop only */}
         <button
           onClick={onToggle}
-          className={`hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border ${collapsed ? 'justify-center' : ''}`}
+          className={`hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200 ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
@@ -191,7 +166,7 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
         {/* Logout */}
         <button
           onClick={logout}
-          className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 border border-transparent hover:border-destructive/20 ${collapsed ? 'justify-center' : ''}`}
+          className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 ${collapsed ? 'justify-center' : ''}`}
           title="Sign Out"
         >
           <Icons.logout className="h-5 w-5" />
@@ -201,4 +176,3 @@ function SidebarContent({ collapsed, onToggle, pendingCount, pendingExperts, onN
     </>
   );
 }
-

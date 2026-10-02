@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 import api from "../../config/api";
 import StoryCard from "../../components/story/StoryCard";
-import NoDataState from "../../components/common/NoDataState";
+import EmptyState from "../../components/common/EmptyState";
 import { Icons } from "../../icons";
 
 import AuthorHeader from "./components/AuthorHeader";
@@ -94,7 +94,7 @@ export default function AuthorProfilePage() {
         </h2>
 
         {lifebooks.length === 0 ? (
-          <NoDataState variant="panel"
+          <EmptyState variant="panel"
             icon={Icons.book}
             title="No lifebooks yet"
             description={

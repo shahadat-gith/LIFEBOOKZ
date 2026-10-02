@@ -7,17 +7,16 @@ function Brand() {
   return (
     <Link
       to="/logs"
-      className="flex shrink-0 items-center gap-3"
-      aria-label="LifeBookz — Developer Portal"
+      className="flex shrink-0 items-center gap-2.5"
+      aria-label="LifeBookz — Home"
     >
-      {/* The logo lockup already spells out "LifeBookz" — no text needed. */}
       <img
         src="/logo.png"
         alt="LifeBookz"
-        className="h-10 w-auto shrink-0 sm:h-11"
+        className="h-9 w-auto shrink-0 sm:h-10"
       />
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-accent">
-        Developer
+      <span className="font-display text-lg font-bold tracking-tight text-brand-wordmark">
+        Life<span className="text-accent">bookz</span>
       </span>
     </Link>
   );
@@ -67,14 +66,14 @@ export function AuthLayout() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b border-border bg-background/85 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img
               src="/logo.png"
               alt="LifeBookz"
-              className="h-10 w-auto shrink-0"
+              className="h-9 w-auto shrink-0"
             />
-            <span className="text-xs text-muted-foreground">
-              Developer Portal
+            <span className="font-display text-lg font-bold tracking-tight text-brand-wordmark">
+              Life<span className="text-accent">bookz</span>
             </span>
           </div>
         </div>

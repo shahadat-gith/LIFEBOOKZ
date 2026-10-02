@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import LoadingScreen from "../../components/common/LoadingScreen";
 import SignInPrompt from "../../components/common/SignInPrompt";
 import ErrorState from "../../components/common/ErrorState";
-import NoDataState from "../../components/common/NoDataState";
+import EmptyState from "../../components/common/EmptyState";
 
 import BookingCard from "./components/BookingCard";
 
@@ -111,7 +111,7 @@ export default function MyBookings() {
             onRetry={loadBookings}
           />
         ) : bookings.length === 0 ? (
-          <NoDataState
+          <EmptyState
             variant="panel"
             icon={Icons.book}
             title="No bookings yet"

@@ -1,16 +1,13 @@
-import { Suspense, lazy, useEffect } from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+
 import AppLayout, { AuthLayout } from "./components/layout/AppLayout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import LoadingScreen from "./components/common/LoadingScreen";
+import ScrollToTop from "./components/common/ScrollToTop";
 
-const HomePage = lazy(() => import("./pages/HomePage"));
+const Home = lazy(() => import("./pages/Home"));
 const Feed = lazy(() => import("./pages/Feed"));
 const StoryDashboard = lazy(() => import("./pages/StoryDashboard"));
 const StoryDetail = lazy(() => import("./pages/StoryDetail"));
@@ -26,17 +23,6 @@ function LazyFallback() {
   return <LoadingScreen message="Loading..." />;
 }
 
-// Scroll back to the top whenever the route (URL) changes
-function ScrollToTop() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [pathname]);
-
-  return null;
-}
-
 export default function App() {
   return (
     <>
@@ -48,12 +34,12 @@ export default function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <HomePage />
+                  <Home />
                 </ProtectedRoute>
               }
             />
+            {/* legacy aliases for the home route */}
             <Route path="/home" element={<Navigate to="/" replace />} />
-            {/* legacy alias */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route
               path="/feed"
@@ -122,11 +108,13 @@ export default function App() {
               }
             />
           </Route>
+
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
           </Route>
+
           <Route
             path="*"
             element={
@@ -141,6 +129,7 @@ export default function App() {
           />
         </Routes>
       </Suspense>
+
       <Toaster
         position="top-right"
         toastOptions={{

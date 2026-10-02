@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import api from "../../config/axios";
+import api from "../../config/api";
 import StoryCard from "../../components/story/StoryCard";
-import StoryCardSkeleton from "../../components/skeletons/StoryCardSkeleton";
-import NoDataState from "../../components/common/NoDataState";
+import StoryCardSkeleton from "../Feed/components/StoryCardSkeleton";
+import EmptyState from "../../components/common/EmptyState";
 import { Icons } from "../../icons";
 
 const fadeUp = {
@@ -94,7 +94,7 @@ export default function TrendingPage() {
           ))}
         </div>
       ) : stories.length === 0 ? (
-        <NoDataState
+        <EmptyState
           icon={Icons.sparkles}
           title="No trending stories yet"
           description="Stories with active reader engagement and discussions will be featured here."

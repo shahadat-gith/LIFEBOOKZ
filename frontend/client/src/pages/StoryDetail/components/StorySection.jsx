@@ -1,5 +1,5 @@
 import StoryMedia from "./StoryMedia";
-import RichText from "./RichText";
+import RichText from "../../../components/common/RichText";
 import { Icons } from "../../../icons";
 import { formatPosted, storyPostedAt } from "../utils";
 
@@ -16,13 +16,16 @@ export default function StorySection({ entry, number }) {
   return (
     <section className="border-b border-border/60 last:border-b-0">
       <header className="border-b border-border/60 px-4 py-3.5 sm:px-5">
-        <h3 className="text-center font-display text-lg font-semibold text-foreground">
-          Story {number} - {entry.title || "Untitled"}
+        <p className="text-[10px] font-bold uppercase tracking-widest text-accent">
+          Story {number}
+        </p>
+        <h3 className="mt-0.5 font-display text-lg font-bold text-primary">
+          {entry.title || "Untitled"}
         </h3>
 
         {hasMeta && (
-          <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-between">
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {entry.dateLabel && (
                 <span className="inline-flex items-center gap-1">
                   <Icons.clock className="h-3.5 w-3.5" />

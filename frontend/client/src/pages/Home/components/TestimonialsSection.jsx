@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import api from "../../../config/axios";
+import api from "../../../config/api";
 import { Avatar } from "../../../components/ui/Avatar";
 import { Spinner } from "../../../components/ui/Spinner";
 import { Icons } from "../../../icons";

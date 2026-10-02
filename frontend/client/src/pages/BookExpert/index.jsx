@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import SignInPrompt from "../../components/common/SignInPrompt";

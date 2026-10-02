@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
-import FilterButton from "../../components/feed/FilterButton";
-import FilterModal from "../../components/feed/FilterModal";
-import NoDataState from "../../components/common/NoDataState";
+import FilterButton from "../Feed/components/FilterButton";
+import FilterModal from "../Feed/components/FilterModal";
+import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import { Icons } from "../../icons";
 import {
@@ -50,7 +50,7 @@ export default function StoryListPage() {
   // Load the profession options for the filter modal
   useEffect(() => {
     api
-      .get("/search/professions")
+      .get("/stories/professions")
       .then((res) => setProfessions(res.data.data || []))
       .catch(() => setProfessions([]))
       .finally(() => setProfessionsLoading(false));
@@ -144,7 +144,7 @@ export default function StoryListPage() {
           onRetry={() => loadStories(page)}
         />
       ) : stories.length === 0 ? (
-        <NoDataState
+        <EmptyState
           icon={Icons.book}
           title={isFiltered ? "No matching stories" : "No stories found"}
           description={

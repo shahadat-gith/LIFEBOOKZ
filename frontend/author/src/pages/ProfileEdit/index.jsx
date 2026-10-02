@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -9,7 +9,9 @@ import LoadingScreen from "../../components/common/LoadingScreen";
 import { apiErrorMessage } from "../../utils/helpers";
 import { Icons } from "../../icons";
 
-import ProfileImagesSection from "./components/ProfileImagesSection";
+import ProfileImagesSection, {
+  ProfileImageInputs,
+} from "./components/ProfileImagesSection";
 import AboutSection from "./components/AboutSection";
 import AddressSection from "./components/AddressSection";
 import SocialLinksSection from "./components/SocialLinksSection";
@@ -41,18 +43,16 @@ export default function ProfileEditPage() {
 
   const [form, setForm] = useState(emptyProfileForm);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(null); // 'avatar' | 'cover'
 
-  // Image state: the cropped Blob we upload + its preview URL
-  const [avatarBlob, setAvatarBlob] = useState(null);
+  // Image state: the stored session images (uploads refresh the session)
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [covers, setCovers] = useState({ desktop: null, mobile: null });
-  const [coverPreviews, setCoverPreviews] = useState({
-    desktop: null,
-    mobile: null,
-  });
+  const [coverPreview, setCoverPreview] = useState(null);
 
-  // Pending crop: { kind: 'avatar' | 'desktop' | 'mobile', src }
+  // Pending crop: { kind: 'avatar' | 'cover', src }
   const [cropping, setCropping] = useState(null);
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   /* ---------- Hydrate from the current author ---------- */
   useEffect(() => {
@@ -60,23 +60,19 @@ export default function ProfileEditPage() {
 
     setForm(profileForm(author));
     setAvatarPreview(author.avatar?.url || null);
-    setCoverPreviews({
-      desktop: author.coverImage?.url || null,
-      mobile: author.coverImageMobile?.url || null,
-    });
+    setCoverPreview(author.coverImage?.url || null);
   }, [author]);
 
   // Revoke the object URLs we created for previews when leaving the page
   useEffect(
     () => () => {
       if (avatarPreview?.startsWith?.("blob:")) URL.revokeObjectURL(avatarPreview);
-      Object.values(coverPreviews).forEach((url) => {
-        if (url?.startsWith?.("blob:")) URL.revokeObjectURL(url);
-      });
+      if (coverPreview?.startsWith?.("blob:")) URL.revokeObjectURL(coverPreview);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
 
   if (isLoading) return <LoadingScreen message="Loading profile…" />;
   if (!author) {
@@ -103,27 +99,43 @@ export default function ProfileEditPage() {
     if (url?.startsWith?.("blob:")) URL.revokeObjectURL(url);
   }
 
-  function handleCropped(blob, previewUrl) {
+  /**
+   * A crop finished — images upload immediately, no Save needed. The
+   * preview comes from the refreshed author session once the upload lands.
+   */
+  async function handleCropped(blob) {
     const kind = cropping?.kind;
     releasePreview(cropping?.src);
-
-    if (kind === "avatar") {
-      releasePreview(avatarPreview);
-      setAvatarBlob(blob);
-      setAvatarPreview(previewUrl);
-    } else if (kind === "desktop" || kind === "mobile") {
-      releasePreview(coverPreviews[kind]);
-      setCovers((prev) => ({ ...prev, [kind]: blob }));
-      setCoverPreviews((prev) => ({ ...prev, [kind]: previewUrl }));
-    }
-
     setCropping(null);
-  }
+    if (!kind) return;
 
-  function clearCover(kind) {
-    releasePreview(coverPreviews[kind]);
-    setCovers((prev) => ({ ...prev, [kind]: null }));
-    setCoverPreviews((prev) => ({ ...prev, [kind]: null }));
+    setUploading(kind);
+
+    try {
+      await updateProfile(
+        profileFormData({},
+          kind === "avatar" ? { avatar: blob } : { cover: blob },
+        ),
+      );
+
+      if (kind === "avatar") {
+        releasePreview(avatarPreview);
+        setAvatarBlob(null);
+      } else {
+        releasePreview(coverPreview);
+        setCoverBlob(null);
+      }
+
+      toast.success(
+        kind === "avatar" ? "Profile photo updated" : "Cover image updated",
+      );
+    } catch (err) {
+      toast.error(
+        apiErrorMessage(err, "We couldn't save your image. Please try again."),
+      );
+    } finally {
+      setUploading(null);
+    }
   }
 
   /* ---------- Save ---------- */
@@ -142,13 +154,7 @@ export default function ProfileEditPage() {
 
     setSaving(true);
     try {
-      await updateProfile(
-        profileFormData(form, {
-          avatar: avatarBlob,
-          desktop: covers.desktop,
-          mobile: covers.mobile,
-        }),
-      );
+      await updateProfile(profileFormData(form));
 
       toast.success(
         author.isProfileCompleted
@@ -213,11 +219,22 @@ export default function ProfileEditPage() {
         <ProfileImagesSection
           author={author}
           avatarPreview={avatarPreview}
-          coverPreviews={coverPreviews}
-          onFileChosen={(kind, file) =>
-            setCropping({ kind, src: URL.createObjectURL(file) })
+          coverPreview={coverPreview}
+          uploading={uploading}
+          onFileChosen={(kind) =>
+            (kind === "avatar" ? avatarInputRef : coverInputRef).current?.click()
           }
-          onClearCover={clearCover}
+        />
+
+        <ProfileImageInputs
+          onPick={{
+            avatarRef: avatarInputRef,
+            coverRef: coverInputRef,
+            avatar: (file) =>
+              setCropping({ kind: "avatar", src: URL.createObjectURL(file) }),
+            cover: (file) =>
+              setCropping({ kind: "cover", src: URL.createObjectURL(file) }),
+          }}
         />
 
         <AboutSection form={form} onChange={update} />

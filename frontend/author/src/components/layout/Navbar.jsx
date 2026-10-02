@@ -47,18 +47,20 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between md:h-[4.5rem]">
-          {/* Brand — the logo lockup already carries the name, so the tagline
-              is the only text left beside it. */}
+          {/* Brand — logo plus the two-tone wordmark from the theme token */}
           <Link
             to={isAuthenticated ? "/" : "/login"}
-            className="group flex shrink-0 items-center gap-3"
+            className="group flex shrink-0 items-center gap-2.5"
             aria-label="LifeBookz — Home"
           >
             <img
               src="/logo.png"
               alt="LifeBookz"
-              className="h-10 w-auto shrink-0 sm:h-11"
+              className="h-9 w-auto shrink-0 transition-transform duration-200 group-hover:scale-[1.03] sm:h-10"
             />
+            <span className="font-display text-xl font-bold tracking-tight text-brand-wordmark">
+              Life<span className="text-accent">bookz</span>
+            </span>
           </Link>
 
           {/* Desktop: navigation lives in the profile dropdown; mobile:

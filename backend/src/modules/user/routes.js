@@ -20,7 +20,6 @@ router.patch(
   upload.fields([
     { name: "avatar", maxCount: 1 },
     { name: "coverImage", maxCount: 1 },
-    { name: "coverImageMobile", maxCount: 1 },
   ]),
   user.updateMe,
 );

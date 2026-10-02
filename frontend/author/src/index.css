@@ -56,6 +56,10 @@
   /* Typography */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /* Two-tone wordmark: the "Life" half adapts to the theme (darker on
+     light, whitish on dark); the "bookz" half stays brand coral. */
+  --color-brand-wordmark: #172554;
 }
 
 @utility no-scrollbar {

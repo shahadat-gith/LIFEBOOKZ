@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { apiErrorMessage } from "../../utils/helpers";
 import { useAuth } from "../../context/AuthContext";
 import SignInPrompt from "../../components/common/SignInPrompt";

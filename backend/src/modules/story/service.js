@@ -1068,49 +1068,32 @@ export async function replyToComment({ commentId, authorId, content }) {
 }
 
 /**
- * Simple text search over published public lifebooks: title,
- * chapter titles/descriptions and story content.
+ * Distinct professions across approved, active authors (most common
+ * first) — the story filter modal's options.
  */
-export async function searchStories({ q, limit = 20 }) {
-  const query = q?.trim() || "";
-  if (!query) return [];
+export async function listProfessions() {
+  const professions = await Author.aggregate([
+    {
+      $match: {
+        "verification.status": "approved",
+        status: "active",
+        profession: { $type: "string", $ne: "" },
+      },
+    },
+    {
+      $group: {
+        _id: { $toLower: "$profession" },
+        label: { $first: "$profession" },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1, label: 1 } },
+    { $limit: 50 },
+  ]);
 
-  const safeLimit = Math.min(Number(limit) || 20, 50);
-
-  const rx = new RegExp(escapeRegex(query), "i");
-
-  const stories = await Story.find({
-    status: "published",
-    visibility: "public",
-    $or: [
-      { title: rx },
-      { "chapters.stories.title": rx },
-      { "chapters.stories.content": rx },
-    ],
-  })
-    .select(
-      `
-        title
-        slug
-        bannerImage
-        chapters.title
-        chapters.order
-        chapters.stories.title
-        chapters.stories.storyType
-        chapters.stories.media
-        author
-        authorProfession
-        stats
-        publishedAt
-        createdAt
-      `,
-    )
-    .populate(
-      "author",
-      "fullName username avatar profession verification.status",
-    )
-    .limit(safeLimit)
-    .lean();
-
-  return stories;
+  return professions.map((p) => ({
+    value: p._id,
+    label: p.label,
+    count: p.count,
+  }));
 }

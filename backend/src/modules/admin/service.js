@@ -4,6 +4,8 @@ import Author from "../author/model.js";
 import Expert from "../expert/model.js";
 import User from "../user/model.js";
 import Story from "../story/models/Story.js";
+import Like from "../story/models/Like.js";
+import Comment from "../story/models/Comment.js";
 
 import { generateToken } from "../../core/utils/helpers.js";
 import {
@@ -159,9 +161,66 @@ export async function listUsers() {
 
 export async function listStories() {
   return Story.find()
-    .populate("author", "fullName")
+    .populate("author", "fullName avatar")
     .sort({ createdAt: -1 })
     .lean();
+}
+
+/** Toggle the featured flag that powers the "featured" story rail. */
+export async function setStoryFeatured({ storyId, featured }) {
+  const story = await Story.findById(storyId);
+
+  if (!story) {
+    throw notFoundError("Story not found.");
+  }
+
+  story.featured = Boolean(featured);
+  await story.save();
+
+  return story;
+}
+
+/** Take a published story offline without touching the author's draft. */
+export async function unpublishStory({ storyId }) {
+  const story = await Story.findById(storyId);
+
+  if (!story) {
+    throw notFoundError("Story not found.");
+  }
+
+  story.status = "draft";
+  await story.save();
+
+  return story;
+}
+
+/** Remove a story and every like and comment hanging off it. */
+export async function deleteStory({ storyId }) {
+  const story = await Story.findById(storyId);
+
+  if (!story) {
+    throw notFoundError("Story not found.");
+  }
+
+  await Like.deleteMany({ story: story._id });
+  await Comment.deleteMany({ story: story._id });
+  await story.deleteOne();
+}
+
+/** Suspend or reinstate a reader account. */
+export async function setUserStatus({ userId, status }) {
+  if (!["active", "suspended"].includes(status)) {
+    throw validationError("Status must be active or suspended.");
+  }  const user = await User.findById(userId);
+
+  if (!user) {
+    throw notFoundError("User not found.");
+  }
+
+  user.status = status;
+  await user.save();
+
+  return user;
 }
 
 export async function listPendingExperts() {

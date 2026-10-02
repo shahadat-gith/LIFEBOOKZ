@@ -8,8 +8,9 @@ export default function ChapterCard({ chapter }) {
   return (
     <article className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs">
       <header className="border-b border-border/60 px-4 py-3.5 sm:px-5">
-        <h2 className="truncate font-display text-base font-bold text-foreground sm:text-lg">
-          {chapterLabel(chapter)}
+        <h2 className="flex items-center gap-2.5 font-display text-base font-bold text-primary sm:text-lg">
+          <span className="h-4 w-1 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+          <span className="truncate">{chapterLabel(chapter)}</span>
         </h2>
       </header>
 

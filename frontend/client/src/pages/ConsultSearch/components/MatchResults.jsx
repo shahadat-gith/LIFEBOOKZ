@@ -1,4 +1,4 @@
-import NoDataState from "../../../components/common/NoDataState";
+import EmptyState from "../../../components/common/EmptyState";
 import { ExpertMatchCard } from "./ExpertMatchCard";
 import { resultHeading } from "../utils";
 
@@ -37,7 +37,7 @@ export default function MatchResults({ experts = [], matched = true, onBook }) {
           ))}
         </div>
       ) : (
-        <NoDataState
+        <EmptyState
           icon={null}
           title="No experts matched"
           description="Try a broader description or a different category."

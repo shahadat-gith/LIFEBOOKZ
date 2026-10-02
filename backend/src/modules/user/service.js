@@ -143,11 +143,18 @@ export async function getUserById(userId) {
   return user;
 }
 
-export async function updateUser({ userId, fullName, file, coverFile, coverMobileFile }) {
+export async function updateUser({ userId, fullName, file, coverFile }) {
   const user = await getUserById(userId);
 
-  if (fullName !== undefined) {
-    user.fullName = fullName;
+  // Multipart forms can deliver missing fields as empty strings or the
+  // literal "undefined"; only a real, non-blank name is an update.
+  const hasName =
+    typeof fullName === "string" &&
+    fullName.trim() !== "" &&
+    fullName.trim() !== "undefined";
+
+  if (hasName) {
+    user.fullName = fullName.trim();
   }
 
   if (file) {
@@ -160,7 +167,7 @@ export async function updateUser({ userId, fullName, file, coverFile, coverMobil
     });
   }
 
-  // Desktop (16:9) cover variant
+  // Single 16:9 cover used on every screen size
   if (coverFile) {
     user.coverImage = await replaceImage({
       buffer: coverFile.buffer,
@@ -168,17 +175,6 @@ export async function updateUser({ userId, fullName, file, coverFile, coverMobil
       role: "user",
       kind: "cover",
       previousKey: user.coverImage?.key,
-    });
-  }
-
-  // Mobile (4:3) cover variant
-  if (coverMobileFile) {
-    user.coverImageMobile = await replaceImage({
-      buffer: coverMobileFile.buffer,
-      contentType: coverMobileFile.mimetype,
-      role: "user",
-      kind: "coverMobile",
-      previousKey: user.coverImageMobile?.key,
     });
   }
 
@@ -199,7 +195,7 @@ export async function deleteUser({ userId }) {
 
 export async function getPublicProfile(userId) {
   const user = await User.findById(userId)
-    .select("fullName avatar coverImage coverImageMobile createdAt")
+    .select("fullName avatar coverImage createdAt")
     .lean();
 
   if (!user) {

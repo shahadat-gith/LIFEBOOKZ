@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
-import { getDropdownItems } from "./utils";
+import { getDropdownItems } from "./navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 

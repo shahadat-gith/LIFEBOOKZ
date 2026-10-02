@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 
 import StoryCard from "../../../components/story/StoryCard";
-import StoryCardSkeleton from "../../../components/skeletons/StoryCardSkeleton";
+import StoryCardSkeleton from "./StoryCardSkeleton";
 import Spinner from "../../../components/ui/Spinner";
-import NoDataState from "../../../components/common/NoDataState";
+import EmptyState from "../../../components/common/EmptyState";
 import { Icons } from "../../../icons";
 
 /**
@@ -31,7 +31,7 @@ export default function FeedList({
 
   if (stories.length === 0) {
     return (
-      <NoDataState
+      <EmptyState
         icon={Icons.document}
         title={isFiltered ? "No matching stories" : "No stories yet"}
         description={

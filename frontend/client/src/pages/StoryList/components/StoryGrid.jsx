@@ -1,5 +1,5 @@
 import StoryCard from "../../../components/story/StoryCard";
-import StoryCardSkeleton from "../../../components/skeletons/StoryCardSkeleton";
+import StoryCardSkeleton from "../../Feed/components/StoryCardSkeleton";
 import { GRID_CLASS } from "../utils";
 
 /** The stories, laid out in the explore grid. */

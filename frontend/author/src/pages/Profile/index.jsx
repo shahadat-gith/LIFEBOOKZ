@@ -10,7 +10,7 @@ import * as storyApi from "../../utils/storyApi";
 import { apiErrorMessage, bookId, chapterId, storyEntryId } from "../../utils/helpers";
 import { visibilitySavedMessage } from "../../utils/visibility";
 import ErrorBanner from "../../components/common/ErrorBanner";
-import NoDataState from "../../components/common/NoDataState";
+import EmptyState from "../../components/common/EmptyState";
 import { Icons } from "../../icons";
 
 import ProfileHeader from "./components/ProfileHeader";
@@ -155,7 +155,7 @@ export default function ProfilePage() {
 
   /** The empty state each tab shows when it has nothing to list. */
   const renderEmpty = (Icon, label, hint) => (
-    <NoDataState variant="panel" icon={Icon} title={label} description={hint} />
+    <EmptyState variant="panel" icon={Icon} title={label} description={hint} />
   );
 
   const showSkeleton = loading && rows.length === 0;
@@ -176,7 +176,7 @@ export default function ProfilePage() {
 
       {/* Prompt for authors who still need to finish their profile */}
       {!author.isProfileCompleted && (
-        <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto mt-4 max-w-4xl px-4 sm:px-6">
           <button
             type="button"
             onClick={() => navigate("/profile/edit?complete=1")}
@@ -191,12 +191,12 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-6">
         <StatsRow stats={stats} loading={loading || social.loading} />
       </div>
 
       {error && (
-        <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto mt-4 max-w-4xl px-4 sm:px-6">
           <ErrorBanner
             error={error}
             message={apiErrorMessage(
@@ -208,11 +208,11 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-6">
         <ProfileTabs tabs={PROFILE_TABS} active={activeTab} onChange={setActiveTab} />
       </div>
 
-      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto mt-6 max-w-4xl px-4 sm:px-6">
         {showSkeleton ? (
           <div className="space-y-3.5" aria-busy="true">
             {[0, 1, 2].map((i) => (

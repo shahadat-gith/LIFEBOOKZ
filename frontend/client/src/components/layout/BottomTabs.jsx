@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { tabs } from "./utils";
+import { tabs } from "./navigation";
 
 /** Is this tab the current one (or a parent of it)? */
 function isActive(pathname, to) {

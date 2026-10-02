@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from "../config/axios";
+import api from "../config/api";
 
 const TOKEN_KEY = "token";
 

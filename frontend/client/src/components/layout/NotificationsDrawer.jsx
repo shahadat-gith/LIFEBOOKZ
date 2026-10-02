@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import { useNotifications, timeAgo } from "../../hooks/useNotifications";
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 
 const TYPE_STYLES = {

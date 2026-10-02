@@ -77,9 +77,10 @@ export default function StoryDetailPage() {
       </Link>
 
       {/* Title of the lifebook, with its author right underneath */}
-      <h1 className="mt-5 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+      <h1 className="mt-5 font-display text-3xl font-extrabold leading-[1.15] tracking-tight text-primary sm:text-4xl">
         {story.title || "Untitled Story"}
       </h1>
+      <div className="mt-3 h-1 w-14 rounded-full bg-accent" aria-hidden="true" />
 
       <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <span>By</span>
@@ -113,7 +114,7 @@ export default function StoryDetailPage() {
 
       {/* Comments */}
       <div ref={commentSectionRef} className="mt-8 border-t border-border/40 pt-6">
-        <h3 className="mb-4 text-lg font-semibold text-foreground">Comments</h3>
+        <h3 className="mb-4 font-display text-lg font-bold text-foreground">Comments</h3>
         <CommentSection
           storyId={story._id}
           commentTrigger={commentTrigger}

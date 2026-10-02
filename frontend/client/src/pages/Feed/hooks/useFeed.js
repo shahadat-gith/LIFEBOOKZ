@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import api from "../../../config/axios";
+import api from "../../../config/api";
 import { useAuth } from "../../../context/AuthContext";
 import {
   EMPTY_FILTERS,
@@ -43,7 +43,7 @@ export default function useFeed() {
   // Profession options for the filter modal.
   useEffect(() => {
     api
-      .get("/search/professions")
+      .get("/stories/professions")
       .then((res) => setProfessions(res.data.data || []))
       .catch(() => setProfessions([]))
       .finally(() => setProfessionsLoading(false));

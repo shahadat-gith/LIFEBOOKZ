@@ -110,6 +110,73 @@ export async function getStories(_req, res, next) {
   }
 }
 
+/** PATCH /admin/stories/:storyId/featured { featured } */
+export async function toggleStoryFeatured(req, res, next) {
+  try {
+    const story = await adminService.setStoryFeatured({
+      storyId: req.params.storyId,
+      featured: Boolean(req.body.featured),
+    });
+
+    return res.json({
+      success: true,
+      message: story.featured ? "Story featured." : "Story unfeatured.",
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** PATCH /admin/stories/:storyId/unpublish */
+export async function unpublishStory(req, res, next) {
+  try {
+    const story = await adminService.unpublishStory({
+      storyId: req.params.storyId,
+    });
+
+    return res.json({
+      success: true,
+      message: "Story unpublished.",
+      data: story,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** DELETE /admin/stories/:storyId */
+export async function deleteStory(req, res, next) {
+  try {
+    await adminService.deleteStory({ storyId: req.params.storyId });
+
+    return res.json({
+      success: true,
+      message: "Story deleted permanently.",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** PATCH /admin/users/:userId/status { status } */
+export async function setUserStatus(req, res, next) {
+  try {
+    const user = await adminService.setUserStatus({
+      userId: req.params.userId,
+      status: req.body.status,
+    });
+
+    return res.json({
+      success: true,
+      message: `User ${user.status}.`,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getPendingExperts(_req, res, next) {
   try {
     const experts = await adminService.listPendingExperts();

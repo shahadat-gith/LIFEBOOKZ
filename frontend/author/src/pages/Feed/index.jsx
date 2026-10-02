@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
-import NoDataState from "../../components/common/NoDataState";
+import EmptyState from "../../components/common/EmptyState";
 import { Icons } from "../../icons";
 
 import FilterButton from "./components/FilterButton";
@@ -52,7 +52,7 @@ export default function FeedPage() {
   // Load the profession options for the filter modal
   useEffect(() => {
     api
-      .get("/search/professions")
+      .get("/stories/professions")
       .then((res) => setProfessions(res.data.data || []))
       .catch(() => setProfessions([]))
       .finally(() => setProfessionsLoading(false));
@@ -168,7 +168,7 @@ export default function FeedPage() {
           ))}
         </div>
       ) : stories.length === 0 ? (
-        <NoDataState
+        <EmptyState
           icon={Icons.book}
           title={isFiltered ? "No matching stories" : "No stories yet"}
           description={

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import Spinner from '../ui/Spinner';
-import { adminApi } from '../../utils/client';
+import { adminApi } from '../../api/admin';
 
 export default function AdminLayout() {
   const { isAuthenticated } = useAuth();
@@ -42,9 +42,8 @@ export default function AdminLayout() {
         <div className="lg:hidden sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
           <div className="flex items-center justify-center h-16 px-4 ml-14">
             <Link to="/dashboard" className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="LifeBookz" className="h-7 w-7 rounded-lg" />
-              <span className="text-sm font-bold text-foreground">LifeBookz</span>
-              <span className="text-[10px] text-accent font-semibold uppercase tracking-wider ml-1">Admin</span>
+              <img src="/logo.png" alt="LifeBookz" className="h-8 w-auto" />
+              <span className="font-display text-base font-bold tracking-tight text-brand-wordmark">Life<span className="text-accent">bookz</span></span>
             </Link>
           </div>
         </div>
@@ -75,9 +74,8 @@ export function AuthLayout() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center">
           <Link to="/login" className="flex items-center gap-2.5 group">
-            <img src="/logo.png" alt="LifeBookz" className="h-8 w-8 rounded-lg" />
-            <span className="text-sm font-semibold text-foreground">LifeBookz</span>
-            <span className="text-xs text-muted-foreground ml-1.5">Admin Portal</span>
+            <img src="/logo.png" alt="LifeBookz" className="h-8 w-auto" />
+            <span className="font-display text-base font-bold tracking-tight text-foreground">LifeBookz</span>
           </Link>
         </div>
       </header>

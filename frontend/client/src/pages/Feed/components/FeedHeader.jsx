@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-import FilterButton from "../../../components/feed/FilterButton";
+import FilterButton from "./FilterButton";
 
 /** The page title, its one-line description, and the filter icon. */
 export default function FeedHeader({ filterCount, onOpenFilters }) {

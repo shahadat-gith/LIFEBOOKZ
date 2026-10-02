@@ -5,7 +5,7 @@ import Avatar from "../ui/Avatar";
 import { Icons } from "../../icons";
 import { getTimeAgo, formatLikesCaption } from "../../utils/helpers";
 import { isVerifiedAuthor } from "../../utils/authors";
-import api from "../../config/axios";
+import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { share } from "../../utils/share";

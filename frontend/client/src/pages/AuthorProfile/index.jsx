@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import StoryCard from "../../components/story/StoryCard";
-import StoryCardSkeleton from "../../components/skeletons/StoryCardSkeleton";
+import StoryCardSkeleton from "../Feed/components/StoryCardSkeleton";
 import ErrorState from "../../components/common/ErrorState";
-import NoDataState from "../../components/common/NoDataState";
+import EmptyState from "../../components/common/EmptyState";
 import { Icons } from "../../icons";
 
 import AuthorHeader from "./components/AuthorHeader";
@@ -106,7 +106,7 @@ export default function AuthorProfilePage() {
             ))}
           </div>
         ) : stories.length === 0 ? (
-          <NoDataState
+          <EmptyState
             icon={Icons.book}
             title="No lifebooks yet"
             description="This author hasn't published a lifebook yet."

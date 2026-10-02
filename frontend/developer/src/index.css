@@ -1,36 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  /* Developer tooling palette — deep slate with an amber accent */
-  --color-primary: #0f172a;
-  --color-primary-foreground: #f8fafc;
+  /* LifeBookz Brand — Deep Navy + Coral (matches client & author portals),
+     with a mono font for log output */
+  --color-primary: #172554;
+  --color-primary-foreground: #ffffff;
 
-  --color-secondary: #334155;
-  --color-secondary-foreground: #f1f5f9;
+  --color-secondary: #2e3f66;
+  --color-secondary-foreground: #f8fafc;
 
-  --color-accent: #f59e0b;
-  --color-accent-foreground: #1c1917;
+  /* Signature Coral Accent (brand dot over the "Z") */
+  --color-accent: #f43f5e;
+  --color-accent-foreground: #ffffff;
 
-  --color-background: #f7f8fa;
-  --color-foreground: #0f172a;
+  --color-background: #f8f9fd;
+  --color-foreground: #101b3c;
 
   --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
+  --color-card-foreground: #101b3c;
 
   --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
+  --color-popover-foreground: #101b3c;
 
-  --color-muted: #eef1f5;
-  --color-muted-foreground: #5b6779;
+  --color-muted: #f1f3f9;
+  --color-muted-foreground: #5f6c84;
 
-  --color-border: #e2e6ec;
-  --color-input: #cfd6e0;
-  --color-ring: #0f172a;
+  --color-border: #e3e8f2;
+  --color-input: #d3dbe8;
+  --color-ring: #172554;
 
-  --color-success: #15803d;
-  --color-warning: #b45309;
-  --color-destructive: #b91c1c;
-  --color-info: #0369a1;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-destructive: #e11d48;
+  --color-info: #2563eb;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -48,9 +50,19 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Two-tone wordmark: the "Life" half adapts to the theme (darker on
+     light, whitish on dark); the "bookz" half stays brand coral. */
+  --color-brand-wordmark: #172554;
 }
 
 @layer base {
+  .dark {
+    color-scheme: dark;
+
+    --color-brand-wordmark: #e8edf8;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased tracking-tight;
   }

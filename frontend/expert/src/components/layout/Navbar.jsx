@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "../../context/AuthContext";
@@ -13,26 +13,22 @@ import api from "../../config/api";
 export function Navbar() {
   const { expert, isAuthenticated, logout } = useAuth();
   const loc = useLocation();
-  const [mobile, setMobile] = useState(false);
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mobile, setMobile] = useState(false);
   const dropdownRef = useRef(null);
   const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isA = (p) => loc.pathname === p;
 
+  // Navigation lives in the profile dropdown, like the author portal — the
+  // navbar itself stays quiet: brand on the left, notifications and account
+  // on the right.
   const links = [
-    { to: "/", label: "Home", icon: <Icons.home className="h-4 w-4" /> },
-    {
-      to: "/dashboard",
-      label: "Dashboard",
-      icon: <Icons.dashboard className="h-4 w-4" />,
-    },
-    {
-      to: "/profile",
-      label: "Profile",
-      icon: <Icons.user className="h-4 w-4" />,
-    },
+    { to: "/", label: "Home", icon: Icons.home },
+    { to: "/dashboard", label: "Dashboard", icon: Icons.dashboard },
+    { to: "/profile", label: "Profile", icon: Icons.user },
   ];
 
   useEffect(() => {
@@ -45,75 +41,57 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  async function handleLogout() {
+    setProfileOpen(false);
+    setMobile(false);
+    await logout();
+    navigate("/login");
+  }
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between md:h-20">
-          {/* Brand — the logo lockup already carries the name, so the text
-              beside it is only the signed-in expert and the portal label. */}
+        <div className="flex h-16 items-center justify-between md:h-[4.5rem]">
+          {/* Brand — logo plus the two-tone wordmark from the theme token */}
           <Link
             to="/"
-            className="group flex shrink-0 items-center gap-3"
+            className="group flex shrink-0 items-center gap-2.5"
             aria-label="LifeBookz — Home"
           >
             <img
               src="/logo.png"
               alt="LifeBookz"
-              className="h-10 w-auto shrink-0 sm:h-11"
+              className="h-9 w-auto shrink-0 transition-transform duration-200 group-hover:scale-[1.03] sm:h-10"
             />
-
-            <div className="hidden sm:block">
-              {expert?.fullName && (
-                <span className="block font-display text-base font-semibold tracking-tight text-foreground">
-                  {expert.fullName}
-                </span>
-              )}
-              <span className="block text-[10px] font-semibold uppercase tracking-wider text-accent">
-                Expert Portal
-              </span>
-            </div>
+            <span className="font-display text-xl font-bold tracking-tight text-brand-wordmark">
+              Life<span className="text-accent">bookz</span>
+            </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 rounded-xl bg-muted/60 p-1 md:flex border border-border/40">
-            {links.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
-                  isA(l.to)
-                    ? "bg-background text-foreground shadow-xs border border-border/50"
-                    : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
-                }`}
-              >
-                {l.icon}
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Desktop auth area */}
-          <div className="hidden items-center gap-3 md:flex">
-            {isAuthenticated && expert && (
+          {/* Right cluster: notifications + profile */}
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
               <button
                 type="button"
                 onClick={() => setNotifOpen(true)}
                 aria-label="Notifications"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors"
               >
                 <Icons.bell className="h-5 w-5" />
                 {unread > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent flex items-center justify-center text-[9px] font-bold text-accent-foreground">
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-accent-foreground">
                     {unread > 9 ? "9+" : unread}
                   </span>
                 )}
               </button>
             )}
+
             {isAuthenticated && expert ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
                   onClick={() => setProfileOpen(!profileOpen)}
+                  aria-expanded={profileOpen}
                   className="flex items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-1.5 hover:border-border/60 hover:bg-card/80 transition-all duration-200 focus:outline-none"
                 >
                   <Avatar
@@ -136,10 +114,10 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border/80 bg-popover p-1.5 shadow-md shadow-black/5"
+                      className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-border/80 bg-popover p-1.5 shadow-md shadow-black/5"
                     >
-                      <div className="border-b border-border/50 px-3 py-2 mb-1">
-                        <p className="text-xs font-semibold text-foreground">
+                      <div className="border-b border-border/50 px-3 py-2.5 mb-1">
+                        <p className="text-sm font-semibold text-foreground">
                           {expert.fullName}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
@@ -147,31 +125,32 @@ export function Navbar() {
                         </p>
                       </div>
 
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      >
-                        <Icons.dashboard className="h-4 w-4" /> Dashboard
-                      </Link>
-
-                      <Link
-                        to="/profile"
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      >
-                        <Icons.user className="h-4 w-4" /> Profile
-                      </Link>
-
-                      <hr className="my-1 border-border/50" />
+                      {/* Navigation items (moved out of the navbar) */}
+                      <div className="pb-1 mb-1 border-b border-border/50">
+                        {links.map((l) => {
+                          const Icon = l.icon;
+                          return (
+                            <Link
+                              key={l.to}
+                              to={l.to}
+                              onClick={() => setProfileOpen(false)}
+                              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                isA(l.to)
+                                  ? "bg-primary/5 text-primary"
+                                  : "text-foreground hover:bg-muted"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              {l.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
 
                       <button
                         type="button"
-                        onClick={() => {
-                          logout();
-                          setProfileOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                       >
                         <Icons.logout className="h-4 w-4" /> Sign Out
                       </button>
@@ -182,50 +161,16 @@ export function Navbar() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link to="/login">
-                  <Button size="sm">Expert Sign In</Button>
+                  <Button size="sm">Sign In</Button>
                 </Link>
               </div>
             )}
-          </div>
 
-          {/* Mobile controls */}
-          <div className="flex items-center gap-2 md:hidden">
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => setNotifOpen(true)}
-                aria-label="Notifications"
-                className="relative rounded-full p-2 text-muted-foreground hover:bg-accent transition-colors"
-              >
-                <Icons.bell className="h-5 w-5" />
-                {unread > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-accent flex items-center justify-center text-[8px] font-bold text-accent-foreground">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
-              </button>
-            )}
-            {isAuthenticated ? (
-              <Link to="/profile">
-                <Avatar
-                  src={expert?.avatar?.url}
-                  name={expert?.fullName}
-                  size="sm"
-                  className="ring-1 ring-border"
-                />
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-full p-2 text-muted-foreground hover:bg-accent transition-colors"
-              >
-                <Icons.user className="h-5 w-5" />
-              </Link>
-            )}
+            {/* Mobile hamburger */}
             <button
               type="button"
               onClick={() => setMobile(!mobile)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-accent transition-colors"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors md:hidden"
               aria-label="Toggle menu"
             >
               {mobile ? (
@@ -237,7 +182,7 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu — the same items as the profile dropdown */}
         <AnimatePresence>
           {mobile && (
             <motion.div
@@ -247,38 +192,30 @@ export function Navbar() {
               className="overflow-hidden border-t border-border/50 md:hidden"
             >
               <div className="space-y-1 py-3">
-                {links.map((l) => (
-                  <Link
-                    key={l.to}
-                    to={l.to}
-                    onClick={() => setMobile(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      isA(l.to)
-                        ? "bg-accent text-foreground font-semibold"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    }`}
-                  >
-                    {l.icon} {l.label}
-                  </Link>
-                ))}
-                {isAuthenticated ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      setMobile(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-                  >
-                    <Icons.logout className="h-4 w-4" /> Sign Out
-                  </button>
-                ) : (
+                {links.map((l) => {
+                  const Icon = l.icon;
+                  return (
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      onClick={() => setMobile(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isA(l.to)
+                          ? "bg-primary/5 text-primary font-semibold"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" /> {l.label}
+                    </Link>
+                  );
+                })}
+                {!isAuthenticated && (
                   <Link
                     to="/register"
                     onClick={() => setMobile(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <Icons.userAdd className="h-4 w-4" /> Become an Expert
+                    <Icons.userAdd className="h-4 w-4" /> Apply as an Expert
                   </Link>
                 )}
               </div>

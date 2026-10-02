@@ -108,6 +108,21 @@ export async function list(req, res, next) {
   }
 }
 
+/**
+ * GET /stories/professions
+ * Distinct professions across approved, active authors — the filter
+ * modal's options.
+ */
+export async function getProfessions(req, res, next) {
+  try {
+    const professions = await storyService.listProfessions();
+
+    res.json({ success: true, data: professions });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function addChapter(req, res, next) {
   try {
     const story = await storyService.addChapter({

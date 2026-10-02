@@ -39,6 +39,9 @@ router.delete("/media", authorOnly, media.deleteMedia);
 // without ever blocking an anonymous one.
 router.get("/", optionalAuthenticate, story.list);
 
+// Distinct author professions — the filter modal's options.
+router.get("/professions", story.getProfessions);
+
 router.get("/drafts", authorOnly, story.getDrafts);
 
 router.get("/:storyId", optionalAuthenticate, story.getStory);

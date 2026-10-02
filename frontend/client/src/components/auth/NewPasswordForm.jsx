@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { apiErrorMessage } from "../../utils/helpers";
 import Button from "../ui/Button";
 import Input from "../ui/Input";

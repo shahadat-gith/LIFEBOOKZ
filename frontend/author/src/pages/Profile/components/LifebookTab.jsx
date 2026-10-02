@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Icons } from "../../../icons";
 import RichText from "../../../components/common/RichText";
 import StoryTypeBadge from "../../../components/common/StoryTypeBadge";
-import NoDataState from "../../../components/common/NoDataState";
+import EmptyState from "../../../components/common/EmptyState";
 import { VISIBILITY_OPTIONS, visibilityOption } from "../../../utils/visibility";
 
 /**
@@ -472,7 +472,7 @@ function MediaGallery({ media, className = "", heightClass = "h-28" }) {
 
 function EmptyChapterState({ onAddChapter }) {
   return (
-    <NoDataState variant="panel"
+    <EmptyState variant="panel"
       icon={Icons.book}
       title="Your lifebook is empty"
       description="Chapters hold the stories of your life. Create your first one."

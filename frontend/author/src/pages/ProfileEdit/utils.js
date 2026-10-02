@@ -1,32 +1,10 @@
-import { Icons } from "../../icons";
-
 /** Shared field styling, so every input on the page looks the same. */
 export const inputCls =
   "w-full rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all";
 
-/** Cover variants — wide banner for desktops, tighter crop for phones. */
-export const COVER_VARIANTS = [
-  {
-    key: "desktop",
-    label: "Desktop cover",
-    ratio: "16:9",
-    aspect: 16 / 9,
-    icon: Icons.desktop,
-    hint: "Wide banner shown on laptops and desktops",
-  },
-  {
-    key: "mobile",
-    label: "Mobile cover",
-    ratio: "4:3",
-    aspect: 4 / 3,
-    icon: Icons.mobile,
-    hint: "Taller crop shown on phones",
-  },
-];
-
 /**
- * How each image slot is cropped. The avatar is a circle, the two covers are
- * the aspect ratios they are displayed at.
+ * How each image slot is cropped. The avatar is a circle; the cover is a
+ * single 16:9 image used on every screen size.
  */
 export const CROP_SPECS = {
   avatar: {
@@ -35,17 +13,11 @@ export const CROP_SPECS = {
     title: "Crop your profile photo",
     hint: "This is how your photo appears in the circular avatar.",
   },
-  desktop: {
+  cover: {
     aspect: 16 / 9,
     circular: false,
-    title: "Crop your desktop cover",
-    hint: "Shown on laptops and desktops.",
-  },
-  mobile: {
-    aspect: 4 / 3,
-    circular: false,
-    title: "Crop your mobile cover",
-    hint: "Shown on phones.",
+    title: "Position your cover image",
+    hint: "Drag to choose which part shows — the frame stays 16:9 on every screen.",
   },
 };
 
@@ -128,12 +100,7 @@ export function profileFormData(form, images = {}) {
   body.append("socialLinks", JSON.stringify(form.socialLinks));
 
   if (images.avatar) body.append("avatar", images.avatar, "avatar.jpg");
-  if (images.desktop) {
-    body.append("coverImage", images.desktop, "cover-desktop.jpg");
-  }
-  if (images.mobile) {
-    body.append("coverImageMobile", images.mobile, "cover-mobile.jpg");
-  }
+  if (images.cover) body.append("coverImage", images.cover, "cover.jpg");
 
   return body;
 }

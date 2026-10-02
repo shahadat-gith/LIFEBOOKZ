@@ -1,5 +1,5 @@
 import { useAuth } from "../../context/AuthContext";
-import FilterModal from "../../components/feed/FilterModal";
+import FilterModal from "./components/FilterModal";
 
 import FeedHeader from "./components/FeedHeader";
 import FeedList from "./components/FeedList";

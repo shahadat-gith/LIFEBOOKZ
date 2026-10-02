@@ -2,31 +2,33 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icons } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
-import { navLinks } from "./utils";
+import { navLinks } from "./navigation";
 import Button from "../ui/Button";
 import UserDropdown from "./UserDropdown";
 import PortalMenu from "./PortalMenu";
-import SearchModal from "./SearchModal";
 import NotificationsDrawer from "./NotificationsDrawer";
 import useNotifications from "../../hooks/useNotifications";
-import api from "../../config/axios";
+import api from "../../config/api";
 
 /**
- * Brand — the logo lockup already spells out "LifeBookz", so no text is
- * needed beside it. The subtle scale on hover keeps the link feeling alive.
+ * Brand — logo plus the two-tone wordmark: white "Life", coral "bookz".
+ * Lives on the navy header bar, so the white half reads clearly.
  */
 function BrandWordmark() {
   return (
     <Link
       to="/"
-      className="group flex shrink-0 select-none items-center"
+      className="group flex shrink-0 select-none items-center gap-2.5"
       aria-label="LifeBookz - Home"
     >
       <img
         src="/logo.png"
         alt="LifeBookz"
-        className="h-10 w-auto transition-transform duration-200 group-hover:scale-[1.03] sm:h-11"
+        className="h-9 w-auto transition-transform duration-200 group-hover:scale-[1.03] sm:h-10"
       />
+      <span className="font-display text-xl font-bold tracking-tight text-brand-wordmark">
+        Life<span className="text-accent">bookz</span>
+      </span>
     </Link>
   );
 }
@@ -35,7 +37,6 @@ export function Navbar() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
@@ -44,13 +45,7 @@ export function Navbar() {
   const iconButtonClass =
     "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground shadow-xs transition-all duration-200 hover:border-primary/25 hover:text-primary active:scale-95 sm:h-10 sm:w-10";
 
-  function openSearch() {
-    setNotificationsOpen(false);
-    setSearchOpen(true);
-  }
-
   function openNotifications() {
-    setSearchOpen(false);
     setNotificationsOpen(true);
   }
 
@@ -86,16 +81,6 @@ export function Navbar() {
 
           {/* Right Corner Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Search */}
-            <button
-              type="button"
-              onClick={openSearch}
-              aria-label="Search stories"
-              className={iconButtonClass}
-            >
-              <Icons.search className="h-[18px] w-[18px]" />
-            </button>
-
             {/* Notifications */}
             <button
               type="button"
@@ -139,7 +124,6 @@ export function Navbar() {
       </header>
 
       {/* Overlays */}
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <NotificationsDrawer
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}

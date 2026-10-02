@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-import api from "../../config/axios";
+import api from "../../config/api";
 import { apiErrorMessage } from "../../utils/helpers";
 import AuthShell from "../../components/auth/AuthShell";
 import AuthFooter from "../../components/auth/AuthFooter";

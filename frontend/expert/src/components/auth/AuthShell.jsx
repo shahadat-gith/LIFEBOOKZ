@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Icons } from "../../icons";
-import UsersIcon from "./UsersIcon";
+import UsersIcon from "../../icons/UsersIcon";
 
 const HIGHLIGHTS = [
   {
@@ -22,10 +22,8 @@ const HIGHLIGHTS = [
 ];
 
 /**
- * Split-panel auth layout for the expert portal:
- *  - Left (desktop): navy brand panel with wordmark, pitch and highlights
- *  - Right: centered form card area (children)
- *  - Top: slim brand bar for mobile
+ * Split-panel auth layout: navy brand panel with the two-tone wordmark,
+ * pitch and highlights on the left; the form card on the right.
  */
 export default function AuthShell({ children }) {
   return (
@@ -33,16 +31,18 @@ export default function AuthShell({ children }) {
       {/* ═══════════ Brand panel (desktop only) ═══════════ */}
       <aside className="hidden lg:flex lg:w-[46%] xl:w-[44%] relative overflow-hidden bg-primary text-primary-foreground flex-col justify-between p-10 xl:p-14">
         {/* Decorative gradients */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-gray-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -right-16 w-[28rem] h-[28rem] rounded-full bg-accent/20 blur-3xl pointer-events-none" />
 
-        {/* Wordmark */}
-        <Link to="/login" className="relative">
-          <span className="font-display text-2xl font-bold tracking-tight">
-            LIFEBOOK<span className="text-accent">Z</span>
-          </span>
-          <span className="block text-xs text-primary-foreground/60 mt-1">
-            Expert Portal
+        {/* Wordmark — theme-driven "Life", brand coral "bookz" */}
+        <Link to="/login" className="relative flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="LifeBookz"
+            className="h-10 w-auto"
+          />
+          <span className="font-display text-2xl font-bold tracking-tight text-white">
+            Life<span className="text-accent">bookz</span>
           </span>
         </Link>
 
@@ -80,7 +80,7 @@ export default function AuthShell({ children }) {
                   className="flex items-start gap-4"
                 >
                   <span className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm">
-                    <Icon className="h-5 w-5 text-accent-foreground" />
+                    <Icon className="h-5 w-5 text-white" />
                   </span>
                   <div>
                     <p className="font-semibold">{h.title}</p>
@@ -109,12 +109,14 @@ export default function AuthShell({ children }) {
       <main className="flex-1 flex flex-col">
         {/* Slim brand bar (mobile only — brand panel covers desktop) */}
         <div className="lg:hidden flex justify-center pt-8">
-          <Link to="/login" className="text-center">
-            <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-              LIFEBOOK<span className="text-accent">Z</span>
-            </span>
-            <span className="block text-[11px] text-muted-foreground mt-0.5">
-              Expert Portal
+          <Link to="/login" className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="LifeBookz"
+              className="h-9 w-auto"
+            />
+            <span className="font-display text-2xl font-bold tracking-tight text-brand-wordmark">
+              Life<span className="text-accent">bookz</span>
             </span>
           </Link>
         </div>
@@ -133,7 +135,7 @@ export default function AuthShell({ children }) {
         </div>
 
         <p className="pb-6 text-center text-[11px] text-muted-foreground/70">
-          © {new Date().getFullYear()} Lifebookz — Expert Portal.
+          © {new Date().getFullYear()} LifeBookz.
         </p>
       </main>
     </div>

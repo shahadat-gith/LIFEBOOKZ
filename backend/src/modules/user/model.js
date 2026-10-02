@@ -56,14 +56,8 @@ const userSchema = new mongoose.Schema(
       default: () => ({}),
     },
 
-    /** Wide (16:9) cover shown on larger screens. */
+    /** Single 16:9 cover used on every screen size. */
     coverImage: {
-      type: imageSchema,
-      default: () => ({}),
-    },
-
-    /** Taller (4:3) cover shown on phones. */
-    coverImageMobile: {
       type: imageSchema,
       default: () => ({}),
     },

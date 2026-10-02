@@ -39,20 +39,29 @@ export function SignedOutNotice() {
   );
 }
 
-/** The page's heading block. */
-export function ProfileHeading() {
+/** The page's heading block, with its Edit Profile action. */
+export function ProfileHeading({ onEdit }) {
   return (
-    <header className="space-y-3 text-center">
+    <header className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground sm:text-sm">
         Your Account
       </p>
-      <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
-        Profile
-      </h1>
-      <p className="mx-auto max-w-2xl text-sm text-muted-foreground md:text-base">
-        Manage how you appear across LifeBookz and keep your details up to
-        date.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight text-primary md:text-4xl">
+          Profile
+        </h1>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label="Edit Profile"
+            title="Edit Profile"
+            className="inline-flex items-center gap-2 rounded-full bg-primary p-3 text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+          >
+            <Icons.edit className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </header>
   );
 }
