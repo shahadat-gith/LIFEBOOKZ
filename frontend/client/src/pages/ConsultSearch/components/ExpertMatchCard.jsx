@@ -17,7 +17,7 @@ const RANK_STYLES = {
   3: "bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-orange-500/30",
 };
 
-export function ExpertMatchCard({ expert, onBook }) {
+export function ExpertMatchCard({ expert, booking = false, onBook }) {
   const id = expert.id || expert._id;
   const rank = expert.matchRank;
   const rankClass =
@@ -111,16 +111,17 @@ export function ExpertMatchCard({ expert, onBook }) {
             Per session
           </p>
           <p className="font-display text-xl font-extrabold text-foreground">
-            {expert.price ? `$${expert.price}` : "Free"}
+            {expert.price ? `₹${expert.price}` : "Free"}
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => onBook?.(expert)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-sm transition-all duration-300 hover:bg-primary/90 hover:shadow-md"
+          disabled={booking}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-sm transition-all duration-300 hover:bg-primary/90 hover:shadow-md disabled:opacity-60"
         >
-          Book Session
+          {booking ? "Booking…" : "Book Session"}
           <Icons.arrowRight className="h-3.5 w-3.5" />
         </button>
       </div>

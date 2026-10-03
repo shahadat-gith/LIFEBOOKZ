@@ -30,7 +30,7 @@ const STEPS_GUIDE = [
   },
   {
     label: "Choose Visibility",
-    hint: "Public, followers-only, or just you — chapter by chapter.",
+    hint: "Public, or just you — chapter by chapter.",
     icon: Icons.shieldCheck,
   },
   {

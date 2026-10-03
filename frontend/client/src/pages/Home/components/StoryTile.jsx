@@ -44,7 +44,7 @@ export default function StoryTile({ story }) {
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-4">
-        {/* Author row — opens their profile, where following lives */}
+        {/* Author row — opens their profile */}
         <div className="group/author">
           <Link
             to={`/authors/${authorId}`}

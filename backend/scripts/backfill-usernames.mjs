@@ -12,8 +12,8 @@
 import dns from "node:dns";
 import mongoose from "mongoose";
 
-import config from "../src/core/config/index.js";
-import User from "../src/modules/user/model.js";
+import config from "../src/config/index.js";
+import User from "../src/models/User.js";
 
 // Some local resolvers refuse SRV lookups, which mongodb+srv:// needs.
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
@@ -26,7 +26,7 @@ async function main() {
   await mongoose.connect(config.database.url);
 
   const { buildUniqueUsername } = await import(
-    "../src/modules/user/service.js"
+    "../src/services/user.service.js"
   );
 
   const users = await User.find(hasMissingUsername);

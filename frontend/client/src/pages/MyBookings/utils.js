@@ -1,22 +1,32 @@
-/** How each booking status is labelled and coloured. */
+/** How each consultation status is labelled and coloured. */
 export const STATUS_STYLES = {
-  pending: {
-    label: "Pending",
+  PENDING: {
+    label: "Awaiting expert",
     className:
       "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   },
-  confirmed: {
-    label: "Confirmed",
+  CONFIRMED: {
+    label: "Confirmed — join the room",
     className:
-      "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   },
-  completed: {
+  IN_PROGRESS: {
+    label: "In session",
+    className:
+      "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  },
+  COMPLETED: {
     label: "Completed",
     className:
       "bg-success/10 text-success border-success/20",
   },
-  cancelled: {
+  CANCELLED: {
     label: "Cancelled",
+    className:
+      "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  },
+  EXPIRED: {
+    label: "Expired",
     className:
       "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
   },
@@ -33,8 +43,14 @@ export function statusStyle(status) {
   );
 }
 
-/** Only a session that hasn't happened yet can be cancelled. */
-export const CANCELLABLE = ["pending", "confirmed"];
+/** States the user may still cancel. */
+export const CANCELLABLE = ["PENDING", "CONFIRMED"];
+
+/** States where the video session can be entered. */
+export const JOINABLE = ["CONFIRMED", "IN_PROGRESS"];
+
+/** States where payment can be made (at the room door). */
+export const PAYABLE = ["CONFIRMED"];
 
 /** The expert's initials, with the "Dr." prefix dropped. */
 export function initials(name) {
@@ -47,19 +63,6 @@ export function initials(name) {
     .toUpperCase();
 }
 
-/** "Mon, Mar 3" — when the session is booked for. */
-export function formatSessionDate(isoDate) {
-  if (!isoDate) return "";
-  const date = new Date(`${isoDate}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return isoDate;
-
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 /** "Mar 3" — when the request was made. */
 export function formatBookedDate(value) {
   if (!value) return "";
@@ -67,4 +70,12 @@ export function formatBookedDate(value) {
     month: "short",
     day: "numeric",
   });
+}
+
+/** "12 min" / "1 h 05 min" — an actual session duration. */
+export function formatDuration(seconds) {
+  if (!seconds) return "";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
 }

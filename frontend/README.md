@@ -60,7 +60,9 @@ src/
 
 ### Backend parity
 
-The backend mirrors the same spirit in `../backend/src`: feature modules under
-`modules/<feature>/{routes,controller,service,model}.js`, shared infrastructure
-under `core/`, and one module per REST resource (`/testimonials` →
-`modules/testimonial`).
+The backend mirrors the same spirit in `../backend/src` with a layered Express
+layout: `routes/`, `controllers/`, `services/`, `models/`, `middleware/`,
+`config/`, `utils/`, `emails/` and `app.js`/`server.js`. One file per REST
+resource in each layer (`/testimonials` → `testimonial.routes.js`,
+`testimonial.controller.js`, `testimonial.service.js`, `Testimonial.js`).
+Backend imports always keep the `.js` extension (Node ESM).

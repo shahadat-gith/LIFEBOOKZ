@@ -2,6 +2,8 @@ import {
   HiOutlineMenu,
   HiOutlineX,
   HiOutlineChevronDown,
+  HiOutlineVideoCamera,
+  HiOutlineMicrophone,
   HiOutlineArrowLeft,
   HiOutlineArrowRight,
   HiOutlineUser,
@@ -85,6 +87,7 @@ export const Icons = {
   eye: HiEye,
   globe: HiOutlineGlobe,
   phone: HiOutlinePhone,
+  videoCamera: HiOutlineVideoCamera,
   chat: HiOutlineChat,
   share: HiOutlineShare,
 
@@ -106,6 +109,7 @@ export const Icons = {
   heartSolid: FaHeart,
   heartRegular: FaRegHeart,
   spinner: FaSpinner,
+  microphone: HiOutlineMicrophone,
 
   verified: MdVerified,
   pending: MdPending,

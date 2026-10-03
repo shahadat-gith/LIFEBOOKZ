@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import api from "../../config/api";
-import { useAuth } from "../../context/AuthContext";
 import FilterButton from "../Feed/components/FilterButton";
 import FilterModal from "../Feed/components/FilterModal";
 import EmptyState from "../../components/common/EmptyState";
@@ -28,7 +27,6 @@ import { PAGE_SIZE } from "./utils";
 export default function StoryListPage() {
   const [searchParams] = useSearchParams();
   const tag = searchParams.get("tag") || "";
-  const { isAuthenticated } = useAuth();
 
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +64,7 @@ export default function StoryListPage() {
           limit: PAGE_SIZE,
           page: nextPage,
           ...(tag ? { tag } : {}),
-          ...feedQuery(filters, { canFilterFollowing: isAuthenticated }),
+          ...feedQuery(filters),
         },
       });
 
@@ -94,7 +92,6 @@ export default function StoryListPage() {
     filters.profession,
     filters.authorName,
     filters.gender,
-    filters.followingOnly,
   ]);
 
   const appliedCount = activeFilterCount(filters);
@@ -170,7 +167,6 @@ export default function StoryListPage() {
         draft={draft}
         professions={professions}
         professionsLoading={professionsLoading}
-        canFilterFollowing={isAuthenticated}
         onChange={setDraftFilter}
         onClear={clearFilters}
         onApply={applyFilters}

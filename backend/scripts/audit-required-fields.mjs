@@ -9,10 +9,10 @@
  */
 import dns from "node:dns";
 import mongoose from "mongoose";
-import config from "../src/core/config/index.js";
-import User from "../src/modules/user/model.js";
-import Author from "../src/modules/author/model.js";
-import Expert from "../src/modules/expert/model.js";
+import config from "../src/config/index.js";
+import User from "../src/models/User.js";
+import Author from "../src/models/Author.js";
+import Expert from "../src/models/Expert.js";
 
 // Some local resolvers refuse SRV lookups, which mongodb+srv:// needs.
 dns.setServers(["8.8.8.8", "1.1.1.1"]);

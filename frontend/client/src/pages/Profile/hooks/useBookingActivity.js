@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import api from "../../../config/api";
+import * as consultApi from "../../../api/consultation";
 import { summarizeBookings } from "../utils";
 
 /**
@@ -16,8 +16,8 @@ export default function useBookingActivity(enabled) {
     setFailed(false);
 
     try {
-      const res = await api.get("/consult/bookings");
-      setActivity(summarizeBookings(res.data?.data || []));
+      const data = await consultApi.listMine();
+      setActivity(summarizeBookings(data || []));
     } catch {
       // The profile is still useful without the summary.
       setActivity(null);

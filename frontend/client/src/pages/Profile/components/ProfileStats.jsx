@@ -19,22 +19,16 @@ function StatTile({ icon: Icon, label, value, hint }) {
 }
 
 /**
- * How much this member has going on: who they follow and their consultation
- * counts. The booking tiles show an em dash when the summary didn't load,
- * with a retry offered underneath.
+ * How much this member has going on: their consultation counts. The booking
+ * tiles show an em dash when the summary didn't load, with a retry offered
+ * underneath.
  */
 export default function ProfileStats({ user, activity, failed, onRetry }) {
   const orDash = (value) => (activity ? value : "—");
 
   return (
     <>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile
-          icon={Icons.userCheck}
-          label="Following"
-          value={user?.stats?.following ?? 0}
-          hint="Authors you follow"
-        />
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatTile
           icon={Icons.book}
           label="Bookings"

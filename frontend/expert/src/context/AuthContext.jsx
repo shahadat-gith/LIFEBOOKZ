@@ -75,6 +75,13 @@ export function AuthProvider({ children }) {
     setExpert(res.data.data);
   }, []);
 
+  /** Toggles whether the expert accepts new consultation requests. */
+  const setAvailability = useCallback(async (isAvailable) => {
+    const res = await api.patch("/experts/me/availability", { isAvailable });
+    setExpert((prev) => ({ ...prev, isAvailable: res.data.data.isAvailable }));
+    return res.data.data;
+  }, []);
+
   const value = useMemo(
     () => ({
       expert,
@@ -87,8 +94,9 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateProfile,
+      setAvailability,
     }),
-    [expert, isLoading, login, register, logout, updateProfile],
+    [expert, isLoading, login, register, logout, updateProfile, setAvailability],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

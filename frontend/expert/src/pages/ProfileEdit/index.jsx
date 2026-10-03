@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 
 import { useAuth } from "../../context/AuthContext";
 import { CONSULT_CATEGORIES } from "../../config";
-import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Textarea from "../../components/ui/Textarea";
 import ImageCropper from "../../components/common/ImageCropper";

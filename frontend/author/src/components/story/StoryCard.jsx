@@ -12,8 +12,7 @@ import { Icons } from "../../icons";
  * like · comment · share row.
  *
  * The two reading actions come from the shared hook, so the card and the
- * reader behave identically. Following happens on the author's profile
- * page, so the card only links there.
+ * reader behave identically.
  */
 export default function StoryCard({ story, showActions = true }) {
   const { liked, likeCount, recentLikers, toggleLike, shareStory } =
@@ -66,7 +65,7 @@ export default function StoryCard({ story, showActions = true }) {
         </div>
       </Link>
 
-      {/* Author — the whole row opens their profile, where following lives */}
+      {/* Author — the whole row opens their profile */}
       <div className="p-5 pb-3">
         <Link
           to={authorUrl}

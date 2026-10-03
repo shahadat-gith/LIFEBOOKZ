@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import api from "../../../config/api";
-import { useAuth } from "../../../context/AuthContext";
 import {
   EMPTY_FILTERS,
   activeFilterCount,
@@ -18,8 +17,6 @@ const PAGE_SIZE = 10;
  * feed costs one request no matter how many controls were touched.
  */
 export default function useFeed() {
-  const { isAuthenticated } = useAuth();
-
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -58,7 +55,7 @@ export default function useFeed() {
         params: {
           page: nextPage,
           limit: PAGE_SIZE,
-          ...feedQuery(filters, { canFilterFollowing: isAuthenticated }),
+          ...feedQuery(filters),
         },
       });
 
@@ -83,7 +80,6 @@ export default function useFeed() {
     filters.profession,
     filters.authorName,
     filters.gender,
-    filters.followingOnly,
   ]);
 
   // Infinite scroll: load the next page as the sentinel comes into view.

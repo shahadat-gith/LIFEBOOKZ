@@ -4,7 +4,6 @@ import Badge from "../../../components/ui/Badge";
 
 const VISIBILITY = {
   public: { label: "Everyone", variant: "success", Icon: Icons.globe },
-  followers: { label: "Followers", variant: "info", Icon: Icons.user },
   private: { label: "Only me", variant: "warning", Icon: Icons.lock },
 };
 

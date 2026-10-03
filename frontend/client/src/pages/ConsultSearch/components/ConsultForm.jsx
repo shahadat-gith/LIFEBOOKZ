@@ -1,13 +1,6 @@
 import { Icons } from "../../../icons";
 import FormError from "../../../components/common/FormError";
-import { SESSION_TYPES, categoryOptions } from "../utils";
-
-/** The icon shown for each session type. */
-const SESSION_ICONS = {
-  video: Icons.videoCamera,
-  audio: Icons.phone,
-  chat: Icons.chat,
-};
+import { categoryOptions } from "../utils";
 
 const FIELD_CLASS =
   "mt-2 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
@@ -16,8 +9,8 @@ const LABEL_CLASS =
   "text-xs font-bold uppercase tracking-wider text-muted-foreground";
 
 /**
- * The whole consult brief — what is going on, which category, how the person
- * would like to talk, and anything else — in one form.
+ * The whole consult brief — what is going on, which category, and anything
+ * else — in one form.
  *
  * The page owns the values and does the matching; this only lays them out
  * and reports changes.
@@ -27,8 +20,6 @@ export default function ConsultForm({
   onProblemChange,
   category,
   onCategoryChange,
-  sessionType,
-  onSessionTypeChange,
   details,
   onDetailsChange,
   error,
@@ -60,52 +51,24 @@ export default function ConsultForm({
         </p>
       </div>
 
-      {/* Category + session type */}
-      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="consult-category" className={LABEL_CLASS}>
-            Category
-          </label>
-          <select
-            id="consult-category"
-            value={category}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            className={FIELD_CLASS}
-          >
-            <option value="">Select a category…</option>
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <span className={LABEL_CLASS}>Preferred session</span>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {SESSION_TYPES.map((type) => {
-              const Icon = SESSION_ICONS[type.id] || Icons.chat;
-              const active = sessionType === type.id;
-
-              return (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => onSessionTypeChange(type.id)}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-[11px] font-bold transition-all duration-200 ${
-                    active
-                      ? "border-accent bg-accent/[0.06] text-foreground ring-1 ring-accent/40"
-                      : "border-border/70 text-muted-foreground hover:border-accent/40 hover:text-foreground"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${active ? "text-accent" : ""}`} />
-                  {type.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Category */}
+      <div className="mt-6">
+        <label htmlFor="consult-category" className={LABEL_CLASS}>
+          Category
+        </label>
+        <select
+          id="consult-category"
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className={FIELD_CLASS}
+        >
+          <option value="">Select a category…</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Extra context */}

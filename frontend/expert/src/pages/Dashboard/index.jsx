@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 import { useAuth } from "../../context/AuthContext";
 import { CONSULT_CATEGORIES } from "../../config";
-import * as expertApi from "../../api/expert";
+import * as consultApi from "../../api/consultation";
 import { formatDate } from "../../utils/helpers";
 
 import Avatar from "../../components/ui/Avatar";
@@ -18,16 +18,12 @@ import LoadingScreen from "../../components/common/LoadingScreen";
 import { Icons } from "../../icons";
 
 const STATUS_BADGE = {
-  pending: { variant: "warning", label: "Pending" },
-  confirmed: { variant: "info", label: "Confirmed" },
-  completed: { variant: "success", label: "Completed" },
-  cancelled: { variant: "danger", label: "Cancelled" },
-};
-
-const SESSION_LABELS = {
-  video: "Video call",
-  audio: "Audio call",
-  chat: "Chat session",
+  PENDING: { variant: "warning", label: "New request" },
+  CONFIRMED: { variant: "info", label: "Confirmed — waiting for client" },
+  IN_PROGRESS: { variant: "success", label: "In session" },
+  COMPLETED: { variant: "default", label: "Completed" },
+  CANCELLED: { variant: "danger", label: "Cancelled" },
+  EXPIRED: { variant: "danger", label: "Expired" },
 };
 
 function categoryLabel(id) {
@@ -37,18 +33,19 @@ function categoryLabel(id) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { expert, isLoading: authLoading } = useAuth();
+  const { expert, isLoading: authLoading, setAvailability: persistAvailability } = useAuth();
 
-  const [bookings, setBookings] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
 
-  const loadBookings = useCallback(async () => {
+  const loadConsultations = useCallback(async () => {
     try {
-      const data = await expertApi.getMyBookings();
-      setBookings(data || []);
+      const data = await consultApi.listMine();
+      setConsultations(data || []);
     } catch {
-      toast.error("Could not load your bookings.");
+      toast.error("Could not load your consultations.");
     } finally {
       setLoading(false);
     }
@@ -60,37 +57,55 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!expert) return;
-    loadBookings();
-  }, [expert, loadBookings]);
+    loadConsultations();
+  }, [expert, loadConsultations]);
 
-  const stats = useMemo(
-    () => ({
-      total: bookings.length,
-      pending: bookings.filter((b) => b.status === "pending").length,
-      confirmed: bookings.filter((b) => b.status === "confirmed").length,
-      completed: bookings.filter((b) => b.status === "completed").length,
-    }),
-    [bookings],
-  );
+  const stats = useMemo(() => {
+    const count = (status) => consultations.filter((c) => c.status === status).length;
+    return {
+      total: consultations.length,
+      pending: count("PENDING"),
+      active: count("CONFIRMED"),
+      inProgress: count("IN_PROGRESS"),
+      completed: count("COMPLETED"),
+    };
+  }, [consultations]);
 
   const isApproved = expert?.verification?.status === "approved";
   const isRejected = expert?.verification?.status === "rejected";
+  const isAvailable = expert?.isAvailable !== false;
 
-  const handleStatusChange = async (booking, status) => {
-    const id = booking._id || booking.id;
-    setUpdatingId(id);
+  /** Master switch: appear in search results / take new requests or not. */
+  const toggleAvailability = async () => {
+    if (togglingAvailability) return;
+    setTogglingAvailability(true);
     try {
-      await expertApi.updateBookingStatus(id, status);
-      setBookings((prev) =>
-        prev.map((b) => ((b._id || b.id) === id ? { ...b, status } : b)),
+      await persistAvailability(!isAvailable);
+      toast.success(
+        isAvailable
+          ? "You are now unavailable — new requests won't reach you."
+          : "You are available again — clients can find you.",
       );
-      toast.success(`Booking marked as ${status}.`);
     } catch (err) {
       toast.error(
-        err.response?.data?.error?.message || "Could not update the booking.",
+        err.response?.data?.error?.message || "Could not update availability.",
       );
     } finally {
-      setUpdatingId(null);
+      setTogglingAvailability(false);
+    }
+  };
+
+  const run = (id, fn) => async () => {
+    setBusyId(id);
+    try {
+      await fn();
+      await loadConsultations();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error?.message || "That didn't work. Please try again.",
+      );
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -135,14 +150,42 @@ export default function Dashboard() {
                     ? "Application Rejected"
                     : "Pending Approval"}
               </Badge>
+              <Badge variant={isAvailable ? "success" : "danger"}>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isAvailable ? "bg-emerald-500" : "bg-rose-500"
+                    }`}
+                  />
+                  {isAvailable ? "Available" : "Unavailable"}
+                </span>
+              </Badge>
               <span className="text-xs text-muted-foreground">
-                {expert.rating ? `${expert.rating.toFixed(1)} ★` : "No ratings yet"}
+                {expert.ratingCount
+                  ? `${expert.rating.toFixed(1)} ★ · ${expert.ratingCount} rating${expert.ratingCount === 1 ? "" : "s"}`
+                  : "No ratings yet"}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          <Button
+            size="lg"
+            variant={isAvailable ? "ghost" : "success"}
+            loading={togglingAvailability}
+            onClick={toggleAvailability}
+            icon={
+              isAvailable ? (
+                <Icons.close className="h-4 w-4" />
+              ) : (
+                <Icons.check className="h-4 w-4" />
+              )
+            }
+            className="w-full sm:w-auto"
+          >
+            {isAvailable ? "Mark unavailable" : "Mark available"}
+          </Button>
           <Link to="/profile/edit">
             <Button
               size="lg"
@@ -183,7 +226,7 @@ export default function Dashboard() {
                   </p>
                   <p className="mt-1 text-xs">
                     Once approved, your profile gets matched with people who
-                    need your expertise and bookings will appear here.
+                    need your expertise and requests will appear here.
                   </p>
                 </>
               )}
@@ -195,9 +238,9 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Bookings", value: stats.total, tone: "text-foreground" },
-          { label: "Pending", value: stats.pending, tone: "text-warning" },
-          { label: "Confirmed", value: stats.confirmed, tone: "text-info" },
+          { label: "Total Requests", value: stats.total, tone: "text-foreground" },
+          { label: "Awaiting Your Reply", value: stats.pending, tone: "text-warning" },
+          { label: "Live / Upcoming", value: stats.active + stats.inProgress, tone: "text-info" },
           { label: "Completed", value: stats.completed, tone: "text-success" },
         ].map((item) => (
           <Card key={item.label} padding="md" className="border border-border/60 bg-card/60 shadow-xs">
@@ -213,17 +256,17 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Bookings */}
+      {/* Consultations */}
       <Card className="border border-border/60 bg-card shadow-xs">
         <CardContent className="p-6">
           <div className="mb-6 flex items-center justify-between border-b border-border/40 pb-4">
             <CardTitle className="font-display text-lg font-semibold tracking-tight">
               Consultation Requests
             </CardTitle>
-            {bookings.length > 0 && (
+            {consultations.length > 0 && (
               <button
                 type="button"
-                onClick={loadBookings}
+                onClick={loadConsultations}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
                 <Icons.refresh className="h-3.5 w-3.5" /> Refresh
@@ -231,27 +274,26 @@ export default function Dashboard() {
             )}
           </div>
 
-          {bookings.length === 0 ? (
+          {consultations.length === 0 ? (
             <EmptyState
-              icon={<Icons.calendar className="h-10 w-10 text-muted-foreground" />}
-              title="No bookings yet"
+              icon={<Icons.videoCamera className="h-10 w-10 text-muted-foreground" />}
+              title="No requests yet"
               description={
                 isApproved
-                  ? "When someone books a session with you, it will show up here."
-                  : "Bookings will appear here once your account is approved."
+                  ? "When someone requests a session with you, it will show up here."
+                  : "Requests will appear here once your account is approved."
               }
             />
           ) : (
             <div className="space-y-3">
-              {bookings.map((booking) => {
-                const id = booking._id || booking.id;
-                const badge = STATUS_BADGE[booking.status] || {
+              {consultations.map((consultation) => {
+                const id = consultation._id || consultation.id;
+                const badge = STATUS_BADGE[consultation.status] || {
                   variant: "default",
-                  label: booking.status,
+                  label: consultation.status,
                 };
-                const clientName =
-                  booking.guestName || booking.user?.fullName || "Client";
-                const busy = updatingId === id;
+                const clientName = consultation.user?.fullName || "Client";
+                const busy = busyId === id;
 
                 return (
                   <motion.div
@@ -267,75 +309,93 @@ export default function Dashboard() {
                             {clientName}
                           </h3>
                           <Badge variant={badge.variant}>{badge.label}</Badge>
-                          <Badge variant="default">
-                            {categoryLabel(booking.category)}
-                          </Badge>
-                          <Badge variant="default">
-                            {SESSION_LABELS[booking.sessionType] || booking.sessionType}
-                          </Badge>
+                          {consultation.category && (
+                            <Badge variant="default">
+                              {categoryLabel(consultation.category)}
+                            </Badge>
+                          )}
                         </div>
 
                         <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                          {booking.problem}
+                          {consultation.problem}
                         </p>
 
                         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {booking.date && (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Icons.calendar className="h-3.5 w-3.5" />
-                              {formatDate(booking.date)} {booking.time && `· ${booking.time}`}
-                            </span>
-                          )}
-                          {booking.guestEmail && (
+                          {consultation.userEmail && (
                             <span className="inline-flex items-center gap-1.5">
                               <Icons.mail className="h-3.5 w-3.5" />
-                              {booking.guestEmail}
+                              {consultation.userEmail}
                             </span>
                           )}
-                          {booking.guestPhone && (
+                          {typeof consultation.amount === "number" && (
                             <span className="inline-flex items-center gap-1.5">
-                              <Icons.phone className="h-3.5 w-3.5" />
-                              {booking.guestPhone}
+                              <Icons.money className="h-3.5 w-3.5" />
+                              ₹{(consultation.amount / 100).toFixed(0)} — client pays when they join
                             </span>
                           )}
                         </div>
 
-                        {booking.notes && (
+                        {consultation.notes && (
                           <p className="mt-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                            {booking.notes}
+                            {consultation.notes}
                           </p>
                         )}
                       </div>
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-                        {booking.status === "pending" && (
-                          <Button
-                            size="sm"
-                            loading={busy}
-                            onClick={() => handleStatusChange(booking, "confirmed")}
-                            icon={<Icons.check className="h-3.5 w-3.5" />}
-                          >
-                            Confirm
-                          </Button>
+                        {consultation.status === "PENDING" && (
+                          <>
+                            <Button
+                              size="sm"
+                              loading={busy}
+                              onClick={run(id, () => consultApi.accept(id))}
+                              icon={<Icons.check className="h-3.5 w-3.5" />}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy}
+                              onClick={run(id, () => consultApi.decline(id))}
+                              icon={<Icons.close className="h-3.5 w-3.5" />}
+                            >
+                              Decline
+                            </Button>
+                          </>
                         )}
-                        {booking.status === "confirmed" && (
-                          <Button
-                            size="sm"
-                            variant="success"
-                            loading={busy}
-                            onClick={() => handleStatusChange(booking, "completed")}
-                            icon={<Icons.checkCircle className="h-3.5 w-3.5" />}
-                          >
-                            Mark Completed
-                          </Button>
+
+                        {["CONFIRMED", "IN_PROGRESS"].includes(consultation.status) && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="success"
+                              onClick={() => navigate(`/consult/${id}/session`)}
+                              icon={<Icons.videoCamera className="h-3.5 w-3.5" />}
+                            >
+                              {consultation.status === "IN_PROGRESS" ? "Rejoin session" : "Join session"}
+                            </Button>
+                            {consultation.status === "IN_PROGRESS" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busy}
+                                onClick={run(id, () => consultApi.endSession(id))}
+                                icon={<Icons.close className="h-3.5 w-3.5" />}
+                              >
+                                Close meeting
+                              </Button>
+                            )}
+                          </>
                         )}
-                        {["pending", "confirmed"].includes(booking.status) && (
+
+                        {["PENDING", "CONFIRMED"].includes(consultation.status) && (
                           <Button
                             size="sm"
                             variant="ghost"
                             disabled={busy}
-                            onClick={() => handleStatusChange(booking, "cancelled")}
+                            onClick={run(id, () => consultApi.cancel(id))}
                             icon={<Icons.close className="h-3.5 w-3.5" />}
                           >
                             Cancel

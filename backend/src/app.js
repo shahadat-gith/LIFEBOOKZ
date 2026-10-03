@@ -2,11 +2,11 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 
-import config from "./core/config/index.js";
+import config from "./config/index.js";
 
 import apiRoutes from "./routes/index.js";
-import requestLogger from "./core/middlewares/requestLogger.js";
-import errorHandler from "./core/middlewares/errorHandler.js";
+import requestLogger from "./middleware/requestLogger.js";
+import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -28,6 +28,13 @@ app.use(
     ],
     credentials: true,
   })
+);
+
+// The Razorpay webhook MUST see the raw body so its HMAC signature can be
+// verified byte-for-byte — mounted before the JSON parser consumes the stream.
+app.use(
+  "/api/v1/consult/webhook",
+  express.raw({ type: "*/*", limit: "256kb" }),
 );
 
 app.use(express.json({ limit: "10mb" }));

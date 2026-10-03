@@ -6,10 +6,14 @@ import api from "../../config/api";
 import { apiErrorMessage } from "../../utils/helpers";
 import { useAuth } from "../../context/AuthContext";
 import SignInPrompt from "../../components/common/SignInPrompt";
+import * as consultApi from "../../api/consultation";
 import ConsultHeader from "./components/ConsultHeader";
 import ConsultForm from "./components/ConsultForm";
 import MatchResults from "./components/MatchResults";
-import { buildProblem, saveConsultContext, validateConsult } from "./utils";
+import {
+  buildProblem,
+  validateConsult,
+} from "./utils";
 
 /**
  * Expert matching: describe a problem, pick a category, and see the experts
@@ -26,14 +30,13 @@ export default function ConsultSearchPage() {
 
   const [problem, setProblem] = useState("");
   const [category, setCategory] = useState(searchParams.get("category") || "");
-  const [sessionType, setSessionType] = useState("video");
   const [details, setDetails] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [experts, setExperts] = useState([]);
-  const [matched, setMatched] = useState(true);
   const [error, setError] = useState("");
+  const [bookingId, setBookingId] = useState(null);
 
   /* ---------- Clear the error as soon as the form is touched ---------- */
   function change(setter) {
@@ -65,11 +68,12 @@ export default function ConsultSearchPage() {
 
       const found = res.data?.data?.experts || [];
       setExperts(found);
-      setMatched(res.data?.data?.matched !== false);
       setSearched(true);
 
       if (found.length === 0) {
-        toast.error("No experts matched. Try describing your problem differently.");
+        toast.error(
+          "No available expert found in this category right now — please try again a bit later.",
+        );
       }
 
       requestAnimationFrame(() => {
@@ -90,22 +94,32 @@ export default function ConsultSearchPage() {
     }
   }
 
-  /* ---------- Book one of the matches ---------- */
-  function handleBook(expert) {
+  /* ---------- Book one of the matches straight from the brief ---------- */
+  async function handleBook(expert) {
     const expertId = expert.id || expert._id;
-    const brief = {
-      problem: problem.trim(),
-      category,
-      sessionType,
-      details: details.trim(),
-    };
+    if (bookingId) return; // one booking at a time
 
-    // Carry the consult context so the booking form is prefilled.
-    saveConsultContext(brief);
+    setBookingId(expertId);
 
-    navigate(`/consult/book/${expertId}`, {
-      state: { problem: brief.problem, category, sessionType },
-    });
+    try {
+      await consultApi.createRequest({
+        expertId,
+        problem: buildProblem(problem, details),
+        category,
+        notes: details.trim(),
+      });
+
+      toast.success(
+        `Request sent to ${expert.fullName}. You'll get an email as soon as it's confirmed.`,
+      );
+      navigate("/bookings");
+    } catch (err) {
+      toast.error(
+        apiErrorMessage(err, "Could not send your request. Please try again."),
+      );
+    } finally {
+      setBookingId(null);
+    }
   }
 
   /* ---------- Matching needs an account ---------- */
@@ -129,8 +143,6 @@ export default function ConsultSearchPage() {
           onProblemChange={change(setProblem)}
           category={category}
           onCategoryChange={change(setCategory)}
-          sessionType={sessionType}
-          onSessionTypeChange={change(setSessionType)}
           details={details}
           onDetailsChange={change(setDetails)}
           error={error}
@@ -140,7 +152,11 @@ export default function ConsultSearchPage() {
 
         {searched && (
           <div ref={resultsRef}>
-            <MatchResults experts={experts} matched={matched} onBook={handleBook} />
+            <MatchResults
+              experts={experts}
+              bookingId={bookingId}
+              onBook={handleBook}
+            />
           </div>
         )}
       </div>

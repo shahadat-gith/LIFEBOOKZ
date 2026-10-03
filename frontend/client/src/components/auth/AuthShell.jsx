@@ -10,8 +10,8 @@ const HIGHLIGHTS = [
   },
   {
     icon: Icons.heartRegular,
-    title: "Follow & connect",
-    text: "Follow the storytellers who move you and keep their new chapters coming.",
+    title: "Like & appreciate",
+    text: "Show some love to the storytellers who move you — every like encourages them to keep writing.",
   },
   {
     icon: Icons.shieldCheck,

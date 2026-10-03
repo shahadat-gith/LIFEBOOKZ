@@ -10,7 +10,6 @@ export const EMPTY_FILTERS = {
   authorName: "",
   profession: "",
   gender: "",
-  followingOnly: false,
 };
 
 /**
@@ -24,7 +23,6 @@ export function activeFilterCount(filters = {}) {
     filters.profession,
     filters.authorName,
     filters.gender,
-    filters.followingOnly,
   ].filter(Boolean).length;
 }
 
@@ -32,16 +30,14 @@ export function activeFilterCount(filters = {}) {
  * The filters as `/stories` expects them.
  *
  * Unset filters are left out entirely so the request URL stays readable and
- * the API keeps its defaults. "Following" is only ever sent to a signed-in
- * reader — a guest has no follow list.
+ * the API keeps its defaults.
  */
-export function feedQuery(filters = {}, { canFilterFollowing = false } = {}) {
+export function feedQuery(filters = {}) {
   const params = {};
 
   if (filters.profession) params.profession = filters.profession;
   if (filters.authorName) params.authorName = filters.authorName;
   if (filters.gender) params.gender = filters.gender;
-  if (filters.followingOnly && canFilterFollowing) params.following = "true";
 
   return params;
 }

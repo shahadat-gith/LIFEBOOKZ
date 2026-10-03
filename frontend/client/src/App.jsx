@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
@@ -24,6 +24,7 @@ import BookExpert from "./pages/BookExpert";
 import ConsultSearch from "./pages/ConsultSearch";
 import Consultation from "./pages/Consultation";
 import MyBookings from "./pages/MyBookings";
+import SessionPage from "./pages/Session";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import NotFound from "./pages/NotFound";
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/consult" element={<Consultation />} />
             <Route path="/consult/book" element={<ConsultSearch />} />
             <Route path="/consult/book/:expertId" element={<BookExpert />} />
+            <Route path="/consult/:consultationId/session" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
             <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />

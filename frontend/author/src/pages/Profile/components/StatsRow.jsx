@@ -1,7 +1,7 @@
-/** Four-stat row (followers / following / chapters / stories). */
+/** Stat row (chapters / stories / likes). */
 export default function StatsRow({ stats, loading = false }) {
   return (
-    <div className="rounded-2xl bg-card border border-border/60 shadow-xs px-2 py-4 grid grid-cols-4 divide-x divide-border/50">
+    <div className="rounded-2xl bg-card border border-border/60 shadow-xs px-2 py-4 grid grid-cols-3 divide-x divide-border/50">
       {stats.map((s) => (
         <div key={s.label} className="text-center px-1">
           {loading ? (

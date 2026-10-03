@@ -65,7 +65,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Where following happens — reached from an author's name */}
+            {/* An author's public profile — reached from an author's name */}
             <Route
               path="/authors/:id"
               element={

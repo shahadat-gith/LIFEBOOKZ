@@ -8,19 +8,22 @@ import { Icons } from "../../icons";
 import SignInPrompt from "../../components/common/SignInPrompt";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingScreen from "../../components/common/LoadingScreen";
-import { getAvailableSlots, getCategoryLabel } from "../../data/coaches";
+
+import * as consultApi from "../../api/consultation";
+import { readConsultContext } from "./utils";
 
 import ExpertSidebar from "./components/ExpertSidebar";
 import BookingForm from "./components/BookingForm";
-import BookingSuccess from "./components/BookingSuccess";
-import { readConsultContext } from "./utils";
+import RequestSuccess from "./components/RequestSuccess";
 
 /**
- * Book a session with one expert.
+ * Book a session with one expert — simplified flow.
  *
- * The page owns the booking draft (it is sent as one request and then shown
- * back on the confirmation screen); the sidebar, the form and the
- * confirmation are their own components.
+ * 1. The user describes their problem and sends the request.
+ * 2. `POST /consult/requests` creates a PENDING consultation and emails
+ *    the expert (problem + category + dashboard CTA).
+ * 3. The confirmation screen explains the next step: the expert confirms →
+ *    the user gets the room link by email → payment happens at the door.
  */
 export default function BookExpert() {
   const { expertId } = useParams();
@@ -33,32 +36,25 @@ export default function BookExpert() {
     return { ...stored, ...(location.state || {}) };
   }, [location.state]);
 
-  const { timeSlots, days } = useMemo(() => getAvailableSlots(), []);
-
   const [expert, setExpert] = useState(null);
   const [loadingExpert, setLoadingExpert] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   const [problem, setProblem] = useState(context.problem || "");
   const [category, setCategory] = useState(context.category || "");
-  const [sessionType, setSessionType] = useState(
-    context.sessionType || "video",
-  );
-  const [date, setDate] = useState(days[0]);
-  const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
-  const [booking, setBooking] = useState(null);
+  const [created, setCreated] = useState(null);
 
   useEffect(() => {
     let active = true;
 
     (async () => {
       try {
-        const res = await api.get(`/experts/${expertId}`);
+        const expertRes = await api.get(`/experts/${expertId}`);
         if (!active) return;
-        setExpert(res.data.data);
+        setExpert(expertRes.data.data);
       } catch {
         if (active) setNotFound(true);
       } finally {
@@ -78,43 +74,34 @@ export default function BookExpert() {
     if (first) setCategory(first);
   }, [expert, category, context.category]);
 
-  const handleBooking = async (event) => {
+  const handleRequest = async (event) => {
     event.preventDefault();
 
     if (problem.trim().length < 10) {
       toast.error("Please describe your problem in at least 10 characters.");
       return;
     }
-
     if (!category) {
       toast.error("Please pick a category.");
-      return;
-    }
-
-    if (!time) {
-      toast.error("Please pick a time slot.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const res = await api.post("/consult/bookings", {
+      const consultation = await consultApi.createRequest({
         expertId: expert.id || expert._id,
         problem: problem.trim(),
         category,
-        sessionType,
-        date,
-        time,
         notes: notes.trim(),
       });
 
-      setBooking(res.data.data);
+      setCreated(consultation);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       toast.error(
         err.response?.data?.error?.message ||
-          "Booking failed. Please try again.",
+          "Could not send your request. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -123,12 +110,12 @@ export default function BookExpert() {
 
   if (loadingExpert) return <LoadingScreen message="Loading expert…" />;
 
-  // Bookings are tied to an account.
+  // Requests are tied to an account.
   if (!authLoading && !isAuthenticated) {
     return (
       <SignInPrompt
-        title="Sign in to book a session"
-        description="Sessions are tied to your account so you and your expert can keep track of them. Log in to continue with this booking."
+        title="Sign in to request a session"
+        description="Sessions are tied to your account so you and your expert can keep track of them. Log in to continue."
       />
     );
   }
@@ -155,16 +142,8 @@ export default function BookExpert() {
     );
   }
 
-  if (booking) {
-    return (
-      <BookingSuccess
-        expert={expert}
-        sessionType={sessionType}
-        date={date}
-        time={time}
-        category={category || expert.categories?.[0]}
-      />
-    );
+  if (created) {
+    return <RequestSuccess consultation={created} expert={expert} />;
   }
 
   return (
@@ -183,25 +162,14 @@ export default function BookExpert() {
 
           <BookingForm
             expert={expert}
-            days={days}
-            timeSlots={timeSlots}
             problem={problem}
             onProblemChange={setProblem}
             category={category}
             onCategoryChange={setCategory}
-            sessionType={sessionType}
-            onSessionTypeChange={setSessionType}
-            date={date}
-            onDateChange={(next) => {
-              setDate(next);
-              setTime("");
-            }}
-            time={time}
-            onTimeChange={setTime}
             notes={notes}
             onNotesChange={setNotes}
             submitting={submitting}
-            onSubmit={handleBooking}
+            onSubmit={handleRequest}
           />
         </div>
       </div>

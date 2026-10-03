@@ -2,33 +2,19 @@ import { Icons } from "../../../icons";
 import Button from "../../../components/ui/Button";
 import Field, { fieldControlClass } from "../../../components/ui/Field";
 import { coachCategories } from "../../../data/coaches";
-import {
-  SessionTypePicker,
-  DayPicker,
-  TimeSlotPicker,
-} from "./BookingPickers";
 import { priceLabel } from "../utils";
 
 /**
- * The booking form: what help is needed, which category, and when.
- *
- * All five controls are owned by the page (it needs them for the request and
- * the confirmation screen), so this is a controlled form.
+ * The request form: what help is needed and which category. No time-picking —
+ * the expert confirms the session when they are free, and the user is emailed
+ * the meeting room link. Payment happens at the room door.
  */
 export default function BookingForm({
   expert,
-  days,
-  timeSlots,
   problem,
   onProblemChange,
   category,
   onCategoryChange,
-  sessionType,
-  onSessionTypeChange,
-  date,
-  onDateChange,
-  time,
-  onTimeChange,
   notes,
   onNotesChange,
   submitting,
@@ -40,10 +26,11 @@ export default function BookingForm({
       className="rounded-2xl border border-border/70 bg-card p-6 shadow-xs sm:p-8"
     >
       <h2 className="font-display text-2xl font-extrabold text-foreground">
-        Book your session
+        Request a session
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Share what you need help with and pick a time that works for you.
+        Tell {expert.fullName?.split(" ")[0] || "the expert"} what you need help
+        with — they&apos;ll confirm your session from their dashboard.
       </p>
 
       <Field
@@ -53,7 +40,7 @@ export default function BookingForm({
       >
         <textarea
           id="booking-problem"
-          rows={4}
+          rows={5}
           value={problem}
           onChange={(e) => onProblemChange(e.target.value)}
           placeholder="Describe your situation so the expert can prepare"
@@ -77,17 +64,11 @@ export default function BookingForm({
         </select>
       </Field>
 
-      <SessionTypePicker value={sessionType} onChange={onSessionTypeChange} />
-
-      <DayPicker days={days} value={date} onChange={onDateChange} />
-
-      <TimeSlotPicker slots={timeSlots} value={time} onChange={onTimeChange} />
-
       <Field
         label="Additional notes"
         htmlFor="booking-notes"
         hint="(optional)"
-        className="mt-7"
+        className="mt-6"
       >
         <textarea
           id="booking-notes"
@@ -101,7 +82,9 @@ export default function BookingForm({
 
       <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 sm:flex-row">
         <div className="text-center sm:text-left">
-          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-xs text-muted-foreground">
+            Session fee — paid when you join
+          </p>
           <p className="font-display text-2xl font-extrabold text-foreground">
             {priceLabel(expert.price)}
           </p>
@@ -111,19 +94,16 @@ export default function BookingForm({
           type="submit"
           size="lg"
           loading={submitting}
-          disabled={!time}
           className="w-full rounded-full px-8 sm:w-auto"
         >
           <Icons.checkCircle className="h-4 w-4" />
-          Confirm Booking
+          Send request
         </Button>
       </div>
 
-      {!time && (
-        <p className="mt-3 text-center text-xs text-muted-foreground sm:text-right">
-          Select a time slot to confirm.
-        </p>
-      )}
+      <p className="mt-3 text-center text-xs text-muted-foreground sm:text-right">
+        You&apos;ll only pay when you enter the meeting room.
+      </p>
     </form>
   );
 }

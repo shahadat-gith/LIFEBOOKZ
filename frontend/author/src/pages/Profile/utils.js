@@ -75,21 +75,18 @@ export function chapterRows(stories = []) {
 }
 
 /**
- * The four headline numbers under the profile header.
+ * The headline numbers under the profile header.
  *
- * `stats` is null until the social counts arrive, so it is normalized here
- * rather than guarded at every use.
+ * `stats` is null until the engagement counts arrive, so it is normalized
+ * here rather than guarded at every use.
  */
 export function profileStats(rows = [], stats = null) {
-  const { followers = 0, following = 0 } = stats || {};
-
   return [
-    { value: followers, label: "Followers" },
-    { value: following, label: "Following" },
     { value: rows.length, label: "Chapters" },
     {
       value: rows.reduce((sum, row) => sum + (row.storyCount || 0), 0),
       label: "Stories",
     },
+    { value: stats?.likes || 0, label: "Likes" },
   ];
 }

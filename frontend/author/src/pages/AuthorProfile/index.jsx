@@ -14,16 +14,14 @@ import AuthorMissing from "./components/AuthorMissing";
 /**
  * An author's public profile.
  *
- * This is where following happens: the profile request itself reports
- * whether the signed-in account already follows this author, so the button
- * is drawn correctly from the first paint and never asks a second time.
+ * The profile and the author's lifebooks are independent reads, so they
+ * load in parallel and one failing never blanks the other.
  */
 export default function AuthorProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [author, setAuthor] = useState(null);
-  const [following, setFollowing] = useState(false);
   const [lifebooks, setLifebooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,10 +37,7 @@ export default function AuthorProfilePage() {
 
     api
       .get(`/authors/${id}`)
-      .then((res) => {
-        setAuthor(res.data.data);
-        setFollowing(Boolean(res.data.data.isFollowedByLoggedInUser));
-      })
+      .then((res) => setAuthor(res.data.data))
       .catch((err) => {
         setAuthor(null);
         setError(
@@ -80,11 +75,7 @@ export default function AuthorProfilePage() {
       </button>
 
       <div className="mt-6">
-        <AuthorHeader
-          author={author}
-          following={following}
-          onFollowChange={setFollowing}
-        />
+        <AuthorHeader author={author} />
       </div>
 
       {/* What they have written */}

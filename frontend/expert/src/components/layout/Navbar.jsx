@@ -6,25 +6,18 @@ import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
-import NotificationsDrawer from "./NotificationsDrawer";
-import useNotifications from "../../hooks/useNotifications";
-import api from "../../config/api";
 
 export function Navbar() {
   const { expert, isAuthenticated, logout } = useAuth();
   const loc = useLocation();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [mobile, setMobile] = useState(false);
   const dropdownRef = useRef(null);
-  const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isA = (p) => loc.pathname === p;
 
   // Navigation lives in the profile dropdown, like the author portal — the
-  // navbar itself stays quiet: brand on the left, notifications and account
-  // on the right.
+  // navbar itself stays quiet: brand on the left, account on the right.
   const links = [
     { to: "/", label: "Home", icon: Icons.home },
     { to: "/dashboard", label: "Dashboard", icon: Icons.dashboard },
@@ -43,7 +36,6 @@ export function Navbar() {
 
   async function handleLogout() {
     setProfileOpen(false);
-    setMobile(false);
     await logout();
     navigate("/login");
   }
@@ -68,23 +60,8 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Right cluster: notifications + profile */}
+          {/* Right cluster: profile */}
           <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => setNotifOpen(true)}
-                aria-label="Notifications"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors"
-              >
-                <Icons.bell className="h-5 w-5" />
-                {unread > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-accent-foreground">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
-              </button>
-            )}
 
             {isAuthenticated && expert ? (
               <div className="relative" ref={dropdownRef}>
@@ -165,66 +142,9 @@ export function Navbar() {
                 </Link>
               </div>
             )}
-
-            {/* Mobile hamburger */}
-            <button
-              type="button"
-              onClick={() => setMobile(!mobile)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors md:hidden"
-              aria-label="Toggle menu"
-            >
-              {mobile ? (
-                <Icons.close className="h-5 w-5" />
-              ) : (
-                <Icons.menu className="h-5 w-5" />
-              )}
-            </button>
           </div>
         </div>
-
-        {/* Mobile menu — the same items as the profile dropdown */}
-        <AnimatePresence>
-          {mobile && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t border-border/50 md:hidden"
-            >
-              <div className="space-y-1 py-3">
-                {links.map((l) => {
-                  const Icon = l.icon;
-                  return (
-                    <Link
-                      key={l.to}
-                      to={l.to}
-                      onClick={() => setMobile(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        isA(l.to)
-                          ? "bg-primary/5 text-primary font-semibold"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" /> {l.label}
-                    </Link>
-                  );
-                })}
-                {!isAuthenticated && (
-                  <Link
-                    to="/register"
-                    onClick={() => setMobile(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <Icons.userAdd className="h-4 w-4" /> Apply as an Expert
-                  </Link>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-      {/* Notifications drawer */}
-      <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
     </header>
   );
 }

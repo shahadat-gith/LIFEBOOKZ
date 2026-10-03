@@ -1,4 +1,3 @@
-import { useAuth } from "../../context/AuthContext";
 import FilterModal from "./components/FilterModal";
 
 import FeedHeader from "./components/FeedHeader";
@@ -13,7 +12,6 @@ import useFeed from "./hooks/useFeed";
  * feed is one request no matter how many controls were touched.
  */
 export default function FeedPage() {
-  const { isAuthenticated } = useAuth();
   const feed = useFeed();
 
   return (
@@ -38,7 +36,6 @@ export default function FeedPage() {
         draft={feed.draft}
         professions={feed.professions}
         professionsLoading={feed.professionsLoading}
-        canFilterFollowing={isAuthenticated}
         onChange={feed.setDraftFilter}
         onClear={feed.clearFilters}
         onApply={feed.applyFilters}

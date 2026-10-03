@@ -46,7 +46,7 @@ export const VALUES = [
 const MISSION_PARAGRAPHS = [
   "Life began as a simple idea: our most important stories were being lost. Photographs fade, voices grow quiet, and the little details that make a life remarkable slip away with time.",
   "We built Lifebookz so that no one's story has to disappear. Whether it's a grandmother's childhood in another country, a hard-won career milestone, or the everyday moments that made you who you are — we give you a beautiful, lasting place to keep them.",
-  "And because the best stories deserve to be heard, we pair every legacy with a community of readers who can follow along, learn, and be moved by the lives of others.",
+  "And because the best stories deserve to be heard, we pair every legacy with a community of readers who can read along, learn, and be moved by the lives of others.",
 ];
 
 export { MISSION_PARAGRAPHS };

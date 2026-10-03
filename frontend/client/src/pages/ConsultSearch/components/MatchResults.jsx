@@ -3,13 +3,11 @@ import { ExpertMatchCard } from "./ExpertMatchCard";
 import { resultHeading } from "../utils";
 
 /**
- * The experts the matcher came back with, best first.
- *
- * `matched: false` means nobody in the chosen category fit the description
- * and the API fell back to its highest rated experts — worth saying out loud
- * rather than passing off as a personal match.
+ * The experts the matcher came back with, best first. Only experts who are
+ * actually available (approved, switched on, not in a live session) appear —
+ * an empty list genuinely means "nobody available right now".
  */
-export default function MatchResults({ experts = [], matched = true, onBook }) {
+export default function MatchResults({ experts = [], bookingId, onBook }) {
   return (
     <section className="scroll-mt-24 space-y-6 pt-4">
       <div className="space-y-2 text-center">
@@ -19,11 +17,6 @@ export default function MatchResults({ experts = [], matched = true, onBook }) {
         <h2 className="font-display text-2xl font-extrabold text-foreground md:text-3xl">
           {resultHeading(experts.length)}
         </h2>
-        {!matched && experts.length > 0 && (
-          <p className="mx-auto max-w-xl text-xs text-muted-foreground">
-            Showing the highest rated experts in this category.
-          </p>
-        )}
       </div>
 
       {experts.length > 0 ? (
@@ -32,6 +25,7 @@ export default function MatchResults({ experts = [], matched = true, onBook }) {
             <ExpertMatchCard
               key={expert.id || expert._id}
               expert={expert}
+              booking={bookingId === (expert.id || expert._id)}
               onBook={onBook}
             />
           ))}
@@ -39,8 +33,8 @@ export default function MatchResults({ experts = [], matched = true, onBook }) {
       ) : (
         <EmptyState
           icon={null}
-          title="No experts matched"
-          description="Try a broader description or a different category."
+          title="No available expert found in this category right now"
+          description="Please try again a bit later — experts come online all the time."
         />
       )}
     </section>

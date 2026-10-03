@@ -1,14 +1,9 @@
 import api from '../config/api';
 
-// Bookings assigned to the signed-in expert
+// Consultations assigned to the signed-in expert (lifecycle actions live in
+// api/consultation.js — accept/decline/session)
 export async function getMyBookings() {
   const res = await api.get('/experts/me/bookings');
-  return res.data.data;
-}
-
-// pending | confirmed | completed | cancelled
-export async function updateBookingStatus(bookingId, status) {
-  const res = await api.patch(`/experts/me/bookings/${bookingId}`, { status });
   return res.data.data;
 }
 

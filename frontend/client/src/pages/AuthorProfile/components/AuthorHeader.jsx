@@ -1,5 +1,4 @@
 import Avatar from "../../../components/ui/Avatar";
-import FollowButton from "../../../components/story/FollowButton";
 import { Icons } from "../../../icons";
 import { isVerifiedAuthor } from "../../../utils/authors";
 
@@ -21,13 +20,9 @@ function Stat({ value, label }) {
 }
 
 /**
- * Who the author is: face, name, handle, bio, the follow action and the
- * numbers behind it.
- *
- * The follow state arrives with the profile payload, so the button is correct
- * on the first paint and the page owns it from there (`onToggle`).
+ * Who the author is: face, name, handle, bio and their numbers.
  */
-export default function AuthorHeader({ author = {}, following = false, onToggle }) {
+export default function AuthorHeader({ author = {} }) {
   const name = author.fullName || "Anonymous Author";
   const meta = profileMeta(author);
   const stats = profileStats(author);
@@ -71,13 +66,6 @@ export default function AuthorHeader({ author = {}, following = false, onToggle 
         )}
 
         <div className="flex flex-col items-center gap-5 pt-1 sm:flex-row">
-          <FollowButton
-            authorId={author._id}
-            size="md"
-            following={following}
-            onToggle={onToggle}
-          />
-
           <div className="flex items-center gap-6">
             {stats.map((stat) => (
               <Stat key={stat.label} value={stat.value} label={stat.label} />

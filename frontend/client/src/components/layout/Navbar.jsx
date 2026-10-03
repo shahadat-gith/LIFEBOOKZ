@@ -1,14 +1,9 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Icons } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
 import { navLinks } from "./navigation";
 import Button from "../ui/Button";
 import UserDropdown from "./UserDropdown";
 import PortalMenu from "./PortalMenu";
-import NotificationsDrawer from "./NotificationsDrawer";
-import useNotifications from "../../hooks/useNotifications";
-import api from "../../config/api";
 
 /**
  * Brand — logo plus the two-tone wordmark: white "Life", coral "bookz".
@@ -37,21 +32,10 @@ export function Navbar() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { unread } = useNotifications(api, { enabled: isAuthenticated });
-
   const isActive = (path) => location.pathname === path;
 
-  const iconButtonClass =
-    "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground shadow-xs transition-all duration-200 hover:border-primary/25 hover:text-primary active:scale-95 sm:h-10 sm:w-10";
-
-  function openNotifications() {
-    setNotificationsOpen(true);
-  }
-
   return (
-    <>
-      <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 shadow-sm">
+    <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 shadow-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           {/* Brand wordmark */}
           <BrandWordmark />
@@ -81,27 +65,6 @@ export function Navbar() {
 
           {/* Right Corner Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Notifications */}
-            <button
-              type="button"
-              onClick={openNotifications}
-              aria-label="Notifications"
-              className={iconButtonClass}
-            >
-              <Icons.bell className="h-[18px] w-[18px]" />
-              {isAuthenticated && unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-white sm:right-2 sm:top-2">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-              {(!isAuthenticated || unread === 0) && (
-                <span
-                  aria-hidden="true"
-                  className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-background sm:right-2.5 sm:top-2.5"
-                />
-              )}
-            </button>
-
             {/* Portals + account settings */}
             <PortalMenu />
 
@@ -121,14 +84,7 @@ export function Navbar() {
             )}
           </div>
         </div>
-      </header>
-
-      {/* Overlays */}
-      <NotificationsDrawer
-        open={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-      />
-    </>
+    </header>
   );
 }
 

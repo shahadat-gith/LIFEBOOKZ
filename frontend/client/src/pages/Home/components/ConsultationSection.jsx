@@ -108,7 +108,7 @@ export function ConsultationSection() {
                   className="group inline-flex items-center gap-3 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 transition-colors group-hover:bg-white/25">
-                    <Icons.chat className="h-3.5 w-3.5 text-white" />
+                    <Icons.videoCamera className="h-3.5 w-3.5 text-white" />
                   </span>
                   Talk to a Coach
                 </Link>

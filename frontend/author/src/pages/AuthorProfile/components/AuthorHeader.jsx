@@ -1,5 +1,4 @@
 import Avatar from "../../../components/ui/Avatar";
-import FollowAuthorButton from "../../../components/common/FollowAuthorButton";
 import { Icons } from "../../../icons";
 import { isVerifiedAuthor } from "../../../utils/authors";
 import SocialLinks from "./SocialLinks";
@@ -20,11 +19,9 @@ function Stat({ value, label }) {
 }
 
 /**
- * Who this author is, and the one action their profile exists for:
- * following them. The follow state comes in with the profile, so the button
- * is controlled from here.
+ * Who this author is: face, name, handle, bio and their numbers.
  */
-export default function AuthorHeader({ author, following, onFollowChange }) {
+export default function AuthorHeader({ author }) {
   const name = author.fullName || "Anonymous Author";
   const isVerified = isVerifiedAuthor(author);
   const socialLinks = filledSocialLinks(author.socialLinks);
@@ -70,16 +67,7 @@ export default function AuthorHeader({ author, following, onFollowChange }) {
         )}
 
         <div className="flex flex-col items-center gap-5 pt-1 sm:flex-row sm:items-center">
-          <FollowAuthorButton
-            authorId={author._id}
-            size="md"
-            isSelf={author.isSelf}
-            following={following}
-            onToggle={onFollowChange}
-          />
-
           <div className="flex items-center gap-6">
-            <Stat value={stats.followers || 0} label="Followers" />
             <Stat value={stats.stories || 0} label="Stories" />
             <Stat value={stats.likes || 0} label="Likes" />
           </div>

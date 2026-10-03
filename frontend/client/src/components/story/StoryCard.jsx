@@ -118,7 +118,7 @@ export default function StoryCard({
         </div>
       </Link>
 
-      {/* Author — the whole row opens their profile, where following lives */}
+      {/* Author — the whole row opens their profile */}
       <div className="p-5 pb-3">
         <Link
           to={`/authors/${author._id}`}

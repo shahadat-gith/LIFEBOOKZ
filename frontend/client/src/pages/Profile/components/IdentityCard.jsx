@@ -26,7 +26,7 @@ export default function IdentityCard({
   return (
     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs">
       {/* The crop already fixed the ratio at upload, so the banner simply
-          follows it: one 16:9 image on every screen size. */}
+          uses: one 16:9 image on every screen size. */}
       <div className="relative aspect-video bg-gradient-to-r from-primary via-primary to-accent/70">
         {hasCover ? (
           <img

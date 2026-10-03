@@ -1,5 +1,3 @@
-import { Icons } from '../../icons';
-
 const variantClasses = {
   default: 'bg-muted text-muted-foreground',
   primary: 'bg-primary/10 text-primary',

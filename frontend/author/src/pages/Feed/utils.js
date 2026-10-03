@@ -13,7 +13,6 @@ export const EMPTY_FILTERS = {
   authorName: "",
   profession: "",
   gender: "",
-  followingOnly: false,
 };
 
 /**
@@ -22,12 +21,11 @@ export const EMPTY_FILTERS = {
  * Unset filters are left out entirely so the request URL stays readable and
  * the API keeps its defaults.
  */
-export function feedQuery({ profession, authorName, gender, followingOnly }) {
+export function feedQuery({ profession, authorName, gender }) {
   const params = {};
   if (profession) params.profession = profession;
   if (authorName) params.authorName = authorName;
   if (gender) params.gender = gender;
-  if (followingOnly) params.following = "true";
   return params;
 }
 
@@ -38,6 +36,6 @@ export function feedQuery({ profession, authorName, gender, followingOnly }) {
  * applied" test, so the two can never disagree.
  */
 export function activeFilterCount(filters = {}) {
-  return [filters.profession, filters.authorName, filters.gender, filters.followingOnly]
+  return [filters.profession, filters.authorName, filters.gender]
     .filter(Boolean).length;
 }

@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 
 import { useAuth } from "../../context/AuthContext";
 import useMyStories from "../../hooks/useMyStories";
-import useMyActivity from "../../hooks/useMyActivity";
 import * as storyApi from "../../utils/storyApi";
 import { apiErrorMessage, bookId, chapterId } from "../../utils/helpers";
 import ErrorBanner from "../../components/common/ErrorBanner";
@@ -19,7 +18,6 @@ import {
 import DashboardStats from "./components/DashboardStats";
 import LifebookCard from "./components/LifebookCard";
 import StoryList from "./components/StoryList";
-import ActivityFeed from "./components/ActivityFeed";
 import RecentLikers from "./components/RecentLikers";
 
 /**
@@ -27,8 +25,7 @@ import RecentLikers from "./components/RecentLikers";
  *
  * The lifebooks are the single source of truth: the tiles, the cards and the
  * story list are all derived from the same loaded data, so no two views of the
- * dashboard can disagree. Activity comes from the notification stream, which
- * already resolves each actor from their own account.
+ * dashboard can disagree.
  */
 export default function StoryDashboardPage() {
   const navigate = useNavigate();
@@ -38,7 +35,6 @@ export default function StoryDashboardPage() {
   const { stories: books, setStories, loading, error, reload } = useMyStories({
     enabled: Boolean(authorId),
   });
-  const activity = useMyActivity({ enabled: Boolean(authorId) });
 
   const [removingId, setRemovingId] = useState(null);
 
@@ -52,11 +48,6 @@ export default function StoryDashboardPage() {
     );
 
   const openStory = (book) => navigate(`/feed/story/${book.slug}`);
-
-  function handleActivityOpen(notification) {
-    if (!notification.read) activity.markRead(notification.id);
-    if (notification.link?.startsWith("/")) navigate(notification.link);
-  }
 
   /** Remove one story from its chapter — drafts and published alike. */
   async function handleRemove(row) {
@@ -179,14 +170,7 @@ export default function StoryDashboardPage() {
           />
         </div>
 
-        <aside className="min-w-0 space-y-5">
-          <ActivityFeed
-            items={activity.items}
-            loading={activity.loading}
-            error={activity.error}
-            onRetry={activity.reload}
-            onOpen={handleActivityOpen}
-          />
+        <aside className="min-w-0">
           <RecentLikers likers={likers} />
         </aside>
       </div>

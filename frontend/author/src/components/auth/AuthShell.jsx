@@ -16,7 +16,7 @@ const HIGHLIGHTS = [
   {
     icon: Icons.shieldCheck,
     title: "You own your privacy",
-    text: "Choose who reads each chapter — everyone, followers, or only you.",
+    text: "Choose who reads each chapter — everyone, or only you.",
   },
 ];
 

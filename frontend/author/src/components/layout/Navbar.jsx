@@ -5,18 +5,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import Avatar from "../ui/Avatar";
-import NotificationsDrawer from "./NotificationsDrawer";
-import useNotifications from "../../hooks/useNotifications";
-import api from "../../config/api";
 
 export function Navbar() {
   const { author, isAuthenticated, logout } = useAuth();
   const loc = useLocation();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { unread } = useNotifications(api, { enabled: isAuthenticated });
 
   const isA = (p) => loc.pathname === p;
 
@@ -66,24 +61,8 @@ export function Navbar() {
           {/* Desktop: navigation lives in the profile dropdown; mobile:
               bottom tabs carry the nav. Nothing inline here. */}
 
-          {/* Right cluster: notifications + profile */}
+          {/* Right cluster: profile */}
           <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => setNotifOpen(true)}
-                aria-label="Notifications"
-                className="relative w-9 h-9 rounded-full flex items-center justify-center text-foreground hover:bg-muted transition-colors"
-              >
-                <Icons.bell className="h-5 w-5" />
-                {unread > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent ring-2 ring-background flex items-center justify-center text-[9px] font-bold text-accent-foreground">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
-              </button>
-            )}
-
             {/* Desktop User Profile / Auth Area */}
             {isAuthenticated && author ? (
               <div className="relative hidden md:block" ref={dropdownRef}>
@@ -171,9 +150,6 @@ export function Navbar() {
             ) : null}
           </div>
         </div>
-
-        {/* Dummy notifications drawer (mock data for now) */}
-        <NotificationsDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
       </div>
     </header>
   );

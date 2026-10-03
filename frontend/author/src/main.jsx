@@ -1,4 +1,3 @@
-import { Suspense, lazy, useEffect } from "react";
 import {BrowserRouter} from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { createRoot } from "react-dom/client";

@@ -18,12 +18,12 @@ export function formatJoined(value) {
 }
 
 /** The booking list as the four stat tiles read it. */
-export function summarizeBookings(bookings = []) {
+export function summarizeBookings(consultations = []) {
   return {
-    total: bookings.length,
-    upcoming: bookings.filter((b) =>
-      ["pending", "confirmed"].includes(b.status),
+    total: consultations.length,
+    upcoming: consultations.filter((c) =>
+      ["PENDING", "CONFIRMED", "IN_PROGRESS"].includes(c.status),
     ).length,
-    completed: bookings.filter((b) => b.status === "completed").length,
+    completed: consultations.filter((c) => c.status === "COMPLETED").length,
   };
 }

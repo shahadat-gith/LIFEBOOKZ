@@ -16,7 +16,7 @@ export default function StoryCardSkeleton({ showActions = true }) {
             <div className="h-2.5 bg-foreground/8 rounded-md w-16" />
           </div>
         </div>
-        {/* Follow button */}
+        {/* Action button */}
         <div className="h-8 w-8 rounded-full bg-foreground/12" />
       </div>
 

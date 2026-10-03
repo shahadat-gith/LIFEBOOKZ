@@ -51,7 +51,7 @@ export function countWords(text) {
  *
  * Past a month a relative label stops meaning much, so anything older is
  * shown as a short date instead. This is the portal's only timestamp helper:
- * feeds, activity, notifications and comments all read the same way.
+ * feeds, activity and comments all read the same way.
  */
 export function getTimeAgo(date) {
   const then = new Date(date).getTime();

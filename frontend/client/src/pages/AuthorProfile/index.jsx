@@ -15,16 +15,14 @@ import AuthorSkeleton from "./components/AuthorSkeleton";
 /**
  * An author's public profile.
  *
- * This is where following happens: `GET /authors/:id` reports whether the
- * signed-in reader already follows this author, so the button is correct
- * from the first paint instead of being fetched again here.
+ * The profile and the author's lifebooks are independent reads, so they
+ * load in parallel and one failing never blanks the other.
  */
 export default function AuthorProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [author, setAuthor] = useState(null);
-  const [following, setFollowing] = useState(false);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [storiesLoading, setStoriesLoading] = useState(true);
@@ -41,10 +39,7 @@ export default function AuthorProfilePage() {
 
     api
       .get(`/authors/${id}`)
-      .then((res) => {
-        setAuthor(res.data.data);
-        setFollowing(Boolean(res.data.data.isFollowedByLoggedInUser));
-      })
+      .then((res) => setAuthor(res.data.data))
       .catch((err) => {
         setAuthor(null);
         setError(
@@ -91,7 +86,7 @@ export default function AuthorProfilePage() {
         Back
       </button>
 
-      <AuthorHeader author={author} following={following} onToggle={setFollowing} />
+      <AuthorHeader author={author} />
 
       {/* What they have written */}
       <div className="mt-8">

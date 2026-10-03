@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import * as storyClient from "../utils/storyApi";
 
 /**
- * Social counters for the author's profile (followers / following / likes).
+ * Engagement counters for the author's profile (likes).
  *
  * Chapters and stories are deliberately *not* read here — they are counted
  * from the lifebooks the profile already has loaded, so every view of a

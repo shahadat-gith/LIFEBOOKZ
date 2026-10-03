@@ -38,8 +38,8 @@ export default function BookSessionCallout({ onBook }) {
             onClick={onBook}
             className="group inline-flex items-center gap-3 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/30"
           >
-            <Icons.chat className="h-4 w-4" />
-            <span>Book a Session with an Expert</span>
+            <Icons.videoCamera className="h-4 w-4" />
+            <span>Book a 1-on-1 Video Session</span>
             <Icons.arrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           </button>
         </div>

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import api from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import { Icons } from "../../icons";
 import LoadingScreen from "../../components/common/LoadingScreen";
@@ -10,33 +9,38 @@ import SignInPrompt from "../../components/common/SignInPrompt";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 
+import * as consultApi from "../../api/consultation";
+
 import BookingCard from "./components/BookingCard";
+import RatingDialog from "./components/RatingDialog";
 
 /**
- * The reader's consultation requests.
- *
- * The page owns the list and the cancel flow; each booking renders itself.
+ * The reader's consultations — one card per session with the action that
+ * matches its state: join the room (payment happens at its door), rate when
+ * completed, cancel while still open.
  */
 export default function MyBookings() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
-  const [bookings, setBookings] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+  const [ratingTarget, setRatingTarget] = useState(null);
 
-  const loadBookings = useCallback(async () => {
+  const loadConsultations = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const res = await api.get("/consult/bookings");
-      setBookings(res.data?.data || []);
+      const data = await consultApi.listMine();
+      setConsultations(data || []);
     } catch (err) {
       setError(
         err.response?.data?.error?.message ||
-          "We couldn't load your bookings. Please try again.",
+          "We couldn't load your sessions. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -49,26 +53,35 @@ export default function MyBookings() {
       setLoading(false);
       return;
     }
-    loadBookings();
-  }, [authLoading, isAuthenticated, loadBookings]);
+    loadConsultations();
+  }, [authLoading, isAuthenticated, loadConsultations]);
 
-  const handleCancel = async (bookingId) => {
-    setCancellingId(bookingId);
+  const handleJoin = (consultation) => {
+    const id = consultation._id || consultation.id;
+    navigate(`/consult/${id}/session`);
+  };
+
+  const handleRate = async (consultation, score, review) => {
+    const id = consultation._id || consultation.id;
+    await consultApi.rate(id, score, review);
+    await loadConsultations();
+  };
+
+  const handleCancel = async (consultationId) => {
+    setCancellingId(consultationId);
 
     try {
-      await api.patch(`/consult/bookings/${bookingId}/cancel`);
-      setBookings((prev) =>
-        prev.map((booking) =>
-          (booking._id || booking.id) === bookingId
-            ? { ...booking, status: "cancelled" }
-            : booking,
+      await consultApi.cancel(consultationId);
+      setConsultations((prev) =>
+        prev.map((c) =>
+          (c._id || c.id) === consultationId ? { ...c, status: "CANCELLED" } : c,
         ),
       );
-      toast.success("Booking cancelled.");
+      toast.success("Session cancelled.");
     } catch (err) {
       toast.error(
         err.response?.data?.error?.message ||
-          "We couldn't cancel this booking. Please try again.",
+          "We couldn't cancel this session. Please try again.",
       );
     } finally {
       setCancellingId(null);
@@ -77,13 +90,13 @@ export default function MyBookings() {
   };
 
   if (authLoading || (isAuthenticated && loading)) {
-    return <LoadingScreen message="Loading your bookings…" />;
+    return <LoadingScreen message="Loading your sessions…" />;
   }
 
   if (!isAuthenticated) {
     return (
       <SignInPrompt
-        title="Sign in to see your bookings"
+        title="Sign in to see your sessions"
         description="Your consultation sessions are tied to your account. Log in to view and manage them."
       />
     );
@@ -100,22 +113,23 @@ export default function MyBookings() {
             My Bookings
           </h1>
           <p className="mx-auto max-w-2xl text-sm text-muted-foreground md:text-base">
-            Track your consultation requests and manage your upcoming sessions.
+            Track your consultation requests — once the expert confirms, join
+            the room, pay at the door, and rate the session afterwards.
           </p>
         </header>
 
         {error ? (
           <ErrorState
-            title="Bookings didn't load"
+            title="Sessions didn't load"
             message={error}
-            onRetry={loadBookings}
+            onRetry={loadConsultations}
           />
-        ) : bookings.length === 0 ? (
+        ) : consultations.length === 0 ? (
           <EmptyState
             variant="panel"
             icon={Icons.book}
-            title="No bookings yet"
-            description="Find an expert who understands your situation and book your first session."
+            title="No sessions yet"
+            description="Find an expert who understands your situation and request your first session."
             action={{
               label: "Find an Expert",
               to: "/consult/book",
@@ -124,36 +138,46 @@ export default function MyBookings() {
           />
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => {
-              const id = booking._id || booking.id;
+            {consultations.map((consultation) => {
+              const id = consultation._id || consultation.id;
 
               return (
                 <BookingCard
                   key={id}
-                  booking={booking}
+                  consultation={consultation}
                   confirming={confirmingId === id}
                   cancelling={cancellingId === id}
                   onConfirm={() => setConfirmingId(id)}
                   onDismissConfirm={() => setConfirmingId(null)}
-                  onCancel={handleCancel}
+                  onCancel={() => handleCancel(id)}
+                  onJoin={() => handleJoin(consultation)}
+                  onRate={() => setRatingTarget(consultation)}
                 />
               );
             })}
           </div>
         )}
 
-        {bookings.length > 0 && (
+        {consultations.length > 0 && (
           <div className="pt-2 text-center">
             <Link
               to="/consult/book"
               className="inline-flex items-center gap-2 text-sm font-bold text-accent hover:underline"
             >
               <Icons.plus className="h-4 w-4" />
-              Book another session
+              Request another session
             </Link>
           </div>
         )}
       </div>
+
+      {ratingTarget && (
+        <RatingDialog
+          consultation={ratingTarget}
+          onClose={() => setRatingTarget(null)}
+          onSubmit={handleRate}
+        />
+      )}
     </div>
   );
 }

@@ -3,10 +3,7 @@ import moment from "moment";
 /**
  * Derivations for an author's public profile.
  *
- * Everything here reads the payload of `GET /authors/:id`, which already
- * answers the questions this page would otherwise re-ask: whether the
- * signed-in account follows this author, and whether the profile is the
- * viewer's own.
+ * Everything here reads the payload of `GET /authors/:id`.
  */
 
 /** "March 2026" — when the author joined. */
@@ -26,7 +23,7 @@ export function filledSocialLinks(socialLinks = {}) {
     .map(([key, url]) => ({ key, url }));
 }
 
-/** The author's own profile — no follow button, no follower counts. */
+/** True when the profile being viewed is the signed-in author's own. */
 export function isOwnProfile(author = {}) {
   return Boolean(author.isSelf);
 }

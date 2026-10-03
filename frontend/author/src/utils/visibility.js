@@ -3,7 +3,7 @@ import { Icons } from "../icons";
 /**
  * Who can read a story.
  *
- * A story's audience is its own setting, so the same three levels are offered
+ * A story's audience is its own setting, so the same two levels are offered
  * wherever a story is written, listed or read. Keeping the wording in one
  * place stops the wizard and the profile describing the same level
  * differently.
@@ -15,13 +15,6 @@ export const VISIBILITY_OPTIONS = [
     shortLabel: "Everyone",
     description: "Anyone on Lifebookz can see this story.",
     icon: Icons.globe,
-  },
-  {
-    value: "followers",
-    label: "Followers",
-    shortLabel: "Followers only",
-    description: "Only your followers can see this story.",
-    icon: Icons.user,
   },
   {
     value: "private",
@@ -43,6 +36,5 @@ export function visibilityOption(value) {
 /** Confirmation shown after a story's audience changes. */
 export function visibilitySavedMessage(value) {
   if (value === "public") return "Story is now visible to everyone";
-  if (value === "followers") return "Story is now visible to followers only";
   return "Story is now private — only you can see it";
 }

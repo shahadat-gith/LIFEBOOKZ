@@ -331,13 +331,14 @@ export default function Register() {
                         icon={<Icons.clock className="h-4 w-4" />}
                       />
                       <Input
-                        label="Session price (USD)"
+                        label="Session price (₹)"
                         type="number"
                         min="0"
                         value={form.price}
                         onChange={(e) => update("price", e.target.value)}
                         placeholder="Enter session price"
                         icon={<Icons.money className="h-4 w-4" />}
+                        helperText="Clients pay when they enter the session."
                       />
                     </div>
 
@@ -356,7 +357,7 @@ export default function Register() {
                   <CardTitle className="mb-2">Consultancy categories</CardTitle>
                   <p className="mb-4 text-xs text-muted-foreground">
                     Pick every category you&apos;re comfortable consulting in.
-                    These power the search that matches you with people.
+                    These power the matching that connects you with clients.
                   </p>
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

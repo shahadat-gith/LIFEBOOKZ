@@ -97,7 +97,6 @@ export default function FeedPage() {
   }, [
     filters.profession,
     filters.gender,
-    filters.followingOnly,
     filters.authorName,
     viewerId,
   ]);

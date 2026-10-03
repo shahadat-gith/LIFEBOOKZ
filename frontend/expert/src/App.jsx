@@ -9,6 +9,7 @@ import ScrollToTop from './components/common/ScrollToTop';
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SessionPage = lazy(() => import('./pages/Session'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -36,6 +37,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consult/:consultationId/session"
+              element={
+                <ProtectedRoute>
+                  <SessionPage />
                 </ProtectedRoute>
               }
             />

@@ -141,7 +141,7 @@ export default function StoryDetailPage() {
       </h1>
       <div className="mt-3 h-1 w-14 rounded-full bg-accent" aria-hidden="true" />
 
-      {/* Byline — the author's page takes over from here, follow included */}
+      {/* Byline — the author's page takes over from here */}
       <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <span>By</span>
         <Link

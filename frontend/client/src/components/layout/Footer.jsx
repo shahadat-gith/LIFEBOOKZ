@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Icons } from "../../icons";
 
 export function Footer() {
 

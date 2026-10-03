@@ -31,7 +31,6 @@ export default function FilterModal({
   draft,
   professions = [],
   professionsLoading = false,
-  canFilterFollowing = false,
   onChange,
   onClear,
   onApply,
@@ -172,43 +171,6 @@ export default function FilterModal({
                 </div>
               </Field>
 
-              {/* Following only — signed-in readers have a follow list */}
-              {canFilterFollowing && (
-                <div>
-                  <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Authors
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChange("followingOnly", !draft.followingOnly)
-                    }
-                    aria-pressed={draft.followingOnly}
-                    className={`inline-flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${
-                      draft.followingOnly
-                        ? "border-primary bg-primary/5 text-foreground"
-                        : "border-border/60 bg-background text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Icons.heartRegular className="h-4 w-4" />
-                      Only authors I follow
-                    </span>
-
-                    <span
-                      className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${
-                        draft.followingOnly ? "bg-primary" : "bg-border"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-card transition-all ${
-                          draft.followingOnly ? "left-[1.125rem]" : "left-0.5"
-                        }`}
-                      />
-                    </span>
-                  </button>
-                </div>
-              )}
             </div>
 
             <footer className="border-t border-border/60 px-5 py-3.5">
